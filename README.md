@@ -1,5 +1,8 @@
-# attatool
+# autoforge
 
-Library and application generator and dependency manager based on GNU Autotools (Autoconf, Automake, Libtool)
+This project has two goals:
 
-This is a bootstrapping tool for GNU Autotools and a meta-Makefile generator.
+- Generate all required files to build projects (libraries and applications)
+  from sources using GNU Autotools (Autoconf, Automake, Libtool).
+- Mainain dependencies between the projects and provide a meta-Makefile
+  to build those projects in the correct order.
