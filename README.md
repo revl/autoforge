@@ -1,5 +1,8 @@
 # autoforge
 
+_This project is under active development, but it's far from being ready.
+Please do not attempt to make use of it until this notice disappears._
+
 This project has two goals:
 
 - Generate all required files to build C/C++ projects (libraries and
