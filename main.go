@@ -6,6 +6,8 @@ import (
 	"os"
 )
 
+var pkgPathEnvVar = "AUTOFORGE_PKGPATH"
+
 func main() {
 	// Handle panics by printing the error and exiting with return code 1.
 	defer func() {
@@ -27,6 +29,9 @@ func main() {
 
 	initFlag := flag.Bool("init", false, "initialize a new workspace")
 
+	query := flag.Bool("query", false,
+		"print the list of packages found in $"+pkgPathEnvVar)
+
 	installdir := flag.String("installdir", "",
 		"target directory for 'make install'")
 
@@ -37,11 +42,22 @@ func main() {
 		"default makefile target")
 
 	quiet := flag.Bool("quiet", false,
-		"do not log progress to standard output")
+		"do not display progress and result of operation")
+
+	pkgpath := flag.String("pkgpath", "",
+		"the list of directories where to search for packages")
+
+	workspacedir := flag.String("workspacedir", ".",
+		"pathname of the workspace directory")
 
 	flag.Parse()
 
-	if *initFlag {
-		initializeWorkspace(*installdir, *docdir, *maketarget, *quiet)
+	switch {
+	case *initFlag:
+		initializeWorkspace(*workspacedir, *pkgpath, *installdir,
+			*docdir, *maketarget, *quiet)
+	case *query:
+		queryPackages(*workspacedir, *pkgpath)
+		break
 	}
 }
