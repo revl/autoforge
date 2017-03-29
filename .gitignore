@@ -23,6 +23,7 @@ _cgo_gotypes.go
 _cgo_export.*
 
 _testmain.go
+cover.out
 
 *.exe
 *.test
