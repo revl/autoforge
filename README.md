@@ -7,10 +7,14 @@ Please do not attempt to make use of it until this notice disappears._
 
 # autoforge
 
-This project has two goals:
+This utility is an attempt to add a higher level of abstraction to GNU
+Autotools as a build system. Autoforge uses a project definition file in
+YAML format to generate all autoconf and automake files from a project
+template.  It also tracks dependencies between projects and creates a
+meta-Makefile to build those projects in the correct order.
 
-- Generate all required files to build C/C++ projects (libraries and
-  applications) from sources using GNU Autotools (Autoconf, Automake,
-  Libtool).
-- Mainain dependencies between the projects and provide a meta-Makefile
-  to build those projects in the correct order.
+Because project templates encapsulate a great deal of complexity that
+comes with using Autotools, the structure of the project definition file
+is quite simple, which makes starting a new project a breeze.
+
+## Packages
