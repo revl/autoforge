@@ -58,6 +58,5 @@ func main() {
 			*docdir, *maketarget, *quiet)
 	case *query:
 		queryPackages(*workspacedir, *pkgpath)
-		break
 	}
 }
