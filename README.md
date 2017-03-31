@@ -18,3 +18,10 @@ comes with using Autotools, the structure of the project definition file
 is quite simple, which makes starting a new project a breeze.
 
 ## Packages
+
+A collection of C/C++ source files along with a project definition file
+in the format recognized by Autoforge is called a package. The project
+definition file specifies a template that the package uses. That
+template determines the type of binary that the package produces.
+
+## Package templates
