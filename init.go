@@ -16,7 +16,7 @@ func loadInitParams() initParams {
 func initializeWorkspace(workspacedir, pkgpath, installdir, docdir,
 	maketarget string, quiet bool) {
 
-	fmt.Println("Initializing a new workspace...")
+	fmt.Printf("Initializing a new workspace for %s...\n", appName)
 	ip := initParams{OutputDir: "/home"}
 	out, err := yaml.Marshal(&ip)
 	if err != nil {

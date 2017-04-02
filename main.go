@@ -6,13 +6,15 @@ import (
 	"os"
 )
 
+var appName = "autoforge"
+
 var pkgPathEnvVar = "AUTOFORGE_PKGPATH"
 
 func main() {
 	// Handle panics by printing the error and exiting with return code 1.
 	defer func() {
 		if err := recover(); err != nil {
-			fmt.Fprintf(os.Stderr, "autoforge: %s\n", err)
+			fmt.Fprintf(os.Stderr, "%s: %s\n", appName, err)
 
 			os.Exit(1)
 		}
@@ -21,8 +23,7 @@ func main() {
 	// Parse and process command line arguments.
 
 	flag.Usage = func() {
-		fmt.Printf("Usage: %s [options] [package_range]\n\n",
-			os.Args[0])
+		fmt.Printf("Usage: %s [options] [package_range]\n\n", appName)
 
 		flag.PrintDefaults()
 	}
