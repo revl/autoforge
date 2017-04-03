@@ -1,8 +1,8 @@
 package main
 
 import (
-	"io/ioutil"
 	"gopkg.in/yaml.v2"
+	"io/ioutil"
 )
 
 type packageDefinition struct {
