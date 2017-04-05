@@ -24,4 +24,8 @@ Because project templates encapsulate a great deal of complexity that
 comes with using Autotools, the structure of the project definition file
 is quite simple, which makes starting a new project a breeze.
 
-## Package templates
+## Project templates
+
+Project templates contain autoconf and automake source files required
+for building the project. Autoforge provides several generic templates.
+Additional templates can be created ad hoc.
