@@ -15,14 +15,14 @@ correct order.
 
 ## Packages
 
-An Autoforge package is a collection of C/C++ source files combined with
-a project definition file in YAML format. Among other parameters, the
-project definition file specifies a template that the package uses,
-which, in turn, determines the type of binary that the package produces.
+An Autoforge package is a collection of C/C++ source files combined
+with a project definition file. Among other parameters, the project
+definition file specifies a template that the package uses, which,
+in turn, determines the type of binary that the package produces.
 
 Because project templates encapsulate a great deal of complexity that
-comes with using Autotools, the structure of the project definition file
-is quite simple, which makes starting a new project a breeze.
+comes with using Autotools, the structure of the project definition
+file is quite simple, which makes starting a new project a breeze.
 
 ## Project templates
 
