@@ -8,7 +8,7 @@ import (
 
 var appName = "autoforge"
 
-var pkgPathEnvVar = "AUTOFORGE_PKGPATH"
+var pkgPathEnvVar = "AUTOFORGE_PKG_PATH"
 
 func main() {
 	// Handle panics by printing the error and exiting with return code 1.
