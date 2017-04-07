@@ -29,3 +29,11 @@ file is quite simple, which makes starting a new project a breeze.
 Project templates contain autoconf and automake source files required
 for building the project. Autoforge provides several generic templates.
 Additional templates can be created ad hoc.
+
+## Project definition files
+
+By imposing certain restrictions on the project structure, Autoforge
+limits the differences between the projects generated from the same
+template to just a few crucial variables: the name and the description
+of the project, the type of the license it uses, and so on. These
+variables are saved in what is called a project definition file.
