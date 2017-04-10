@@ -16,15 +16,16 @@ correct order.
 ## Packages
 
 An Autoforge package is a directory containing C/C++ source files and a
-project definition file. The name of the file must match the name of the
-directory, and the file extension must be `.yaml`. Among other
-parameters, the project definition file specifies a template that the
-package uses, which, in turn, determines the type of binary that the
-package produces.
+package definition file, whose name must consists of the name of the
+package directory and the extension `.yaml`.
+
+Among other parameters, the package definition file specifies a template
+that the package uses, which, in turn, determines the type of binary
+that the package produces.
 
 Because project templates encapsulate a great deal of complexity that
-comes with using Autotools, the structure of the project definition
-file is quite simple, which makes starting a new project a breeze.
+comes with using Autotools, the structure of the package definition file
+is quite simple, which makes starting a new project a breeze.
 
 ## Project templates
 
