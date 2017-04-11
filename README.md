@@ -39,7 +39,9 @@ By imposing certain restrictions on the project structure, Autoforge
 keeps the differences between the projects generated from the same
 template to a minimum. For a new project, its package definition file
 must specify just a few crucial parameters, such as the name of the
-project, the type of the license it uses, etc.
+project, the type of the license it uses, etc. A separate section
+below describes the full list of parameters that can appear in a
+package definition file.
 
 ## Package search path
 
@@ -47,3 +49,43 @@ The `AUTOFORGE_PKG_PATH` environment variable defines a colon-separated
 list of directories that contain packages.  Autoforge searches for
 package definition files in subdirectories of the `AUTOFORGE_PKG_PATH`
 directories. Subdirectories without such files are ignored.
+
+## The list of package definition file parameters
+
+Here is the full list of variables that can appear in a package
+definition file:
+
+- `name`
+
+  The name of the package. This name does not have to match the name
+  of the directory that contains the package.
+
+- `template`
+
+  The name of the package template. At the moment, either `library` or
+  `application`.
+
+- `version`
+
+  Package version for use by Automake.
+
+- `version_info`
+
+  API/ABI revision for use by Libtool.
+
+- `requires`
+
+  The list of libraries that the package requires.
+
+- `headers`
+
+  For a library, the list of C/C++ headers exported by the library.
+
+- `sources`
+
+  The list of C/C++ sources containing the implementation.
+
+- `configure`
+
+  A snippet to be embedded in the `configure.in` file. Can be a mix of
+  Bourne shell code and Autoconf macros.
