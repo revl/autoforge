@@ -69,6 +69,11 @@ definition file:
 
   Package version for use by Automake.
 
+- `license`
+
+  Either a short name of the license ("MIT", "LGPL", "GPL", "Apache",
+  "Apache v2.0", etc.) or the full text of the license.
+
 - `version_info`
 
   API/ABI revision for use by Libtool.
