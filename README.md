@@ -50,7 +50,17 @@ list of directories that contain packages.  Autoforge searches for
 package definition files in subdirectories of the `AUTOFORGE_PKG_PATH`
 directories. Subdirectories without such files are ignored.
 
-## The list of package definition file parameters
+## Build directories
+
+Autoforge requires that the packages are built in a dedicated directory
+separate from the source tree. A new build directory must be initialized
+first by running `autoforge -init`. Certain build configuration
+parameters can be specified only during the initialization.
+
+The purpose of each build directory is defined by the combination of
+libraries and applications being built.
+
+## Appendix. The list of package definition file parameters
 
 Here is the full list of variables that can appear in a package
 definition file:
