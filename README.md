@@ -60,6 +60,13 @@ parameters can be specified only during the initialization.
 The purpose of each build directory is defined by the combination of
 libraries and applications being built.
 
+## Autoforge commands
+
+Using Autoforge is an iterative process. Aside from a very limited
+number of configuration parameters specified during the initialization,
+the build directory can be repurposed at any time by choosing a
+different range of packages to build.
+
 ## Appendix. The list of package definition file parameters
 
 Here is the full list of variables that can appear in a package
