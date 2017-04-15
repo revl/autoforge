@@ -67,6 +67,27 @@ number of configuration parameters specified during the initialization,
 the build directory can be repurposed at any time by choosing a
 different range of packages to build.
 
+To initialize the build directory, use the `-init` switch. The following
+options define the initialization parameters:
+
+- `-installdir`
+
+  Set the target directory for `make install`.
+
+- `-docdir`
+
+  Set the installation directory for documentation.
+
+- `-pkgpath`
+
+  The list of directories where to search for packages. This parameter
+  overrides the value of the `$AUTOFORGE_PKG_PATH` environment variable.
+
+- `-workspacedir`
+
+  Set the build directory, which is the current working directory
+  by default.
+
 ## Appendix. The list of package definition file parameters
 
 Here is the full list of variables that can appear in a package
