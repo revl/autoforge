@@ -88,6 +88,21 @@ options define the initialization parameters:
   Set the build directory, which is the current working directory
   by default.
 
+After the build directory has been initialized, Autotools source files
+must be generated for one or more packages, which must be specified on
+the command line as a list of individual packages or a range of packages,
+see below. This is the default mode of operation for Autoforge; it is
+activated when no other mode is triggered by a command line switch (e.g.
+`-init`).
+
+The package range is a selection of packages in the following format:
+`[base_pkg]:[dep_pkg]`, where `base_pkg` is a base package and `dep_pkg`
+is a package that requires it. When specified like that, the selection
+includes the dependency chain of packages from `base_pkg` to `dep_pkg`.
+Both base and dependent packages can be omitted, in which case all base
+packages or all dependent packages, respectively, will be included in
+the selection.
+
 ## Appendix. The list of package definition file parameters
 
 Here is the full list of variables that can appear in a package
