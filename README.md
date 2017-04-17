@@ -62,10 +62,15 @@ libraries and applications being built.
 
 ## Autoforge commands
 
-Using Autoforge is an iterative process. Aside from a very limited
-number of configuration parameters specified during the initialization,
-the build directory can be repurposed at any time by choosing a
-different range of packages to build.
+### Get information on the available packages
+
+The `-query` switch shows the list of all packages found on the search
+paths along with package descriptions and other essential information.
+
+To suppress this detailed output and limit the list to just package
+names, use the `-brief` option.
+
+### Initialize the build directory
 
 To initialize the build directory, use the `-init` switch. The following
 options define the initialization parameters:
@@ -87,6 +92,13 @@ options define the initialization parameters:
 
   Set the build directory, which is the current working directory
   by default.
+
+### Prepare packages for building and generate the meta-Makefile
+
+Using Autoforge is an iterative process. Aside from a very limited
+number of configuration parameters specified during the initialization,
+the build directory can be repurposed at any time by choosing a
+different range of packages to build.
 
 After the build directory has been initialized, Autotools source files
 must be generated for one or more packages, which must be specified on
