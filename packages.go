@@ -5,8 +5,10 @@
 package main
 
 import (
+	"fmt"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	"strings"
 )
 
 type packageDefinition struct {
@@ -29,4 +31,18 @@ func loadPackageDefinition(pathname string) packageDefinition {
 	}
 
 	return pd
+}
+
+type packageIndex struct {
+}
+
+func buildPackageIndex(pkgPath string) packageIndex {
+	paths := strings.Split(pkgPath, ":")
+
+	for i, path := range paths {
+		fmt.Println(i)
+		fmt.Println(path)
+	}
+
+	return packageIndex{}
 }
