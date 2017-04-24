@@ -12,4 +12,6 @@ func queryPackages(workspacedir, pkgpath string) {
 	pd := loadPackageDefinition("examples/packages/greeting/greeting.yaml")
 
 	fmt.Println(pd.Name)
+
+	buildPackageIndex(pkgpath)
 }

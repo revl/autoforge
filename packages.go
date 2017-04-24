@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	"os"
 	"strings"
 )
 
@@ -36,8 +37,19 @@ func loadPackageDefinition(pathname string) packageDefinition {
 type packageIndex struct {
 }
 
-func buildPackageIndex(pkgPath string) packageIndex {
-	paths := strings.Split(pkgPath, ":")
+func buildPackageIndex(pkgpath string) packageIndex {
+	if len(pkgpath) == 0 {
+		pkgpath = os.Getenv(pkgPathEnvVar)
+
+		if len(pkgpath) == 0 {
+			// TODO Report the error
+		}
+	}
+	fmt.Println(pkgpath)
+
+	paths := strings.Split(pkgpath, ":")
+
+	fmt.Println(len(paths))
 
 	for i, path := range paths {
 		fmt.Println(i)
