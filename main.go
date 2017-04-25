@@ -14,13 +14,17 @@ var appName = "autoforge"
 
 var pkgPathEnvVar = "AUTOFORGE_PKG_PATH"
 
+func printErrorAndExit(err string) {
+	fmt.Fprintf(os.Stderr, "%s: %s\n", appName, err)
+
+	os.Exit(1)
+}
+
 func main() {
 	// Handle panics by printing the error and exiting with return code 1.
 	defer func() {
 		if err := recover(); err != nil {
-			fmt.Fprintf(os.Stderr, "%s: %s\n", appName, err)
-
-			os.Exit(1)
+			printErrorAndExit(err.(string))
 		}
 	}()
 
@@ -57,11 +61,17 @@ func main() {
 
 	flag.Parse()
 
+	var err error
+
 	switch {
 	case *initFlag:
 		initializeWorkspace(*workspacedir, *pkgpath, *installdir,
 			*docdir, *maketarget, *quiet)
 	case *query:
-		queryPackages(*workspacedir, *pkgpath)
+		err = queryPackages(*workspacedir, *pkgpath)
+	}
+
+	if err != nil {
+		printErrorAndExit(err.Error())
 	}
 }

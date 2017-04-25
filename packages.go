@@ -5,6 +5,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
@@ -37,12 +38,14 @@ func loadPackageDefinition(pathname string) packageDefinition {
 type packageIndex struct {
 }
 
-func buildPackageIndex(pkgpath string) packageIndex {
+func buildPackageIndex(pkgpath string) (packageIndex, error) {
 	if len(pkgpath) == 0 {
 		pkgpath = os.Getenv(pkgPathEnvVar)
 
 		if len(pkgpath) == 0 {
-			// TODO Report the error
+			return packageIndex{}, errors.New(
+				"-pkgpath is not given and $" +
+					pkgPathEnvVar + " is not defined")
 		}
 	}
 	fmt.Println(pkgpath)
@@ -56,5 +59,13 @@ func buildPackageIndex(pkgpath string) packageIndex {
 		fmt.Println(path)
 	}
 
-	return packageIndex{}
+	return packageIndex{}, nil
+}
+
+func (pkgIndex *packageIndex) printListOfPackages() {
+	fmt.Println("List of packages:")
+
+	pd := loadPackageDefinition("examples/packages/greeting/greeting.yaml")
+
+	fmt.Println(pd.Name)
 }

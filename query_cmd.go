@@ -4,14 +4,14 @@
 
 package main
 
-import "fmt"
+func queryPackages(workspacedir, pkgpath string) error {
+	packageIndex, err := buildPackageIndex(pkgpath)
 
-func queryPackages(workspacedir, pkgpath string) {
-	fmt.Println("List of packages:")
+	if err != nil {
+		return err
+	}
 
-	pd := loadPackageDefinition("examples/packages/greeting/greeting.yaml")
+	packageIndex.printListOfPackages()
 
-	fmt.Println(pd.Name)
-
-	buildPackageIndex(pkgpath)
+	return nil
 }
