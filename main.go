@@ -23,8 +23,12 @@ func printErrorAndExit(err string) {
 func main() {
 	// Handle panics by printing the error and exiting with return code 1.
 	defer func() {
-		if err := recover(); err != nil {
-			printErrorAndExit(err.(string))
+		if r := recover(); r != nil {
+			if err, ok := r.(error); ok {
+				printErrorAndExit(err.Error())
+			} else {
+				panic(r)
+			}
 		}
 	}()
 
@@ -61,17 +65,11 @@ func main() {
 
 	flag.Parse()
 
-	var err error
-
 	switch {
 	case *initFlag:
 		initializeWorkspace(*workspacedir, *pkgpath, *installdir,
 			*docdir, *maketarget, *quiet)
 	case *query:
-		err = queryPackages(*workspacedir, *pkgpath)
-	}
-
-	if err != nil {
-		printErrorAndExit(err.Error())
+		queryPackages(*workspacedir, *pkgpath)
 	}
 }
