@@ -36,6 +36,8 @@ func loadPackageDefinition(pathname string) packageDefinition {
 }
 
 type packageIndex struct {
+	packageByName   map[string]packageDefinition
+	orderedPackages []packageDefinition
 }
 
 func buildPackageIndex(pkgpath string) (packageIndex, error) {
@@ -48,11 +50,8 @@ func buildPackageIndex(pkgpath string) (packageIndex, error) {
 					pkgPathEnvVar + " is not defined")
 		}
 	}
-	fmt.Println(pkgpath)
 
 	paths := strings.Split(pkgpath, ":")
-
-	fmt.Println(len(paths))
 
 	for i, path := range paths {
 		fmt.Println(i)
