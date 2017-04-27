@@ -1,7 +1,6 @@
 autoforge
-cscope.out
 make.sh
-tags
+.vimdir
 
 # Compiled Object files, Static and Dynamic libs (Shared Objects)
 *.o
