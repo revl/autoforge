@@ -55,7 +55,11 @@ func buildPackageIndex(pkgpath string) (packageIndex, error) {
 
 	for i, path := range paths {
 		fmt.Println(i)
-		fmt.Println(path)
+		fmt.Println("Reading", path)
+		files, _ := ioutil.ReadDir(path)
+		for _, f := range files {
+			fmt.Println("pkg?", f.Name())
+		}
 	}
 
 	return packageIndex{}, nil
