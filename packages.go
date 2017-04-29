@@ -10,6 +10,7 @@ import (
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
+	"path"
 	"strings"
 )
 
@@ -51,14 +52,21 @@ func buildPackageIndex(pkgpath string) (packageIndex, error) {
 		}
 	}
 
-	paths := strings.Split(pkgpath, ":")
+	for _, pkgpathDir := range strings.Split(pkgpath, ":") {
+		dirEntries, _ := ioutil.ReadDir(pkgpathDir)
 
-	for i, path := range paths {
-		fmt.Println(i)
-		fmt.Println("Reading", path)
-		files, _ := ioutil.ReadDir(path)
-		for _, f := range files {
-			fmt.Println("pkg?", f.Name())
+		for _, dirEntry := range dirEntries {
+			dirEntryPathname := path.Join(pkgpathDir,
+				dirEntry.Name(), dirEntry.Name()+".yaml")
+
+			fileInfo, err := os.Stat(dirEntryPathname)
+			if err != nil || !fileInfo.Mode().IsRegular() {
+				continue
+			}
+
+			pd := loadPackageDefinition(dirEntryPathname)
+
+			fmt.Println(pd.Name)
 		}
 	}
 
@@ -67,8 +75,4 @@ func buildPackageIndex(pkgpath string) (packageIndex, error) {
 
 func (pkgIndex *packageIndex) printListOfPackages() {
 	fmt.Println("List of packages:")
-
-	pd := loadPackageDefinition("examples/packages/greeting/greeting.yaml")
-
-	fmt.Println(pd.Name)
 }
