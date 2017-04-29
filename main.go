@@ -7,6 +7,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 )
 
@@ -14,28 +15,25 @@ var appName = "autoforge"
 
 var pkgPathEnvVar = "AUTOFORGE_PKG_PATH"
 
-func printErrorAndExit(err string) {
-	fmt.Fprintf(os.Stderr, "%s: %s\n", appName, err)
-
-	os.Exit(1)
-}
-
 func main() {
+	// Suppress timestamps in the log messages.
+	log.SetFlags(0)
+
+	// Use application name for the log prefix.
+	log.SetPrefix(appName + ": ")
+
 	// Handle panics by printing the error and exiting with return code 1.
 	defer func() {
 		if r := recover(); r != nil {
-			if err, ok := r.(error); ok {
-				printErrorAndExit(err.Error())
-			} else {
-				panic(r)
-			}
+			log.Fatal(r)
 		}
 	}()
 
 	// Parse and process command line arguments.
 
 	flag.Usage = func() {
-		fmt.Printf("Usage: %s [options] [package_range]\n\n", appName)
+		fmt.Fprintf(os.Stderr,
+			"Usage: %s [options] [package_range]\n\n", appName)
 
 		flag.PrintDefaults()
 	}
