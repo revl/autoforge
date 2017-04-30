@@ -15,7 +15,8 @@ import (
 )
 
 type packageDefinition struct {
-	Name string `yaml:"name"`
+	Name     string `yaml:"name"`
+	Template string `yaml:"template"`
 }
 
 func loadPackageDefinition(pathname string) packageDefinition {
@@ -42,13 +43,14 @@ type packageIndex struct {
 }
 
 func buildPackageIndex(pkgpath string) (packageIndex, error) {
+	var pi packageIndex
+
 	if len(pkgpath) == 0 {
 		pkgpath = os.Getenv(pkgPathEnvVar)
 
 		if len(pkgpath) == 0 {
-			return packageIndex{}, errors.New(
-				"-pkgpath is not given and $" +
-					pkgPathEnvVar + " is not defined")
+			return pi, errors.New("-pkgpath is not given and $" +
+				pkgPathEnvVar + " is not defined")
 		}
 	}
 
@@ -66,13 +68,18 @@ func buildPackageIndex(pkgpath string) (packageIndex, error) {
 
 			pd := loadPackageDefinition(dirEntryPathname)
 
-			fmt.Println(pd.Name)
+			pi.orderedPackages = append(pi.orderedPackages, pd)
 		}
 	}
 
-	return packageIndex{}, nil
+	return pi, nil
 }
 
 func (pkgIndex *packageIndex) printListOfPackages() {
 	fmt.Println("List of packages:")
+
+	for _, pd := range pkgIndex.orderedPackages {
+		fmt.Println(pd.Name)
+		fmt.Println(pd.Template)
+	}
 }
