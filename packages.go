@@ -15,27 +15,26 @@ import (
 )
 
 type packageDefinition struct {
-	Name     string `yaml:"name"`
-	Template string `yaml:"template"`
+	Name     string   `yaml:"name"`
+	Template string   `yaml:"template"`
 	Requires []string `yaml:"requires"`
 }
 
-func loadPackageDefinition(pathname string) packageDefinition {
+func loadPackageDefinition(pathname string) (pd packageDefinition, err error) {
 	data, err := ioutil.ReadFile(pathname)
 
 	if err != nil {
-		panic(err)
+		return
 	}
-
-	var pd packageDefinition
 
 	err = yaml.Unmarshal(data, &pd)
 
 	if err != nil {
-		panic(err)
+		errMessage := strings.TrimPrefix(err.Error(), "yaml: ")
+		err = errors.New(pathname + ": " + errMessage)
 	}
 
-	return pd
+	return
 }
 
 type packageIndex struct {
@@ -67,7 +66,11 @@ func buildPackageIndex(pkgpath string) (packageIndex, error) {
 				continue
 			}
 
-			pd := loadPackageDefinition(dirEntryPathname)
+			pd, err := loadPackageDefinition(dirEntryPathname)
+
+			if err != nil {
+				panic(err)
+			}
 
 			pi.orderedPackages = append(pi.orderedPackages, pd)
 		}
