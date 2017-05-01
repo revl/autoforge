@@ -17,6 +17,7 @@ import (
 type packageDefinition struct {
 	Name     string `yaml:"name"`
 	Template string `yaml:"template"`
+	Requires []string `yaml:"requires"`
 }
 
 func loadPackageDefinition(pathname string) packageDefinition {
@@ -81,5 +82,8 @@ func (pkgIndex *packageIndex) printListOfPackages() {
 	for _, pd := range pkgIndex.orderedPackages {
 		fmt.Println(pd.Name)
 		fmt.Println(pd.Template)
+		for _, requiredPackage := range pd.Requires {
+			fmt.Println("-", requiredPackage)
+		}
 	}
 }
