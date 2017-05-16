@@ -79,10 +79,10 @@ func buildPackageIndex(pkgpath string) (packageIndex, error) {
 	return pi, nil
 }
 
-func (pkgIndex *packageIndex) printListOfPackages() {
+func (index *packageIndex) printListOfPackages() {
 	fmt.Println("List of packages:")
 
-	for _, pd := range pkgIndex.orderedPackages {
+	for _, pd := range index.orderedPackages {
 		fmt.Println(pd.Name)
 		fmt.Println(pd.Template)
 		for _, requiredPackage := range pd.Requires {
