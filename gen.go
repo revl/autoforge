@@ -5,12 +5,22 @@
 package main
 
 import (
+	"fmt"
 	"os"
+	"path/filepath"
 	"text/template"
 )
 
 const tmpl = `Hello {{.Name}}!
 `
+
+func printFile(path string, info os.FileInfo, err error) error {
+	if err != nil {
+		return err
+	}
+	fmt.Println(path)
+	return nil
+}
 
 func generatePackageSources() {
 	type PackageInfo struct {
@@ -28,4 +38,9 @@ func generatePackageSources() {
 		}
 	}
 
+	err := filepath.Walk("templates/application", printFile)
+
+	if err != nil {
+		panic(err)
+	}
 }
