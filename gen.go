@@ -5,7 +5,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"text/template"
@@ -18,7 +17,27 @@ func printFile(path string, info os.FileInfo, err error) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(path)
+
+	if info.IsDir() {
+		return nil
+	}
+
+	t, err := template.ParseFiles(path)
+
+	if err != nil {
+		return err
+	}
+
+	type tmp struct {
+		PackageName, PackageDescription, Copyright, License string
+	}
+
+	data := tmp{"Test", "Description", "Copyright", "License"}
+
+	if err = t.Execute(os.Stdout, data); err != nil {
+		return err
+	}
+
 	return nil
 }
 
