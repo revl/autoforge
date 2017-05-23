@@ -5,6 +5,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"text/template"
@@ -13,32 +14,37 @@ import (
 const tmpl = `Hello {{.Name}}!
 `
 
-func printFile(path string, info os.FileInfo, err error) error {
-	if err != nil {
-		return err
-	}
+func generateFile(outputDirectory string) filepath.WalkFunc {
+	return func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
 
-	if info.IsDir() {
+		if info.IsDir() {
+			return nil
+		}
+
+		t, err := template.ParseFiles(path)
+
+		fmt.Println(outputDirectory + ": " + path)
+
+		if err != nil {
+			return err
+		}
+
+		type tmp struct {
+			PackageName, PackageDescription string
+			Copyright, License              string
+		}
+
+		data := tmp{"Test", "Description", "Copyright", "License"}
+
+		if err = t.Execute(os.Stdout, data); err != nil {
+			return err
+		}
+
 		return nil
 	}
-
-	t, err := template.ParseFiles(path)
-
-	if err != nil {
-		return err
-	}
-
-	type tmp struct {
-		PackageName, PackageDescription, Copyright, License string
-	}
-
-	data := tmp{"Test", "Description", "Copyright", "License"}
-
-	if err = t.Execute(os.Stdout, data); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func generatePackageSources() {
@@ -57,7 +63,7 @@ func generatePackageSources() {
 		}
 	}
 
-	err := filepath.Walk("templates/application", printFile)
+	err := filepath.Walk("templates/application", generateFile("output"))
 
 	if err != nil {
 		panic(err)
