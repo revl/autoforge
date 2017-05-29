@@ -8,7 +8,7 @@ func queryPackages(workspacedir, pkgpath string) error {
 	packageIndex, err := buildPackageIndex(pkgpath)
 
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	packageIndex.printListOfPackages()

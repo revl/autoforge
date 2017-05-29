@@ -47,7 +47,7 @@ func generateFile(outputDirectory string) filepath.WalkFunc {
 	}
 }
 
-func generatePackageSources() {
+func generatePackageSources() error {
 	type PackageInfo struct {
 		Name string
 	}
@@ -59,13 +59,15 @@ func generatePackageSources() {
 	for _, p := range packages {
 		err := t.Execute(os.Stdout, p)
 		if err != nil {
-			panic(err)
+			return err
 		}
 	}
 
 	err := filepath.Walk("templates/application", generateFile("output"))
 
 	if err != nil {
-		panic(err)
+		return err
 	}
+
+	return nil
 }

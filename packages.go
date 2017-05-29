@@ -69,7 +69,7 @@ func buildPackageIndex(pkgpath string) (packageIndex, error) {
 			pd, err := loadPackageDefinition(dirEntryPathname)
 
 			if err != nil {
-				panic(err)
+				return packageIndex{}, err
 			}
 
 			pi.orderedPackages = append(pi.orderedPackages, pd)

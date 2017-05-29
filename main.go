@@ -63,13 +63,19 @@ func main() {
 
 	flag.Parse()
 
+	var err error
+
 	switch {
 	case *initFlag:
-		initializeWorkspace(*workspacedir, *pkgpath, *installdir,
+		err = initializeWorkspace(*workspacedir, *pkgpath, *installdir,
 			*docdir, *maketarget, *quiet)
 	case *query:
-		queryPackages(*workspacedir, *pkgpath)
+		err = queryPackages(*workspacedir, *pkgpath)
 	default:
-		generatePackageSources()
+		err = generatePackageSources()
+	}
+
+	if err != nil {
+		log.Fatal(err)
 	}
 }

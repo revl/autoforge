@@ -18,13 +18,18 @@ func loadInitParams() initParams {
 }
 
 func initializeWorkspace(workspacedir, pkgpath, installdir, docdir,
-	maketarget string, quiet bool) {
+	maketarget string, quiet bool) error {
 
 	fmt.Printf("Initializing a new workspace for %s...\n", appName)
+
 	ip := initParams{OutputDir: "/home"}
+
 	out, err := yaml.Marshal(&ip)
 	if err != nil {
-		panic(err)
+		return err
 	}
+
 	fmt.Println(string(out))
+
+	return nil
 }
