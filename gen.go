@@ -14,6 +14,10 @@ import (
 const tmpl = `Hello {{.Name}}!
 `
 
+func expandPathnameTemplate(pathname string) string {
+	return pathname
+}
+
 func generateFile(outputDirectory string) filepath.WalkFunc {
 	return func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -26,7 +30,7 @@ func generateFile(outputDirectory string) filepath.WalkFunc {
 
 		t, err := template.ParseFiles(path)
 
-		fmt.Println(outputDirectory + ": " + path)
+		fmt.Println(outputDirectory+":", expandPathnameTemplate(path))
 
 		if err != nil {
 			return err
