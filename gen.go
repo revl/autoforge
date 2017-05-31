@@ -14,11 +14,7 @@ import (
 const tmpl = `Hello {{.Name}}!
 `
 
-func expandPathnameTemplate(pathname string) string {
-	return pathname
-}
-
-func generateFile(outputDirectory string) filepath.WalkFunc {
+func generateFile(outputDirectory string, data interface{}) filepath.WalkFunc {
 	return func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -30,18 +26,12 @@ func generateFile(outputDirectory string) filepath.WalkFunc {
 
 		t, err := template.ParseFiles(path)
 
-		fmt.Println(outputDirectory+":", expandPathnameTemplate(path))
+		fmt.Println(outputDirectory+":",
+			expandPathnameTemplate(path, data))
 
 		if err != nil {
 			return err
 		}
-
-		type tmp struct {
-			PackageName, PackageDescription string
-			Copyright, License              string
-		}
-
-		data := tmp{"Test", "Description", "Copyright", "License"}
 
 		if err = t.Execute(os.Stdout, data); err != nil {
 			return err
@@ -67,7 +57,15 @@ func generatePackageSources() error {
 		}
 	}
 
-	err := filepath.Walk("templates/application", generateFile("output"))
+	type tmp struct {
+		PackageName, PackageDescription string
+		Copyright, License              string
+	}
+
+	data := tmp{"Test", "Description", "Copyright", "License"}
+
+	err := filepath.Walk("templates/application",
+		generateFile("output", data))
 
 	if err != nil {
 		return err
