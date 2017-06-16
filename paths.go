@@ -45,7 +45,7 @@ func (v *verbatim) subst(paramName string, paramValue interface{}) {
 
 			if pos >= 0 {
 				v.next = &array{paramName, arrayValue,
-					verbatim{v.text[len(paramName)+2:], v.next}}
+					verbatim{v.text[pos+len(paramName)+2:], v.next}}
 				v.text = v.text[:pos]
 			}
 		} else {
