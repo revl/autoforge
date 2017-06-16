@@ -33,25 +33,17 @@ type verbatim struct {
 // text in the receiver structure gets truncated by the substitution
 // and the receiver structure gets extended by a new array structure.
 func (v *verbatim) subst(paramName string, paramValue interface{}) {
-	textValue, ok := paramValue.(string)
-
-	if ok {
-		v.text = strings.Replace(v.text, "{"+paramName+"}", textValue, -1)
-	} else {
-		arrayValue, ok := paramValue.([]string)
-
-		if ok {
-			pos := strings.Index(v.text, "{"+paramName+"}")
-
-			if pos >= 0 {
-				v.next = &array{paramName, arrayValue,
-					verbatim{v.text[pos+len(paramName)+2:], v.next}}
-				v.text = v.text[:pos]
-			}
-		} else {
-			v.text = strings.Replace(v.text, "{"+paramName+"}",
-				fmt.Sprint(paramValue), -1)
-		}
+	if textValue, ok := paramValue.(string); ok {
+		v.text = strings.Replace(v.text, "{"+paramName+"}",
+			textValue, -1)
+	} else if arrayValue, ok := paramValue.([]string); !ok {
+		v.text = strings.Replace(v.text, "{"+paramName+"}",
+			fmt.Sprint(paramValue), -1)
+	} else if pos := strings.Index(v.text, "{"+paramName+"}"); pos >= 0 {
+		v.next = &array{paramName, arrayValue,
+			verbatim{v.text[pos+len(paramName)+2:],
+				v.next}}
+		v.text = v.text[:pos]
 	}
 }
 
