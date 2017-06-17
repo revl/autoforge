@@ -28,22 +28,21 @@ type verbatim struct {
 }
 
 // Subst updates the 'verbatim' receiver by replacing all instances
-// of paramName surrounded by braces with paramValue, which can be
+// of 'name' surrounded by braces with 'value', which can be
 // either a string or a slice of strings. In the latter case, the
 // text in the receiver structure gets truncated by the substitution
 // and the receiver structure gets extended by a new array structure.
 // Subst returns the number of substitution values.
-func (v *verbatim) subst(paramName string, paramValue interface{}) int {
-	if textValue, ok := paramValue.(string); ok {
-		v.text = strings.Replace(v.text, "{"+paramName+"}",
+func (v *verbatim) subst(name string, value interface{}) int {
+	if textValue, ok := value.(string); ok {
+		v.text = strings.Replace(v.text, "{"+name+"}",
 			textValue, -1)
-	} else if arrayValue, ok := paramValue.([]string); !ok {
-		v.text = strings.Replace(v.text, "{"+paramName+"}",
-			fmt.Sprint(paramValue), -1)
-	} else if pos := strings.Index(v.text, "{"+paramName+"}"); pos >= 0 {
-		v.next = &array{paramName, arrayValue,
-			verbatim{v.text[pos+len(paramName)+2:],
-				v.next}}
+	} else if arrayValue, ok := value.([]string); !ok {
+		v.text = strings.Replace(v.text, "{"+name+"}",
+			fmt.Sprint(value), -1)
+	} else if pos := strings.Index(v.text, "{"+name+"}"); pos >= 0 {
+		v.next = &array{name, arrayValue,
+			verbatim{v.text[pos+len(name)+2:], v.next}}
 		v.text = v.text[:pos]
 		return len(arrayValue)
 	}
@@ -62,11 +61,11 @@ func expandPathnameTemplate(pathname string,
 
 	resultSize := 1
 
-	for paramName, paramValue := range params {
-		resultSize *= root.subst(paramName, paramValue)
+	for name, value := range params {
+		resultSize *= root.subst(name, value)
 
 		for n := root.next; n != nil; n = n.continuation.next {
-			resultSize *= n.continuation.subst(paramName, paramValue)
+			resultSize *= n.continuation.subst(name, value)
 		}
 	}
 
@@ -75,8 +74,8 @@ func expandPathnameTemplate(pathname string,
 	for i := 0; i < resultSize; i++ {
 		result[i].filename = root.text
 		copyOfParams := templateParams{}
-		for paramName, paramValue := range params {
-			copyOfParams[paramName] = paramValue
+		for name, value := range params {
+			copyOfParams[name] = value
 		}
 		result[i].params = copyOfParams
 	}
@@ -85,26 +84,26 @@ func expandPathnameTemplate(pathname string,
 		return result
 	}
 
-	sliceSize := resultSize
+	sliceSize := 1
 
 	for a := root.next; a != nil; a = a.continuation.next {
-		numberOfSlices := resultSize / sliceSize
 		numberOfValues := len(a.paramValues)
-		sliceSize /= numberOfValues
 
-		filenameIndex := 0
 		verbatimText := a.continuation.text
-		for i := 0; i < numberOfSlices; i++ {
+
+		for i := 0; i < resultSize; {
 			for j := 0; j < numberOfValues; j++ {
-				paramValue := a.paramValues[j]
-				filenameFragment := paramValue + verbatimText
+				value := a.paramValues[j]
+				filenameFragment := value + verbatimText
 				for k := 0; k < sliceSize; k++ {
-					result[filenameIndex].filename += filenameFragment
-					result[filenameIndex].params[a.paramName] = paramValue
-					filenameIndex++
+					result[i].filename += filenameFragment
+					result[i].params[a.paramName] = value
+					i++
 				}
 			}
 		}
+
+		sliceSize *= numberOfValues
 	}
 
 	return result
