@@ -5,6 +5,7 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -40,4 +41,13 @@ func TestSubst(t *testing.T) {
 	v.subst("Where", "on the Wall")
 
 	substTestCase(t, &v, "Mirror, Mirror on the Wall")
+}
+
+func TestExpandPathnameTemplate(t *testing.T) {
+	fmt.Println(expandPathnameTemplate("{nil}{dir}/{name}.{ext}",
+		map[string]interface{}{
+			"nil":  []string{},
+			"dir":  []string{"red", "blue", "yellow", "green"},
+			"name": []string{"foo", "bar"},
+			"ext":  []string{"js", "go", "rs"}}))
 }
