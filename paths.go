@@ -19,31 +19,31 @@ type fileParams struct {
 type array struct {
 	paramName    string
 	paramValues  []string
-	continuation verbatim
+	continuation pathnameTemplateText
 }
 
-type verbatim struct {
+type pathnameTemplateText struct {
 	text string
 	next *array
 }
 
-// Subst updates the 'verbatim' receiver by replacing all instances
-// of 'name' surrounded by braces with 'value', which can be
-// either a string or a slice of strings. In the latter case, the
+// Subst updates the 'pathnameTemplateText' receiver by replacing all
+// instances of 'name' surrounded by braces with 'value', which can
+// be either a string or a slice of strings. In the latter case, the
 // text in the receiver structure gets truncated by the substitution
 // and the receiver structure gets extended by a new array structure.
 // Subst returns the number of substitution values.
-func (v *verbatim) subst(name string, value interface{}) int {
+func (t *pathnameTemplateText) subst(name string, value interface{}) int {
 	if textValue, ok := value.(string); ok {
-		v.text = strings.Replace(v.text, "{"+name+"}",
+		t.text = strings.Replace(t.text, "{"+name+"}",
 			textValue, -1)
 	} else if arrayValue, ok := value.([]string); !ok {
-		v.text = strings.Replace(v.text, "{"+name+"}",
+		t.text = strings.Replace(t.text, "{"+name+"}",
 			fmt.Sprint(value), -1)
-	} else if pos := strings.Index(v.text, "{"+name+"}"); pos >= 0 {
-		v.next = &array{name, arrayValue,
-			verbatim{v.text[pos+len(name)+2:], v.next}}
-		v.text = v.text[:pos]
+	} else if pos := strings.Index(t.text, "{"+name+"}"); pos >= 0 {
+		t.next = &array{name, arrayValue,
+			pathnameTemplateText{t.text[pos+len(name)+2:], t.next}}
+		t.text = t.text[:pos]
 		return len(arrayValue)
 	}
 
@@ -57,7 +57,7 @@ func (v *verbatim) subst(name string, value interface{}) int {
 // of strings in the slice.
 func expandPathnameTemplate(pathname string,
 	params templateParams) []fileParams {
-	root := verbatim{pathname, nil}
+	root := pathnameTemplateText{pathname, nil}
 
 	resultSize := 1
 

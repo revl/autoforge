@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-func substTestCase(t *testing.T, node *verbatim, expected string) {
+func substTestCase(t *testing.T, node *pathnameTemplateText, expected string) {
 	var result string
 
 	for {
@@ -30,13 +30,13 @@ func substTestCase(t *testing.T, node *verbatim, expected string) {
 }
 
 func TestSubst(t *testing.T) {
-	v := verbatim{"{Greetings}, {Who}!", nil}
+	v := pathnameTemplateText{"{Greetings}, {Who}!", nil}
 	v.subst("Who", "Human")
 	v.subst("Greetings", []string{"Hello", "Hi"})
 
 	substTestCase(t, &v, "[Hello, Hi], Human!")
 
-	v = verbatim{"{What}, {What} {Where}", nil}
+	v = pathnameTemplateText{"{What}, {What} {Where}", nil}
 	v.subst("What", "Mirror")
 	v.subst("Where", "on the Wall")
 
