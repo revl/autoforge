@@ -16,7 +16,7 @@ type fileParams struct {
 	params   templateParams
 }
 
-type array struct {
+type pathnameTemplateMultiplier struct {
 	paramName    string
 	paramValues  []string
 	continuation pathnameTemplateText
@@ -24,15 +24,15 @@ type array struct {
 
 type pathnameTemplateText struct {
 	text string
-	next *array
+	next *pathnameTemplateMultiplier
 }
 
 // Subst updates the 'pathnameTemplateText' receiver by replacing all
-// instances of 'name' surrounded by braces with 'value', which can
-// be either a string or a slice of strings. In the latter case, the
-// text in the receiver structure gets truncated by the substitution
-// and the receiver structure gets extended by a new array structure.
-// Subst returns the number of substitution values.
+// instances of 'name' surrounded by braces with 'value', which can be
+// either a string or a slice of strings.  In the latter case, the text
+// in the receiver structure gets truncated by the substitution and the
+// receiver structure gets extended by a new pathnameTemplateMultiplier
+// structure.  Subst returns the number of substitution values.
 func (t *pathnameTemplateText) subst(name string, value interface{}) int {
 	if textValue, ok := value.(string); ok {
 		t.text = strings.Replace(t.text, "{"+name+"}",
@@ -41,7 +41,7 @@ func (t *pathnameTemplateText) subst(name string, value interface{}) int {
 		t.text = strings.Replace(t.text, "{"+name+"}",
 			fmt.Sprint(value), -1)
 	} else if pos := strings.Index(t.text, "{"+name+"}"); pos >= 0 {
-		t.next = &array{name, arrayValue,
+		t.next = &pathnameTemplateMultiplier{name, arrayValue,
 			pathnameTemplateText{t.text[pos+len(name)+2:], t.next}}
 		t.text = t.text[:pos]
 		return len(arrayValue)
@@ -89,12 +89,12 @@ func expandPathnameTemplate(pathname string,
 	for a := root.next; a != nil; a = a.continuation.next {
 		numberOfValues := len(a.paramValues)
 
-		verbatimText := a.continuation.text
+		continuationText := a.continuation.text
 
 		for i := 0; i < resultSize; {
 			for j := 0; j < numberOfValues; j++ {
 				value := a.paramValues[j]
-				filenameFragment := value + verbatimText
+				filenameFragment := value + continuationText
 				for k := 0; k < sliceSize; k++ {
 					result[i].filename += filenameFragment
 					result[i].params[a.paramName] = value
