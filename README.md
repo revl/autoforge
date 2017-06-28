@@ -16,8 +16,8 @@ correct order.
 ## Packages
 
 An Autoforge package is a directory containing C/C++ source files and a
-package definition file, whose name must consists of the name of the
-package directory and the extension `.yaml`.
+package definition file, whose name must consist of the package
+directory name and the extension `.yaml`.
 
 Among other parameters, the package definition file specifies a template
 that the package uses, which, in turn, determines the type of binary
