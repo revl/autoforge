@@ -5,8 +5,12 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
+	"text/template"
 )
 
 type templateParams map[string]interface{}
@@ -107,4 +111,78 @@ func expandPathnameTemplate(pathname string,
 	}
 
 	return result
+}
+
+func must(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
+func getTemplateWalkFunc(templateDir, projectDir string,
+	params templateParams) filepath.WalkFunc {
+	return func(templateFile string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if info.IsDir() {
+			return nil
+		}
+
+		t, err := template.ParseFiles(templateFile)
+
+		if err != nil {
+			return err
+		}
+
+		if !strings.HasPrefix(templateFile, templateDir) {
+			panic(templateFile + " does not start with " +
+				templateDir)
+		}
+
+		for _, fp := range expandPathnameTemplate(
+			templateFile[len(templateDir):], params) {
+
+			projectFile := projectDir + fp.filename
+
+			if err = os.MkdirAll(filepath.Dir(projectFile),
+				os.ModePerm); err != nil {
+				return err
+			}
+
+			f, err := os.OpenFile(projectFile,
+				os.O_WRONLY|os.O_CREATE, info.Mode())
+			if err != nil {
+				return err
+			}
+
+			w := bufio.NewWriter(f)
+
+			if err = t.Execute(w, fp.params); err != nil {
+				f.Close()
+				os.Remove(projectFile)
+				return err
+			}
+
+			must(w.Flush())
+			must(f.Close())
+		}
+
+		return nil
+	}
+}
+
+func generateBuildFilesFromProjectTemplate(templateDir,
+	projectDir string, params templateParams) error {
+
+	templateDir = filepath.Clean(templateDir) + string(filepath.Separator)
+	projectDir = filepath.Clean(projectDir) + string(filepath.Separator)
+
+	if err := filepath.Walk(templateDir, getTemplateWalkFunc(templateDir,
+		projectDir, params)); err != nil {
+		return err
+	}
+
+	return nil
 }
