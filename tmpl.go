@@ -119,6 +119,10 @@ func must(err error) {
 	}
 }
 
+// GetTemplateWalkFunc returns a walker function for use with filepath.Walk().
+// The returned function interprets each file it visits as a 'text/template'
+// file and generates a new file with the same relative pathname in the output
+// directory 'projectDir'.
 func getTemplateWalkFunc(templateDir, projectDir string,
 	params templateParams) filepath.WalkFunc {
 	return func(templateFile string, info os.FileInfo, err error) error {
@@ -173,6 +177,8 @@ func getTemplateWalkFunc(templateDir, projectDir string,
 	}
 }
 
+// For each source file in 'templateDir', generateBuildFilesFromProjectTemplate
+// generates an output file with the same relative pathname inside 'projectDir'.
 func generateBuildFilesFromProjectTemplate(templateDir,
 	projectDir string, params templateParams) error {
 
