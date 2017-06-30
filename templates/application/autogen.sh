@@ -1,6 +1,7 @@
 #!/bin/sh
 
 # {{.PackageName}}: {{.PackageDescription}}
+#
 # {{.Copyright}}
 #
 # {{.License}}
