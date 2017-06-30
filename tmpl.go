@@ -7,6 +7,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -119,6 +120,13 @@ func must(err error) {
 	}
 }
 
+var funcMap template.FuncMap = template.FuncMap{
+	"VarName": func(arg string) string {
+		return strings.Replace(
+			strings.Replace(arg, "-", "_", -1), "+", "x", -1)
+	},
+}
+
 // GetTemplateWalkFunc returns a walker function for use with filepath.Walk().
 // The returned function interprets each file it visits as a 'text/template'
 // file and generates a new file with the same relative pathname in the output
@@ -134,15 +142,20 @@ func getTemplateWalkFunc(templateDir, projectDir string,
 			return nil
 		}
 
-		t, err := template.ParseFiles(templateFile)
+		if !strings.HasPrefix(templateFile, templateDir) {
+			panic(templateFile + " does not start with " +
+				templateDir)
+		}
 
+		b, err := ioutil.ReadFile(templateFile)
 		if err != nil {
 			return err
 		}
 
-		if !strings.HasPrefix(templateFile, templateDir) {
-			panic(templateFile + " does not start with " +
-				templateDir)
+		t, err := template.New(filepath.Base(
+			templateFile)).Funcs(funcMap).Parse(string(b))
+		if err != nil {
+			return err
 		}
 
 		for _, fp := range expandPathnameTemplate(
