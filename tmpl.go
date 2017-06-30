@@ -156,7 +156,7 @@ func getTemplateWalkFunc(templateDir, projectDir string,
 			}
 
 			f, err := os.OpenFile(projectFile,
-				os.O_WRONLY|os.O_CREATE, info.Mode())
+				os.O_WRONLY|os.O_CREATE|os.O_TRUNC, info.Mode())
 			if err != nil {
 				return err
 			}
