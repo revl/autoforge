@@ -5,7 +5,7 @@
 package main
 
 import (
-	"bufio"
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -147,13 +147,13 @@ func getTemplateWalkFunc(templateDir, projectDir string,
 				templateDir)
 		}
 
-		b, err := ioutil.ReadFile(templateFile)
+		templateContents, err := ioutil.ReadFile(templateFile)
 		if err != nil {
 			return err
 		}
 
-		t, err := template.New(filepath.Base(
-			templateFile)).Funcs(funcMap).Parse(string(b))
+		t, err := template.New(filepath.Base(templateFile)).Funcs(
+			funcMap).Parse(string(templateContents))
 		if err != nil {
 			return err
 		}
@@ -168,22 +168,28 @@ func getTemplateWalkFunc(templateDir, projectDir string,
 				return err
 			}
 
-			f, err := os.OpenFile(projectFile,
-				os.O_WRONLY|os.O_CREATE|os.O_TRUNC, info.Mode())
-			if err != nil {
+			buffer := bytes.NewBufferString("")
+
+			if err = t.Execute(buffer, fp.params); err != nil {
 				return err
 			}
 
-			w := bufio.NewWriter(f)
+			newContents := buffer.Bytes()
 
-			if err = t.Execute(w, fp.params); err != nil {
-				f.Close()
-				os.Remove(projectFile)
-				return err
+			oldContents, err := ioutil.ReadFile(projectFile)
+
+			if os.IsNotExist(err) {
+				fmt.Println("A", projectFile)
+			} else if bytes.Compare(oldContents, newContents) != 0 {
+				fmt.Println("U", projectFile)
+			} else {
+				return nil
 			}
 
-			must(w.Flush())
-			must(f.Close())
+			if err = ioutil.WriteFile(projectFile, newContents,
+				info.Mode()); err != nil {
+				return err
+			}
 		}
 
 		return nil
