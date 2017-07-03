@@ -142,16 +142,32 @@ func getTemplateWalkFunc(templateDir, projectDir string,
 			return nil
 		}
 
+		// Panic if filepath.Walk() does not behave as expected.
 		if !strings.HasPrefix(templateFile, templateDir) {
 			panic(templateFile + " does not start with " +
 				templateDir)
 		}
 
+		// Read the contents of the template file. Cannot use
+		// template.ParseFiles() because a Funcs() call must be
+		// made between New() and Parse().
 		templateContents, err := ioutil.ReadFile(templateFile)
 		if err != nil {
 			return err
 		}
 
+		// Pathname of the template file relative to the
+		// template directory.
+		templateFile = templateFile[len(templateDir):]
+
+		// Ignore package definition file for the template.
+		if templateFile == filepath.Base(templateDir)+".yaml" {
+			return nil
+		}
+
+		// Parse the template file. The parsed template will be
+		// reused multiple times if expandPathnameTemplate()
+		// returns more than one pathname expansion.
 		t, err := template.New(filepath.Base(templateFile)).Funcs(
 			funcMap).Parse(string(templateContents))
 		if err != nil {
@@ -159,7 +175,7 @@ func getTemplateWalkFunc(templateDir, projectDir string,
 		}
 
 		for _, fp := range expandPathnameTemplate(
-			templateFile[len(templateDir):], params) {
+			templateFile, params) {
 
 			projectFile := projectDir + fp.filename
 

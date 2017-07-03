@@ -16,7 +16,7 @@ import (
 
 type packageDefinition struct {
 	Name     string   `yaml:"name"`
-	Template string   `yaml:"template"`
+	Type     string   `yaml:"type"`
 	Requires []string `yaml:"requires"`
 }
 
@@ -84,7 +84,7 @@ func (index *packageIndex) printListOfPackages() {
 
 	for _, pd := range index.orderedPackages {
 		fmt.Println(pd.Name)
-		fmt.Println(pd.Template)
+		fmt.Println(pd.Type)
 		for _, requiredPackage := range pd.Requires {
 			fmt.Println("-", requiredPackage)
 		}

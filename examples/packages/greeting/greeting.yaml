@@ -1,5 +1,5 @@
 name: greeting
-template: application
+type: application
 requires:
     - blue
     - green
