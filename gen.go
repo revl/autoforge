@@ -5,18 +5,13 @@
 package main
 
 func generatePackageSources() error {
-	/*
-		type tmp struct {
-			PackageName, PackageDescription string
-			Copyright, License              string
-		}
-	*/
 
 	data := templateParams{
 		"PackageName":        "Test",
 		"PackageDescription": "Description",
 		"Copyright":          "Copyright",
-		"License":            "License"}
+		"License":            "License",
+		"SOURCES":            []string{"source1.cc", "source2.cc"}}
 
 	err := generateBuildFilesFromProjectTemplate(
 		"templates/asdf/..//./application",
