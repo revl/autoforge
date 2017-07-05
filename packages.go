@@ -55,7 +55,10 @@ func buildPackageIndex(pkgpath string) (packageIndex, error) {
 		}
 	}
 
-	for _, pkgpathDir := range strings.Split(pkgpath, ":") {
+	pkgpathDirs := append(strings.Split(pkgpath, ":"),
+		filepath.Join(filepath.Dir(os.Args[0]), "templates"))
+
+	for _, pkgpathDir := range pkgpathDirs {
 		dirEntries, _ := ioutil.ReadDir(pkgpathDir)
 
 		for _, dirEntry := range dirEntries {
