@@ -4,7 +4,7 @@
 
 package main
 
-func queryPackages(workspacedir, pkgpath string) error {
+func listPackages(workspacedir, pkgpath string) error {
 	packageIndex, err := buildPackageIndex(pkgpath)
 
 	if err != nil {

@@ -40,7 +40,7 @@ func main() {
 
 	initFlag := flag.Bool("init", false, "initialize a new workspace")
 
-	query := flag.Bool("query", false,
+	list := flag.Bool("list", false,
 		"print the list of packages found in $"+pkgPathEnvVar)
 
 	installdir := flag.String("installdir", "",
@@ -69,8 +69,8 @@ func main() {
 	case *initFlag:
 		err = initializeWorkspace(*workspacedir, *pkgpath, *installdir,
 			*docdir, *maketarget, *quiet)
-	case *query:
-		err = queryPackages(*workspacedir, *pkgpath)
+	case *list:
+		err = listPackages(*workspacedir, *pkgpath)
 	default:
 		err = generatePackageSources()
 	}
