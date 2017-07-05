@@ -7,11 +7,12 @@ package main
 import (
 	"errors"
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
+
+	"gopkg.in/yaml.v2"
 )
 
 type packageDefinition struct {
@@ -58,7 +59,7 @@ func buildPackageIndex(pkgpath string) (packageIndex, error) {
 		dirEntries, _ := ioutil.ReadDir(pkgpathDir)
 
 		for _, dirEntry := range dirEntries {
-			dirEntryPathname := path.Join(pkgpathDir,
+			dirEntryPathname := filepath.Join(pkgpathDir,
 				dirEntry.Name(), dirEntry.Name()+".yaml")
 
 			fileInfo, err := os.Stat(dirEntryPathname)
