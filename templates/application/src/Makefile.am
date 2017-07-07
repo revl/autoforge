@@ -1,4 +1,4 @@
-# {{.PackageName}}: {{.PackageDescription}}
+# {{.Name}}: {{.Description}}
 #
 # {{.Copyright}}
 #
@@ -7,16 +7,16 @@
 {{if .SRC_MAKEFILE_AM}}
 {{.SRC_MAKEFILE_AM}}{{end}}
 if DEBUG
-bin_PROGRAMS = {{.PackageName}}d
+bin_PROGRAMS = {{.Name}}d
 else
-bin_PROGRAMS = {{.PackageName}}
+bin_PROGRAMS = {{.Name}}
 endif
 
 sources ={{range $v := .SOURCES}} \
 	{{$v}}{{end}}
 
-{{VarName .PackageName}}d_SOURCES = $(sources)
-{{VarName .PackageName}}_SOURCES = $(sources)
+{{VarName .Name}}d_SOURCES = $(sources)
+{{VarName .Name}}_SOURCES = $(sources)
 
 {{if .SRC_EXTRA_DIST}}EXTRA_DIST = \
 {{.SRC_EXTRA_DIST}}

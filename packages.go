@@ -15,11 +15,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type packageDefinition struct {
-	Name     string   `yaml:"name"`
-	Type     string   `yaml:"type"`
-	Requires []string `yaml:"requires"`
-}
+type packageDefinition map[string]interface{}
 
 func loadPackageDefinition(pathname string) (pd packageDefinition, err error) {
 	data, err := ioutil.ReadFile(pathname)
@@ -87,9 +83,9 @@ func (index *packageIndex) printListOfPackages() {
 	fmt.Println("List of packages:")
 
 	for _, pd := range index.orderedPackages {
-		fmt.Println(pd.Name)
-		fmt.Println(pd.Type)
-		for _, requiredPackage := range pd.Requires {
+		fmt.Println(pd["Name"])
+		fmt.Println(pd["Type"])
+		for _, requiredPackage := range pd["Requires"].([]string) {
 			fmt.Println("-", requiredPackage)
 		}
 	}
