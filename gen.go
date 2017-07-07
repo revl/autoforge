@@ -7,13 +7,13 @@ package main
 func generatePackageSources() error {
 
 	pd := packageDefinition{
-		"Name":        "Test",
-		"Description": "Description",
-		"Type":        "application",
-		"Copyright":   "Copyright",
-		"Requires":    []string{"liba", "libb"},
-		"License":     "License",
-		"Sources":     []string{"source1.cc", "source2.cc"}}
+		"name":        "Test",
+		"description": "Description",
+		"type":        "application",
+		"copyright":   "Copyright",
+		"requires":    []string{"liba", "libb"},
+		"license":     "License",
+		"sources":     []string{"source1.cc", "source2.cc"}}
 
 	err := generateBuildFilesFromProjectTemplate(
 		"templates/asdf/..//./application",

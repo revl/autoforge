@@ -1,23 +1,23 @@
-# {{.Name}}: {{.Description}}
+# {{.name}}: {{.description}}
 #
-# {{.Copyright}}
+# {{.copyright}}
 #
-# {{.License}}
+# {{.license}}
 #
-{{if .SRC_MAKEFILE_AM}}
-{{.SRC_MAKEFILE_AM}}{{end}}
+{{if .src_makefile_am}}
+{{.src_makefile_am}}{{end}}
 if DEBUG
-bin_PROGRAMS = {{.Name}}d
+bin_PROGRAMS = {{.name}}d
 else
-bin_PROGRAMS = {{.Name}}
+bin_PROGRAMS = {{.name}}
 endif
 
-sources ={{range $v := .SOURCES}} \
+sources ={{range $v := .sources}} \
 	{{$v}}{{end}}
 
-{{VarName .Name}}d_SOURCES = $(sources)
-{{VarName .Name}}_SOURCES = $(sources)
+{{VarName .name}}d_SOURCES = $(sources)
+{{VarName .name}}_SOURCES = $(sources)
 
-{{if .SRC_EXTRA_DIST}}EXTRA_DIST = \
-{{.SRC_EXTRA_DIST}}
+{{if .src_extra_dist}}EXTRA_DIST = \
+{{.src_extra_dist}}
 {{end}}MAINTAINERCLEANFILES = Makefile.in

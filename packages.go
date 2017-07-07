@@ -83,10 +83,14 @@ func (index *packageIndex) printListOfPackages() {
 	fmt.Println("List of packages:")
 
 	for _, pd := range index.orderedPackages {
-		fmt.Println(pd["Name"])
-		fmt.Println(pd["Type"])
-		for _, requiredPackage := range pd["Requires"].([]string) {
-			fmt.Println("-", requiredPackage)
+		fmt.Println(pd["name"])
+		fmt.Println(pd["type"])
+		requiredPackages := pd["requires"]
+		if requiredPackages != nil {
+			for _, rp := range requiredPackages.([]interface{}) {
+				fmt.Println("-", rp)
+			}
 		}
+		fmt.Println()
 	}
 }
