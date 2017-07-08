@@ -120,11 +120,46 @@ func must(err error) {
 	}
 }
 
+func varName(arg string) string {
+	return strings.Map(func(r rune) rune {
+		if r >= 'A' && r <= 'Z' || r >= 'a' && r <= 'z' ||
+			r >= '0' && r <= '9' {
+			return r
+		} else if r == '+' {
+			return 'x'
+		}
+		return '_'
+	}, arg)
+}
+
+func varNameUC(arg string) string {
+	return strings.Map(func(r rune) rune {
+		if r >= 'a' && r <= 'z' {
+			return r - 'a' + 'A'
+		} else if r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' {
+			return r
+		} else if r == '+' {
+			return 'X'
+		}
+		return '_'
+	}, arg)
+}
+
+func libName(arg string) string {
+	return strings.Map(func(r rune) rune {
+		if r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' ||
+			r >= '0' && r <= '9' ||
+			r == '+' || r == '-' || r == '.' {
+			return r
+		}
+		return '_'
+	}, arg)
+}
+
 var funcMap template.FuncMap = template.FuncMap{
-	"VarName": func(arg string) string {
-		return strings.Replace(
-			strings.Replace(arg, "-", "_", -1), "+", "x", -1)
-	},
+	"VarName":   varName,
+	"VarNameUC": varNameUC,
+	"LibName":   libName,
 }
 
 // GetTemplateWalkFunc returns a walker function for use with filepath.Walk().
