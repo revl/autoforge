@@ -15,7 +15,34 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type packageDefinition map[string]interface{}
+type packageDefinition struct {
+	packageName string
+	packageType string
+	pathname    string
+	requires    []string
+	params      templateParams
+}
+
+func getRequiredField(pd *packageDefinition,
+	fieldName string) (interface{}, error) {
+	if value := pd.params[fieldName]; value != nil {
+		return value, nil
+	}
+	return nil, errors.New(pd.pathname +
+		": missing required field '" + fieldName + "'")
+}
+
+func getRequiredStringField(pd *packageDefinition,
+	fieldName string) (string, error) {
+	if value, err := getRequiredField(pd, fieldName); err != nil {
+		return "", err
+	} else if stringValue, ok := value.(string); ok {
+		return stringValue, nil
+	} else {
+		return "", errors.New(pd.pathname +
+			": '" + fieldName + "' field must be a string")
+	}
+}
 
 func loadPackageDefinition(pathname string) (pd packageDefinition, err error) {
 	data, err := ioutil.ReadFile(pathname)
@@ -24,11 +51,32 @@ func loadPackageDefinition(pathname string) (pd packageDefinition, err error) {
 		return
 	}
 
-	err = yaml.Unmarshal(data, &pd)
-
-	if err != nil {
+	if err = yaml.Unmarshal(data, &pd.params); err != nil {
 		errMessage := strings.TrimPrefix(err.Error(), "yaml: ")
 		err = errors.New(pathname + ": " + errMessage)
+		return
+	}
+
+	pd.packageName, err = getRequiredStringField(&pd, "name")
+	if err != nil {
+		return
+	}
+
+	pd.packageType, err = getRequiredStringField(&pd, "type")
+	if err != nil {
+		return
+	}
+
+	if requiredPackages := pd.params["requires"]; requiredPackages != nil {
+		pkgList, ok := requiredPackages.([]interface{})
+		if !ok {
+			err = errors.New(pathname +
+				": 'requires' must be a list")
+			return
+		}
+		for _, pkgName := range pkgList {
+			pd.requires = append(pd.requires, pkgName.(string))
+		}
 	}
 
 	return
@@ -83,13 +131,10 @@ func (index *packageIndex) printListOfPackages() {
 	fmt.Println("List of packages:")
 
 	for _, pd := range index.orderedPackages {
-		fmt.Println(pd["name"])
-		fmt.Println(pd["type"])
-		requiredPackages := pd["requires"]
-		if requiredPackages != nil {
-			for _, rp := range requiredPackages.([]interface{}) {
-				fmt.Println("-", rp)
-			}
+		fmt.Println(pd.packageName)
+		fmt.Println(pd.packageType)
+		for _, rp := range pd.requires {
+			fmt.Println("-", rp)
 		}
 		fmt.Println()
 	}
