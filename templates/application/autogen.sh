@@ -1,10 +1,10 @@
 #!/bin/sh
 
-# {{.PackageName}}: {{.PackageDescription}}
+# {{.name}}: {{.description}}
 #
-# {{.Copyright}}
+# {{.copyright}}
 #
-# {{.License}}
+# {{.license}}
 #
 
 aclocal -I m4 &&
