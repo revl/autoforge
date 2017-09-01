@@ -132,17 +132,3 @@ func TestTemplateFunctions(t *testing.T) {
 	runTemplateFunctionTest(t, "LibName", "libc++11", "libc++11")
 	runTemplateFunctionTest(t, "LibName", "dash-dot.", "dash-dot.")
 }
-
-func TestEmbeddedTemplateTimestamp(t *testing.T) {
-	timestamp := getEmbeddedTemplateTimestamp()
-
-	if timestamp != cachedExecutableModTime {
-		t.Error("Expected getEmbeddedTemplateTimestamp() " +
-			"to return a cached value")
-	}
-
-	if getEmbeddedTemplateTimestamp() != timestamp {
-		t.Error("Expected getEmbeddedTemplateTimestamp() " +
-			"to return the same value")
-	}
-}
