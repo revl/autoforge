@@ -262,3 +262,13 @@ func generateBuildFilesFromProjectTemplate(templateDir,
 
 	return nil
 }
+
+// EmbeddedTemplateFile defines the file mode and the contents
+// of a single file that is a part of an embedded project template.
+type embeddedTemplateFile struct {
+	mode     os.FileMode
+	contents string
+}
+
+// EmbeddedTemplate defines a build-in project template.
+type embeddedTemplate map[string]embeddedTemplateFile
