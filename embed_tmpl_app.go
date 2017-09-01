@@ -5,7 +5,8 @@
 package main
 
 var appTemplate embeddedTemplate = embeddedTemplate{
-	"application/config/Makefile.am": embeddedTemplateFile{0644, `# {{.name}}: {{.description}}
+	"application/config/Makefile.am": embeddedTemplateFile{0644,
+		[]byte(`# {{.name}}: {{.description}}
 #
 # {{.copyright}}
 #
@@ -21,8 +22,9 @@ MAINTAINERCLEANFILES = \
 	mkinstalldirs \
 	test-driver \
 	Makefile.in
-`},
-	"application/Makefile.am": embeddedTemplateFile{0644, `# {{.name}}: {{.description}}
+`)},
+	"application/Makefile.am": embeddedTemplateFile{0644,
+		[]byte(`# {{.name}}: {{.description}}
 #
 # {{.copyright}}
 #
@@ -41,8 +43,9 @@ maintainer-clean-local:
 EXTRA_DIST = autogen.sh
 
 MAINTAINERCLEANFILES = Makefile.in
-`},
-	"application/src/Makefile.am": embeddedTemplateFile{0644, `# {{.name}}: {{.description}}
+`)},
+	"application/src/Makefile.am": embeddedTemplateFile{0644,
+		[]byte(`# {{.name}}: {{.description}}
 #
 # {{.copyright}}
 #
@@ -65,8 +68,8 @@ sources ={{range $v := .sources}} \
 {{if .src_extra_dist}}EXTRA_DIST = \
 {{.src_extra_dist}}
 {{end}}MAINTAINERCLEANFILES = Makefile.in
-`},
-	"application/autogen.sh": embeddedTemplateFile{0755, `#!/bin/sh
+`)},
+	"application/autogen.sh": embeddedTemplateFile{0755, []byte(`#!/bin/sh
 
 # {{.name}}: {{.description}}
 #
@@ -80,8 +83,9 @@ aclocal -I m4 &&
 	autoheader && \
 	automake --foreign --add-missing && \
 	autoconf
-`},
-	"application/m4/Makefile.am": embeddedTemplateFile{0644, `# {{.name}}: {{.description}}
+`)},
+	"application/m4/Makefile.am": embeddedTemplateFile{0644,
+		[]byte(`# {{.name}}: {{.description}}
 #
 # {{.copyright}}
 #
@@ -91,8 +95,9 @@ aclocal -I m4 &&
 EXTRA_DIST = ax_pthread.m4
 
 MAINTAINERCLEANFILES = Makefile.in libtool.m4 lt*.m4
-`},
-	"application/m4/ax_pthread.m4": embeddedTemplateFile{0644, `# ===========================================================================
+`)},
+	"application/m4/ax_pthread.m4": embeddedTemplateFile{0644,
+		[]byte(`# ===========================================================================
 #        http://www.gnu.org/software/autoconf-archive/ax_pthread.html
 # ===========================================================================
 #
@@ -577,5 +582,5 @@ else
 fi
 AC_LANG_POP
 ])dnl AX_PTHREAD
-`},
+`)},
 }
