@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 	"text/template"
+	"time"
 )
 
 type templateParams map[string]interface{}
@@ -261,4 +262,19 @@ func generateBuildFilesFromProjectTemplate(templateDir,
 	}
 
 	return nil
+}
+
+var cachedExecutableModTime time.Time
+
+// GetEmbeddedTemplateTimestamp returns the modification time of
+// this executable. This function is used to check whether the files
+// of the projects built using the embedded templates need to be regenerated.
+func getEmbeddedTemplateTimestamp() time.Time {
+	if cachedExecutableModTime == (time.Time{}) {
+		fileInfo, _ := os.Stat(os.Args[0])
+
+		cachedExecutableModTime = fileInfo.ModTime()
+	}
+
+	return cachedExecutableModTime
 }
