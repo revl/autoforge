@@ -162,6 +162,54 @@ var funcMap template.FuncMap = template.FuncMap{
 	"LibName":   libName,
 }
 
+func generateFileFromTemplate(projectDir, templatePathname string,
+	templateContents []byte, templateFileMode os.FileMode,
+	params templateParams) error {
+	// Parse the template file. The parsed template will be
+	// reused multiple times if expandPathnameTemplate()
+	// returns more than one pathname expansion.
+	t, err := template.New(filepath.Base(templatePathname)).Funcs(
+		funcMap).Parse(string(templateContents))
+	if err != nil {
+		return err
+	}
+
+	for _, fp := range expandPathnameTemplate(templatePathname, params) {
+
+		projectFile := projectDir + fp.filename
+
+		if err = os.MkdirAll(filepath.Dir(projectFile),
+			os.ModePerm); err != nil {
+			return err
+		}
+
+		buffer := bytes.NewBufferString("")
+
+		if err = t.Execute(buffer, fp.params); err != nil {
+			return err
+		}
+
+		newContents := buffer.Bytes()
+
+		oldContents, err := ioutil.ReadFile(projectFile)
+
+		if os.IsNotExist(err) {
+			fmt.Println("A", projectFile)
+		} else if bytes.Compare(oldContents, newContents) != 0 {
+			fmt.Println("U", projectFile)
+		} else {
+			return nil
+		}
+
+		if err = ioutil.WriteFile(projectFile, newContents,
+			templateFileMode); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // GetTemplateWalkFunc returns a walker function for use with filepath.Walk().
 // The returned function interprets each file it visits as a 'text/template'
 // file and generates a new file with the same relative pathname in the output
@@ -200,47 +248,9 @@ func getTemplateWalkFunc(templateDir, projectDir string,
 			return nil
 		}
 
-		// Parse the template file. The parsed template will be
-		// reused multiple times if expandPathnameTemplate()
-		// returns more than one pathname expansion.
-		t, err := template.New(filepath.Base(templateFile)).Funcs(
-			funcMap).Parse(string(templateContents))
-		if err != nil {
+		if err = generateFileFromTemplate(projectDir, templateFile,
+			templateContents, info.Mode(), params); err != nil {
 			return err
-		}
-
-		for _, fp := range expandPathnameTemplate(
-			templateFile, params) {
-
-			projectFile := projectDir + fp.filename
-
-			if err = os.MkdirAll(filepath.Dir(projectFile),
-				os.ModePerm); err != nil {
-				return err
-			}
-
-			buffer := bytes.NewBufferString("")
-
-			if err = t.Execute(buffer, fp.params); err != nil {
-				return err
-			}
-
-			newContents := buffer.Bytes()
-
-			oldContents, err := ioutil.ReadFile(projectFile)
-
-			if os.IsNotExist(err) {
-				fmt.Println("A", projectFile)
-			} else if bytes.Compare(oldContents, newContents) != 0 {
-				fmt.Println("U", projectFile)
-			} else {
-				return nil
-			}
-
-			if err = ioutil.WriteFile(projectFile, newContents,
-				info.Mode()); err != nil {
-				return err
-			}
 		}
 
 		return nil
@@ -272,3 +282,17 @@ type embeddedTemplateFile struct {
 
 // EmbeddedTemplate defines a build-in project template.
 type embeddedTemplate map[string]embeddedTemplateFile
+
+// GenerateBuildFilesFromEmbeddedTemplate generates project build
+// files from a built-in template pointed to by the 'template' parameter.
+func generateBuildFilesFromEmbeddedTemplate(template *embeddedTemplate,
+	projectDir string, params templateParams) error {
+	for pathname, file_info := range *template {
+		if err := generateFileFromTemplate(projectDir, pathname,
+			file_info.contents, file_info.mode,
+			params); err != nil {
+			return err
+		}
+	}
+	return nil
+}

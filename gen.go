@@ -26,5 +26,12 @@ func generatePackageSources() error {
 		return err
 	}
 
+	err = generateBuildFilesFromEmbeddedTemplate(&appTemplate,
+		"output-app", pd.params)
+
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
