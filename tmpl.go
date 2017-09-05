@@ -176,7 +176,7 @@ func generateFileFromTemplate(projectDir, templatePathname string,
 
 	for _, fp := range expandPathnameTemplate(templatePathname, params) {
 
-		projectFile := projectDir + fp.filename
+		projectFile := filepath.Join(projectDir, fp.filename)
 
 		if err = os.MkdirAll(filepath.Dir(projectFile),
 			os.ModePerm); err != nil {
@@ -216,6 +216,9 @@ func generateFileFromTemplate(projectDir, templatePathname string,
 // directory 'projectDir'.
 func getTemplateWalkFunc(templateDir, projectDir string,
 	params templateParams) filepath.WalkFunc {
+
+	templateDir = filepath.Clean(templateDir) + string(filepath.Separator)
+
 	return func(templateFile string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -261,9 +264,6 @@ func getTemplateWalkFunc(templateDir, projectDir string,
 // generates an output file with the same relative pathname inside 'projectDir'.
 func generateBuildFilesFromProjectTemplate(templateDir,
 	projectDir string, params templateParams) error {
-
-	templateDir = filepath.Clean(templateDir) + string(filepath.Separator)
-	projectDir = filepath.Clean(projectDir) + string(filepath.Separator)
 
 	if err := filepath.Walk(templateDir, getTemplateWalkFunc(templateDir,
 		projectDir, params)); err != nil {
