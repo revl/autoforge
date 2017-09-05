@@ -4,7 +4,7 @@
 
 package main
 
-var appTemplate embeddedTemplate = embeddedTemplate{
+var appTemplate = embeddedTemplate{
 	"config/Makefile.am": embeddedTemplateFile{0644,
 		[]byte(`# {{.name}}: {{.description}}
 #

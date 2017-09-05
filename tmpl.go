@@ -156,7 +156,7 @@ func libName(arg string) string {
 	}, arg)
 }
 
-var funcMap template.FuncMap = template.FuncMap{
+var funcMap = template.FuncMap{
 	"VarName":   varName,
 	"VarNameUC": varNameUC,
 	"LibName":   libName,
@@ -287,9 +287,9 @@ type embeddedTemplate map[string]embeddedTemplateFile
 // files from a built-in template pointed to by the 'template' parameter.
 func generateBuildFilesFromEmbeddedTemplate(template *embeddedTemplate,
 	projectDir string, params templateParams) error {
-	for pathname, file_info := range *template {
+	for pathname, fileInfo := range *template {
 		if err := generateFileFromTemplate(projectDir, pathname,
-			file_info.contents, file_info.mode,
+			fileInfo.contents, fileInfo.mode,
 			params); err != nil {
 			return err
 		}
