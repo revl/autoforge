@@ -18,15 +18,17 @@ func generatePackageSources() error {
 			"license":     "License",
 			"sources":     []string{"source1.cc", "source2.cc"}}}
 
-	err := generateBuildFilesFromProjectTemplate(
-		"templates/asdf/..//./application",
-		"output", pd.params)
+	/*
+		err := generateBuildFilesFromProjectTemplate(
+			"templates/asdf/..//./application",
+			"output", pd.params)
 
-	if err != nil {
-		return err
-	}
+		if err != nil {
+			return err
+		}
+	*/
 
-	err = generateBuildFilesFromEmbeddedTemplate(&appTemplate,
+	err := generateBuildFilesFromEmbeddedTemplate(&appTemplate,
 		"output-app", pd.params)
 
 	if err != nil {
