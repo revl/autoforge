@@ -5,6 +5,73 @@
 package main
 
 var appTemplate = embeddedTemplate{
+	"configure.ac": embeddedTemplateFile{0644,
+		[]byte(`# {{.name}}: {{.description}}
+#
+# {{.copyright}}
+#
+# {{.license}}
+#
+
+AC_INIT([{{.name}}], [{{.version}}])
+AC_CONFIG_AUX_DIR([config])
+AC_CONFIG_MACRO_DIRS([m4])
+AC_CONFIG_SRCDIR([src/{{index .sources 0}}])
+AC_CONFIG_HEADERS([config.h])
+AM_INIT_AUTOMAKE([foreign])
+
+test -z "$CXXFLAGS" && CXXFLAGS=""
+
+dnl Checks for programs.
+AC_PROG_CXX
+AC_PROG_LIBTOOL
+
+if test "x$GXX" = "xyes"; then
+	CXXFLAGS="$CXXFLAGS -Wall"
+elif test "$CXX" = cxx && cxx -V < /dev/null 2>&1 | \
+	grep -Eiq 'digital|compaq'; then
+	DIGITALCXX="yes"
+	CXXFLAGS="$CXXFLAGS -w0 -msg_display_tag -std ansi -nousing_std"
+	CXXFLAGS="$CXXFLAGS -D__USE_STD_IOSTREAM -D_POSIX_PII_SOCKET"
+fi
+
+{{if .configure_ac}}{{.configure_ac}}
+{{end}}ACX_PTHREAD(,[AC_MSG_ERROR([this package requires pthreads support])])
+
+CXXFLAGS="$CXXFLAGS $PTHREAD_CFLAGS -D_MT"
+LIBS="$LIBS $PTHREAD_LIBS"
+
+AC_ARG_ENABLE(debug, changequote(<<, >>)<<  --enable-debug          >>dnl
+<<enable debug info and runtime checks [default=no]>>changequote([, ]))
+
+AM_CONDITIONAL(DEBUG, test "$enable_debug" = yes)
+
+if test "$enable_debug" != yes; then
+	CXXFLAGS="$CXXFLAGS -O3"
+elif test "$DIGITALCXX" = yes; then
+	CXXFLAGS="$CXXFLAGS -D_DEBUG -gall"
+elif test "$GXX" = yes; then
+	CXXFLAGS="$CXXFLAGS -D_DEBUG -ggdb"
+elif test "$ac_cv_prog_cxx_g" = yes; then
+	CXXFLAGS="$CXXFLAGS -D_DEBUG -g"
+fi
+{{if or .external_libs .requires}}
+dnl Checks for libraries.{{end}}{{if .external_libs}}{{range .external_libs}}
+AC_CHECK_LIB([{{.Name}}], [{{.Function}}],,
+	AC_MSG_ERROR([unable to link with {{.Name}}]){{if .OtherLibs}},
+	[{{.OtherLibs}}]{{end}}){{end}}
+{{end}}{{if .requires}}
+PKG_PROG_PKG_CONFIG()
+{{range .requires}}
+PKG_CHECK_MODULES([{{VarNameUC .}}], [{{VarName .}}])
+CXXFLAGS="$CXXFLAGS ${{VarNameUC .}}_CFLAGS"
+LIBS="$LIBS ${{VarNameUC .}}_LIBS"
+{{end}}{{end}}
+AC_OUTPUT([Makefile
+src/Makefile
+config/Makefile
+m4/Makefile])
+`)},
 	"config/Makefile.am": embeddedTemplateFile{0644,
 		[]byte(`# {{.name}}: {{.description}}
 #
