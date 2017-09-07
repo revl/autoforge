@@ -38,7 +38,7 @@ fi
 {{if .configure_ac}}{{.configure_ac}}
 {{end}}ACX_PTHREAD(,[AC_MSG_ERROR([this package requires pthreads support])])
 
-CXXFLAGS="$CXXFLAGS $PTHREAD_CFLAGS -D_MT"
+CXXFLAGS="$CXXFLAGS $PTHREAD_CFLAGS"
 LIBS="$LIBS $PTHREAD_LIBS"
 
 AC_ARG_ENABLE(debug, changequote(<<, >>)<<  --enable-debug          >>dnl
