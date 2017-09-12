@@ -374,7 +374,7 @@ AS_IF([test "x$GCC" = "xyes"],
 # correctly enabled
 
 case $host_os in
-        darwin* | hpux* | linux* | osf* | solaris*)
+        hpux* | linux* | osf* | solaris*)
         ax_pthread_check_macro="_REENTRANT"
         ;;
 
