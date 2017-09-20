@@ -6,6 +6,8 @@ package main
 
 import (
 	"fmt"
+
+	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 )
 
@@ -32,4 +34,21 @@ func initializeWorkspace(workspacedir, pkgpath, installdir, docdir,
 	fmt.Println(string(out))
 
 	return nil
+}
+
+// initCmd represents the init command
+var initCmd = &cobra.Command{
+	Use:   "init",
+	Short: "Initialize a new workspace",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		fmt.Println("init called")
+		return nil
+	},
+}
+
+func init() {
+	RootCmd.AddCommand(initCmd)
+
+	initCmd.Flags().StringP("installdir", "", "",
+		"target directory for 'make install'")
 }

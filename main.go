@@ -5,15 +5,21 @@
 package main
 
 import (
-	"flag"
-	"fmt"
 	"log"
 	"os"
+
+	"github.com/spf13/cobra"
 )
 
 var appName = "autoforge"
 
 var pkgPathEnvVar = "AUTOFORGE_PKG_PATH"
+
+// RootCmd represents the base command when called without any subcommands
+var RootCmd = &cobra.Command{
+	Use:   appName,
+	Short: "Project generator for GNU Autotools",
+}
 
 func main() {
 	// Suppress timestamps in the log messages.
@@ -30,52 +36,7 @@ func main() {
 	}()
 
 	// Parse and process command line arguments.
-
-	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr,
-			"Usage: %s [options] [package_range]\n\n", appName)
-
-		flag.PrintDefaults()
-	}
-
-	initFlag := flag.Bool("init", false, "initialize a new workspace")
-
-	list := flag.Bool("list", false,
-		"print the list of packages found in $"+pkgPathEnvVar)
-
-	installdir := flag.String("installdir", "",
-		"target directory for 'make install'")
-
-	docdir := flag.String("docdir", "",
-		"installation directory for documentation")
-
-	maketarget := flag.String("maketarget", "help",
-		"default makefile target")
-
-	quiet := flag.Bool("quiet", false,
-		"do not display progress and result of operation")
-
-	pkgpath := flag.String("pkgpath", "",
-		"the list of directories where to search for packages")
-
-	workspacedir := flag.String("workspacedir", ".",
-		"pathname of the workspace directory")
-
-	flag.Parse()
-
-	var err error
-
-	switch {
-	case *initFlag:
-		err = initializeWorkspace(*workspacedir, *pkgpath, *installdir,
-			*docdir, *maketarget, *quiet)
-	case *list:
-		err = listPackages(*workspacedir, *pkgpath)
-	default:
-		err = generatePackageSources()
-	}
-
-	if err != nil {
-		log.Fatal(err)
+	if RootCmd.Execute() != nil {
+		os.Exit(1)
 	}
 }
