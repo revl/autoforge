@@ -6,6 +6,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
@@ -19,8 +20,7 @@ func loadInitParams() initParams {
 	return initParams{}
 }
 
-func initializeWorkspace(workspacedir, pkgpath, installdir, docdir,
-	maketarget string, quiet bool) error {
+func initializeWorkspace() error {
 
 	fmt.Printf("Initializing a new workspace for %s...\n", appName)
 
@@ -40,15 +40,18 @@ func initializeWorkspace(workspacedir, pkgpath, installdir, docdir,
 var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize a new workspace",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Println("init called")
-		return nil
+	Args:  cobra.MaximumNArgs(0),
+	Run: func(cmd *cobra.Command, args []string) {
+		if err := initializeWorkspace(); err != nil {
+			log.Fatal(err)
+		}
 	},
 }
 
 func init() {
 	RootCmd.AddCommand(initCmd)
 
-	initCmd.Flags().StringP("installdir", "", "",
-		"target directory for 'make install'")
+	initCmd.Flags().SortFlags = false
+	addWorkspaceDirFlag(initCmd)
+	addInstallDirFlag(initCmd)
 }
