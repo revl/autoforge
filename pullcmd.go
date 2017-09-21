@@ -4,6 +4,12 @@
 
 package main
 
+import (
+	"log"
+
+	"github.com/spf13/cobra"
+)
+
 func generatePackageSources() error {
 
 	sources := []string{"source1.cc", "source2.cc"}
@@ -58,4 +64,24 @@ func generatePackageSources() error {
 	}
 
 	return nil
+}
+
+// pullCmd represents the init command
+var pullCmd = &cobra.Command{
+	Use:   "pull [package_range]",
+	Short: "Generate Autotools projects to build a range of packages",
+	Args:  cobra.MaximumNArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		if err := generatePackageSources(); err != nil {
+			log.Fatal(err)
+		}
+	},
+}
+
+func init() {
+	RootCmd.AddCommand(pullCmd)
+
+	pullCmd.Flags().SortFlags = false
+	addWorkspaceDirFlag(pullCmd)
+	addPkgPathFlag(pullCmd)
 }
