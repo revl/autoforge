@@ -94,7 +94,7 @@ func buildPackageIndex(pkgpath string) (packageIndex, error) {
 		pkgpath = os.Getenv(pkgPathEnvVar)
 
 		if len(pkgpath) == 0 {
-			return pi, errors.New("-pkgpath is not given and $" +
+			return pi, errors.New("--pkgpath is not given and $" +
 				pkgPathEnvVar + " is not defined")
 		}
 	}
