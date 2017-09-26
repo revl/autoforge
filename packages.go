@@ -90,10 +90,10 @@ type packageIndex struct {
 func buildPackageIndex(pkgpath string) (packageIndex, error) {
 	var pi packageIndex
 
-	if len(pkgpath) == 0 {
+	if pkgpath == "" {
 		pkgpath = os.Getenv(pkgPathEnvVar)
 
-		if len(pkgpath) == 0 {
+		if pkgpath == "" {
 			return pi, errors.New("--pkgpath is not given and $" +
 				pkgPathEnvVar + " is not defined")
 		}
