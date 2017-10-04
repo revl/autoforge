@@ -5,6 +5,8 @@
 package main
 
 import (
+	"bytes"
+	"go/doc"
 	"log"
 	"os"
 
@@ -14,6 +16,14 @@ import (
 var appName = "autoforge"
 
 var pkgPathEnvVar = "AUTOFORGE_PKG_PATH"
+
+func wrapText(text string) string {
+	var buffer bytes.Buffer
+
+	doc.ToText(&buffer, text, "", "    ", 80)
+
+	return buffer.String()
+}
 
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{

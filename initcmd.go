@@ -14,7 +14,10 @@ import (
 var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize a new workspace",
-	Args:  cobra.MaximumNArgs(0),
+	Long: wrapText("The 'init' command prepares the current " +
+		"(or the specified) directory for use by " + appName +
+		" as a workspace directory."),
+	Args: cobra.MaximumNArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
 		if _, err := createWorkspace(); err != nil {
 			log.Fatal(err)
@@ -26,6 +29,7 @@ func init() {
 	RootCmd.AddCommand(initCmd)
 
 	initCmd.Flags().SortFlags = false
+
 	addWorkspaceDirFlag(initCmd)
 	addPkgPathFlag(initCmd)
 	addInstallDirFlag(initCmd)
