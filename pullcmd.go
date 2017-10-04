@@ -82,6 +82,7 @@ func init() {
 	RootCmd.AddCommand(pullCmd)
 
 	pullCmd.Flags().SortFlags = false
+	addQuietFlag(pullCmd)
 	addWorkspaceDirFlag(pullCmd)
 	addPkgPathFlag(pullCmd)
 }
