@@ -14,7 +14,7 @@ import (
 )
 
 type workspaceParams struct {
-	PkgPath    string `yaml:"pkgpath,omitempty"`
+	PkgPath    string `yaml:"pkgpath"`
 	InstallDir string `yaml:"installdir,omitempty"`
 }
 
@@ -29,7 +29,13 @@ func createWorkspace() (*workspaceParams, error) {
 		return nil, errors.New("Workspace already initialized")
 	}
 
-	wp := workspaceParams{flags.pkgPath, flags.installDir}
+	pkgpath, err := getPackagePathFromEnvironment()
+
+	if err != nil {
+		return nil, err
+	}
+
+	wp := workspaceParams{pkgpath, flags.installDir}
 
 	out, err := yaml.Marshal(&wp)
 	if err != nil {

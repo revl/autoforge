@@ -87,16 +87,26 @@ type packageIndex struct {
 	orderedPackages []packageDefinition
 }
 
-func buildPackageIndex(pkgpath string) (packageIndex, error) {
+func getPackagePathFromEnvironment() (string, error) {
+	if pkgpath := flags.pkgPath; pkgpath != "" {
+		return pkgpath, nil
+	}
+
+	if pkgpath := os.Getenv(pkgPathEnvVar); pkgpath != "" {
+		return pkgpath, nil
+	}
+
+	return "", errors.New("--pkgpath is not given and $" +
+		pkgPathEnvVar + " is not defined")
+}
+
+func buildPackageIndex() (packageIndex, error) {
 	var pi packageIndex
 
-	if pkgpath == "" {
-		pkgpath = os.Getenv(pkgPathEnvVar)
+	pkgpath, err := getPackagePathFromEnvironment()
 
-		if pkgpath == "" {
-			return pi, errors.New("--pkgpath is not given and $" +
-				pkgPathEnvVar + " is not defined")
-		}
+	if err != nil {
+		return pi, err
 	}
 
 	pkgpathDirs := append(strings.Split(pkgpath, ":"),

@@ -11,7 +11,7 @@ import (
 )
 
 func listPackages() error {
-	packageIndex, err := buildPackageIndex(flags.pkgPath)
+	packageIndex, err := buildPackageIndex()
 
 	if err != nil {
 		return err
