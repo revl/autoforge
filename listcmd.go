@@ -10,27 +10,19 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func listPackages() error {
-	packageIndex, err := buildPackageIndex()
-
-	if err != nil {
-		return err
-	}
-
-	packageIndex.printListOfPackages()
-
-	return nil
-}
-
 // listCmd represents the init command
 var listCmd = &cobra.Command{
 	Use:   "list",
 	Short: "Print the list of packages found in $" + pkgPathEnvVar,
 	Args:  cobra.MaximumNArgs(0),
-	Run: func(cmd *cobra.Command, args []string) {
-		if err := listPackages(); err != nil {
+	Run: func(_ *cobra.Command, _ []string) {
+		packageIndex, err := buildPackageIndex()
+
+		if err != nil {
 			log.Fatal(err)
 		}
+
+		packageIndex.printListOfPackages()
 	},
 }
 

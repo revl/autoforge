@@ -18,7 +18,7 @@ var initCmd = &cobra.Command{
 		"(or the specified) directory for use by " + appName +
 		" as a workspace directory."),
 	Args: cobra.MaximumNArgs(0),
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		if _, err := createWorkspace(); err != nil {
 			log.Fatal(err)
 		}

@@ -71,7 +71,7 @@ var pullCmd = &cobra.Command{
 	Use:   "pull [package_range]",
 	Short: "Generate Autotools projects to build a range of packages",
 	Args:  cobra.MaximumNArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, args []string) {
 		if err := generatePackageSources(); err != nil {
 			log.Fatal(err)
 		}

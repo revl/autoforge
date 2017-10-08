@@ -71,7 +71,9 @@ func readWorkspaceParams() (*workspaceParams, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	var wp workspaceParams
 	err = yaml.Unmarshal(in, &wp)
+
 	return &wp, err
 }
