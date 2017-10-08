@@ -100,10 +100,23 @@ func getPackagePathFromEnvironment() (string, error) {
 		pkgPathEnvVar + " is not defined")
 }
 
+func getPackagePathFromWorkspace() (string, error) {
+	wp, err := readWorkspaceParams()
+	return wp.PkgPath, err
+}
+
+func getPackagePathFromWorkspaceOrEnvironment() (string, error) {
+	pkgpath, err := getPackagePathFromWorkspace()
+	if pkgpath != "" && err == nil {
+		return pkgpath, nil
+	}
+	return getPackagePathFromEnvironment()
+}
+
 func buildPackageIndex() (packageIndex, error) {
 	var pi packageIndex
 
-	pkgpath, err := getPackagePathFromEnvironment()
+	pkgpath, err := getPackagePathFromWorkspaceOrEnvironment()
 
 	if err != nil {
 		return pi, err

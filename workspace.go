@@ -18,12 +18,22 @@ type workspaceParams struct {
 	InstallDir string `yaml:"installdir,omitempty"`
 }
 
-func createWorkspace() (*workspaceParams, error) {
+func getWorkspaceDir() string {
 	workspaceDir := "." + appName
 
 	if flags.workspaceDir != "" {
 		workspaceDir = filepath.Join(flags.workspaceDir, workspaceDir)
 	}
+
+	return workspaceDir
+}
+
+func getInitPathname(workspaceDir string) string {
+	return filepath.Join(workspaceDir, "init.yaml")
+}
+
+func createWorkspace() (*workspaceParams, error) {
+	workspaceDir := getWorkspaceDir()
 
 	if _, err := os.Stat(workspaceDir); err == nil {
 		return nil, errors.New("Workspace already initialized")
@@ -47,11 +57,21 @@ func createWorkspace() (*workspaceParams, error) {
 		return nil, err
 	}
 
-	workspaceFile := filepath.Join(workspaceDir, "init.yaml")
-	err = ioutil.WriteFile(workspaceFile, out, os.FileMode(0664))
+	err = ioutil.WriteFile(getInitPathname(workspaceDir),
+		out, os.FileMode(0664))
 	if err != nil {
 		return nil, err
 	}
 
 	return &workspaceParams{}, nil
+}
+
+func readWorkspaceParams() (*workspaceParams, error) {
+	in, err := ioutil.ReadFile(getInitPathname(getWorkspaceDir()))
+	if err != nil {
+		return nil, err
+	}
+	var wp workspaceParams
+	err = yaml.Unmarshal(in, &wp)
+	return &wp, err
 }
