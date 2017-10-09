@@ -102,8 +102,11 @@ func getPackagePathFromEnvironment() (string, error) {
 
 func getPackagePathFromWorkspace() (string, error) {
 	wp, err := readWorkspaceParams()
+	if err != nil {
+		return "", err
+	}
 
-	return wp.PkgPath, err
+	return wp.PkgPath, nil
 }
 
 func getPackagePathFromWorkspaceOrEnvironment() (string, error) {
