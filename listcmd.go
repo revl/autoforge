@@ -17,7 +17,6 @@ var listCmd = &cobra.Command{
 	Args:  cobra.MaximumNArgs(0),
 	Run: func(_ *cobra.Command, _ []string) {
 		packageIndex, err := buildPackageIndex()
-
 		if err != nil {
 			log.Fatal(err)
 		}
