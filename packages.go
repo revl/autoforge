@@ -135,7 +135,7 @@ func buildPackageIndex() (packageIndex, error) {
 
 		for _, dirEntry := range dirEntries {
 			dirEntryPathname := filepath.Join(pkgpathDir,
-				dirEntry.Name(), dirEntry.Name()+".yaml")
+				dirEntry.Name(), appName+".yaml")
 
 			fileInfo, err := os.Stat(dirEntryPathname)
 			if err != nil || !fileInfo.Mode().IsRegular() {
