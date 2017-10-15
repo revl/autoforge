@@ -36,7 +36,7 @@ func createWorkspace() (*workspaceParams, error) {
 	workspaceDir := getWorkspaceDir()
 
 	if _, err := os.Stat(workspaceDir); err == nil {
-		return nil, errors.New("Workspace already initialized")
+		return nil, errors.New("workspace already initialized")
 	}
 
 	pkgpath, err := getPackagePathFromEnvironment()
