@@ -34,9 +34,9 @@ elif test "$CXX" = cxx && cxx -V < /dev/null 2>&1 | \
 	CXXFLAGS="$CXXFLAGS -w0 -msg_display_tag -std ansi -nousing_std"
 	CXXFLAGS="$CXXFLAGS -D__USE_STD_IOSTREAM -D_POSIX_PII_SOCKET"
 fi
-
-{{if index .snippets "configure.ac"}}{{index .snippets "configure.ac"}}
-{{end}}ACX_PTHREAD(,[AC_MSG_ERROR([this package requires pthreads support])])
+{{if .snippets}}{{if index .snippets "configure.ac"}}
+{{index .snippets "configure.ac"}}{{end}}{{end}}
+ACX_PTHREAD(,[AC_MSG_ERROR([this package requires pthreads support])])
 
 CXXFLAGS="$CXXFLAGS $PTHREAD_CFLAGS"
 LIBS="$LIBS $PTHREAD_LIBS"
@@ -118,8 +118,8 @@ MAINTAINERCLEANFILES = Makefile.in
 #
 # {{.license}}
 #
-{{if index .snippets "src/Makefile.am"}}
-{{index .snippets "src/Makefile.am"}}{{end}}
+{{if .snippets}}{{if index .snippets "src/Makefile.am"}}
+{{index .snippets "src/Makefile.am"}}{{end}}{{end}}
 if DEBUG
 bin_PROGRAMS = {{.name}}d
 else
