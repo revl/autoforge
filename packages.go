@@ -23,7 +23,7 @@ type packageDefinition struct {
 	params      templateParams
 }
 
-func getRequiredField(pd *packageDefinition,
+func (pd *packageDefinition) getRequiredField(
 	fieldName string) (interface{}, error) {
 	if value := pd.params[fieldName]; value != nil {
 		return value, nil
@@ -32,9 +32,9 @@ func getRequiredField(pd *packageDefinition,
 		": missing required field '" + fieldName + "'")
 }
 
-func getRequiredStringField(pd *packageDefinition,
+func (pd *packageDefinition) getRequiredStringField(
 	fieldName string) (string, error) {
-	if value, err := getRequiredField(pd, fieldName); err != nil {
+	if value, err := pd.getRequiredField(fieldName); err != nil {
 		return "", err
 	} else if stringValue, ok := value.(string); ok {
 		return stringValue, nil
@@ -45,6 +45,8 @@ func getRequiredStringField(pd *packageDefinition,
 }
 
 func loadPackageDefinition(pathname string) (pd packageDefinition, err error) {
+	pd.pathname = pathname
+
 	data, err := ioutil.ReadFile(pathname)
 
 	if err != nil {
@@ -57,12 +59,17 @@ func loadPackageDefinition(pathname string) (pd packageDefinition, err error) {
 		return
 	}
 
-	pd.packageName, err = getRequiredStringField(&pd, "name")
+	pd.packageName, err = pd.getRequiredStringField("name")
 	if err != nil {
 		return
 	}
 
-	pd.packageType, err = getRequiredStringField(&pd, "type")
+	pd.packageType, err = pd.getRequiredStringField("type")
+	if err != nil {
+		return
+	}
+
+	_, err = pd.getRequiredStringField("version")
 	if err != nil {
 		return
 	}
@@ -83,8 +90,8 @@ func loadPackageDefinition(pathname string) (pd packageDefinition, err error) {
 }
 
 type packageIndex struct {
-	packageByName   map[string]packageDefinition
-	orderedPackages []packageDefinition
+	packageByName   map[string]*packageDefinition
+	orderedPackages []*packageDefinition
 }
 
 func getPackagePathFromEnvironment() (string, error) {
@@ -121,6 +128,8 @@ func getPackagePathFromWorkspaceOrEnvironment() (string, error) {
 func buildPackageIndex() (packageIndex, error) {
 	var pi packageIndex
 
+	pi.packageByName = make(map[string]*packageDefinition)
+
 	pkgpath, err := getPackagePathFromWorkspaceOrEnvironment()
 
 	if err != nil {
@@ -148,7 +157,17 @@ func buildPackageIndex() (packageIndex, error) {
 				return packageIndex{}, err
 			}
 
-			pi.orderedPackages = append(pi.orderedPackages, pd)
+			existingPackage, ok := pi.packageByName[pd.packageName]
+			if ok {
+				return packageIndex{},
+					errors.New("duplicate package name: " +
+						pd.packageName + " (from " +
+						pd.pathname + "); " +
+						"previously declared in " +
+						existingPackage.pathname)
+			}
+			pi.packageByName[pd.packageName] = &pd
+			pi.orderedPackages = append(pi.orderedPackages, &pd)
 		}
 	}
 

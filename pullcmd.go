@@ -5,62 +5,32 @@
 package main
 
 import (
+	"errors"
 	"log"
 
 	"github.com/spf13/cobra"
 )
 
-func generatePackageSources() error {
-
-	sources := []string{"source1.cc", "source2.cc"}
-
-	configurePatch := "AC_MSG_NOTICE([Hello from package definition file])"
-
-	type externalLib struct {
-		Name      string
-		Function  string
-		OtherLibs string
+func generatePackageSources(packages []string) error {
+	packageIndex, err := buildPackageIndex()
+	if err != nil {
+		return err
 	}
 
-	//requires := []string{"liba", "libb"}
-	requires := []string{"b"}
+	for _, pkg := range packages {
+		if _, ok := packageIndex.packageByName[pkg]; !ok {
+			return errors.New("no such package: " + pkg)
+		}
+	}
 
-	externalLibs := []externalLib{}
-	/*
-		{Name: "a", Function: "afunc"},
-		{"b", "bfunc", "-ldependency"}}
-	*/
-
-	pd := packageDefinition{
-		packageName: "Test",
-		packageType: "application",
-		params: templateParams{
-			"name":          "Test",
-			"description":   "Description",
-			"version":       "1.0.0",
-			"type":          "application",
-			"copyright":     "Copyright",
-			"requires":      requires,
-			"license":       "License",
-			"sources":       sources,
-			"snippets":      map[string]string{"configure.ac": configurePatch},
-			"external_libs": externalLibs}}
-
-	/*
-		err := generateBuildFilesFromProjectTemplate(
-			"templates/asdf/..//./application",
-			"output", pd.params)
+	for _, pkg := range packages {
+		pd := packageIndex.packageByName[pkg]
+		err = generateBuildFilesFromEmbeddedTemplate(&appTemplate,
+			"output-"+pd.packageName, pd.params)
 
 		if err != nil {
 			return err
 		}
-	*/
-
-	err := generateBuildFilesFromEmbeddedTemplate(&appTemplate,
-		"output-app", pd.params)
-
-	if err != nil {
-		return err
 	}
 
 	return nil
@@ -68,11 +38,10 @@ func generatePackageSources() error {
 
 // pullCmd represents the pull command
 var pullCmd = &cobra.Command{
-	Use:   "pull [package_range]",
+	Use:   "pull [package_range...]",
 	Short: "Generate Autotools files to build one or more packages",
-	Args:  cobra.MaximumNArgs(1),
 	Run: func(_ *cobra.Command, args []string) {
-		if err := generatePackageSources(); err != nil {
+		if err := generatePackageSources(args); err != nil {
 			log.Fatal(err)
 		}
 	},
