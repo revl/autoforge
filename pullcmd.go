@@ -66,7 +66,7 @@ func generatePackageSources() error {
 	return nil
 }
 
-// pullCmd represents the init command
+// pullCmd represents the pull command
 var pullCmd = &cobra.Command{
 	Use:   "pull [package_range]",
 	Short: "Generate Autotools files to build one or more packages",

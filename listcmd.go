@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// listCmd represents the init command
+// listCmd represents the list command
 var listCmd = &cobra.Command{
 	Use:   "list",
 	Short: "Print the list of packages found in $" + pkgPathEnvVar,
