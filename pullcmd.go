@@ -69,7 +69,7 @@ func generatePackageSources() error {
 // pullCmd represents the init command
 var pullCmd = &cobra.Command{
 	Use:   "pull [package_range]",
-	Short: "Generate Autotools projects to build a range of packages",
+	Short: "Generate Autotools files to build one or more packages",
 	Args:  cobra.MaximumNArgs(1),
 	Run: func(_ *cobra.Command, args []string) {
 		if err := generatePackageSources(); err != nil {
