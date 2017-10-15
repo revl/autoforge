@@ -35,7 +35,7 @@ elif test "$CXX" = cxx && cxx -V < /dev/null 2>&1 | \
 	CXXFLAGS="$CXXFLAGS -D__USE_STD_IOSTREAM -D_POSIX_PII_SOCKET"
 fi
 
-{{if .configure_ac}}{{.configure_ac}}
+{{if index .snippets "configure.ac"}}{{index .snippets "configure.ac"}}
 {{end}}ACX_PTHREAD(,[AC_MSG_ERROR([this package requires pthreads support])])
 
 CXXFLAGS="$CXXFLAGS $PTHREAD_CFLAGS"
@@ -57,9 +57,9 @@ elif test "$ac_cv_prog_cxx_g" = yes; then
 fi
 {{if or .external_libs .requires}}
 dnl Checks for libraries.{{end}}{{if .external_libs}}{{range .external_libs}}
-AC_CHECK_LIB([{{.Name}}], [{{.Function}}],,
-	AC_MSG_ERROR([unable to link with {{.Name}}]){{if .OtherLibs}},
-	[{{.OtherLibs}}]{{end}}){{end}}
+AC_CHECK_LIB([{{.name}}], [{{.function}}],,
+	AC_MSG_ERROR([unable to link with {{.name}}]){{if .other_libs}},
+	[{{.other_libs}}]{{end}}){{end}}
 {{end}}{{if .requires}}
 PKG_PROG_PKG_CONFIG()
 {{range .requires}}
@@ -118,8 +118,8 @@ MAINTAINERCLEANFILES = Makefile.in
 #
 # {{.license}}
 #
-{{if .src_makefile_am}}
-{{.src_makefile_am}}{{end}}
+{{if index .snippets "src/Makefile.am"}}
+{{index .snippets "src/Makefile.am"}}{{end}}
 if DEBUG
 bin_PROGRAMS = {{.name}}d
 else

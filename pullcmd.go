@@ -43,7 +43,7 @@ func generatePackageSources() error {
 			"requires":      requires,
 			"license":       "License",
 			"sources":       sources,
-			"configure_ac":  configurePatch,
+			"snippets":      map[string]string{"configure.ac": configurePatch},
 			"external_libs": externalLibs}}
 
 	/*
