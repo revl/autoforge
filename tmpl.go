@@ -263,10 +263,10 @@ func getTemplateWalkFunc(templateDir, projectDir string,
 // For each source file in 'templateDir', generateBuildFilesFromProjectTemplate
 // generates an output file with the same relative pathname inside 'projectDir'.
 func generateBuildFilesFromProjectTemplate(templateDir,
-	projectDir string, params templateParams) error {
+	projectDir string, pd *packageDefinition) error {
 
 	if err := filepath.Walk(templateDir, getTemplateWalkFunc(templateDir,
-		projectDir, params)); err != nil {
+		projectDir, pd.params)); err != nil {
 		return err
 	}
 
@@ -286,11 +286,11 @@ type embeddedTemplate map[string]embeddedTemplateFile
 // GenerateBuildFilesFromEmbeddedTemplate generates project build
 // files from a built-in template pointed to by the 'template' parameter.
 func generateBuildFilesFromEmbeddedTemplate(template *embeddedTemplate,
-	projectDir string, params templateParams) error {
+	projectDir string, pd *packageDefinition) error {
 	for pathname, fileInfo := range *template {
 		if err := generateFileFromTemplate(projectDir, pathname,
 			fileInfo.contents, fileInfo.mode,
-			params); err != nil {
+			pd.params); err != nil {
 			return err
 		}
 	}

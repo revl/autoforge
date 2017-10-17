@@ -25,9 +25,9 @@ func generatePackageSources(packages []string) error {
 
 	for _, pkg := range packages {
 		pd := packageIndex.packageByName[pkg]
-		err = generateBuildFilesFromEmbeddedTemplate(&appTemplate,
-			"output-"+pd.packageName, pd.params)
 
+		err = generateBuildFilesFromEmbeddedTemplate(&appTemplate,
+			"output-"+pd.packageName, pd)
 		if err != nil {
 			return err
 		}
