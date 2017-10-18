@@ -247,7 +247,7 @@ func getTemplateWalkFunc(templateDir, projectDir string,
 		templateFile = templateFile[len(templateDir):]
 
 		// Ignore package definition file for the template.
-		if templateFile == filepath.Base(templateDir)+".yaml" {
+		if templateFile == packageDefinitionFilename {
 			return nil
 		}
 

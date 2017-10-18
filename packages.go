@@ -15,6 +15,8 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+var packageDefinitionFilename = appName + ".yaml"
+
 type packageDefinition struct {
 	packageName string
 	packageType string
@@ -144,7 +146,7 @@ func buildPackageIndex() (packageIndex, error) {
 
 		for _, dirEntry := range dirEntries {
 			dirEntryPathname := filepath.Join(pkgpathDir,
-				dirEntry.Name(), appName+".yaml")
+				dirEntry.Name(), packageDefinitionFilename)
 
 			fileInfo, err := os.Stat(dirEntryPathname)
 			if err != nil || !fileInfo.Mode().IsRegular() {
