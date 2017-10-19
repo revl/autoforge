@@ -210,6 +210,44 @@ func generateFileFromTemplate(projectDir, templatePathname string,
 	return nil
 }
 
+type fileProcessor func(sourcePathname, relativePathname string,
+	sourceFileInfo os.FileInfo) error
+
+func getFileGenerationWalkFunc(sourceDir, targetDir string,
+	processFile fileProcessor) filepath.WalkFunc {
+
+	sourceDir = filepath.Clean(sourceDir) + string(filepath.Separator)
+
+	return func(sourcePathname string, sourceFileInfo os.FileInfo,
+		err error) error {
+		if err != nil {
+			return err
+		}
+
+		if sourceFileInfo.IsDir() {
+			return nil
+		}
+
+		// Panic if filepath.Walk() does not behave as expected.
+		if !strings.HasPrefix(sourcePathname, sourceDir) {
+			panic(sourcePathname + " does not start with " +
+				sourceDir)
+		}
+
+		// Relative pathname of the source file in the source
+		// directory (and the target file in the target directory).
+		relativePathname := sourcePathname[len(sourceDir):]
+
+		// Ignore the package definition file.
+		if relativePathname == packageDefinitionFilename {
+			return nil
+		}
+
+		return processFile(sourcePathname, relativePathname,
+			sourceFileInfo)
+	}
+}
+
 // GetTemplateWalkFunc returns a walker function for use with filepath.Walk().
 // The returned function interprets each file it visits as a 'text/template'
 // file and generates a new file with the same relative pathname in the output
@@ -260,10 +298,23 @@ func getTemplateWalkFunc(templateDir, projectDir string,
 	}
 }
 
+var fileLinker = func(sourcePathname, relativePathname string,
+	sourceFileInfo os.FileInfo) error {
+	fmt.Println("L", sourcePathname, relativePathname)
+	return nil
+}
+
 // For each source file in 'templateDir', generateBuildFilesFromProjectTemplate
 // generates an output file with the same relative pathname inside 'projectDir'.
 func generateBuildFilesFromProjectTemplate(templateDir,
 	projectDir string, pd *packageDefinition) error {
+
+	sourceDir := filepath.Dir(pd.pathname)
+
+	if err := filepath.Walk(sourceDir, getFileGenerationWalkFunc(sourceDir,
+		projectDir, fileLinker)); err != nil {
+		return err
+	}
 
 	if err := filepath.Walk(templateDir, getTemplateWalkFunc(templateDir,
 		projectDir, pd.params)); err != nil {
@@ -287,6 +338,14 @@ type embeddedTemplate map[string]embeddedTemplateFile
 // files from a built-in template pointed to by the 'template' parameter.
 func generateBuildFilesFromEmbeddedTemplate(template *embeddedTemplate,
 	projectDir string, pd *packageDefinition) error {
+
+	sourceDir := filepath.Dir(pd.pathname)
+
+	if err := filepath.Walk(sourceDir, getFileGenerationWalkFunc(sourceDir,
+		projectDir, fileLinker)); err != nil {
+		return err
+	}
+
 	for pathname, fileInfo := range *template {
 		if err := generateFileFromTemplate(projectDir, pathname,
 			fileInfo.contents, fileInfo.mode,
