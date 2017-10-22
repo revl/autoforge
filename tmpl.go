@@ -298,21 +298,50 @@ func getTemplateWalkFunc(templateDir, projectDir string,
 	}
 }
 
-var fileLinker = func(sourcePathname, relativePathname string,
-	sourceFileInfo os.FileInfo) error {
-	fmt.Println("L", sourcePathname, relativePathname)
-	return nil
+func linkFilesFromSourceDir(pd *packageDefinition, projectDir string) error {
+	sourceDir := filepath.Dir(pd.pathname)
+
+	linkFile := func(sourcePathname, relativePathname string,
+		sourceFileInfo os.FileInfo) error {
+		targetPathname := filepath.Join(projectDir, relativePathname)
+		targetFileInfo, err := os.Lstat(targetPathname)
+		if err == nil {
+			if (targetFileInfo.Mode() & os.ModeSymlink) != 0 {
+				originalLink, err := os.Readlink(targetPathname)
+
+				if err != nil {
+					return err
+				}
+
+				if originalLink == sourcePathname {
+					return nil
+				}
+			}
+
+			if err = os.Remove(targetPathname); err != nil {
+				return err
+			}
+		}
+
+		fmt.Println("L", targetPathname)
+
+		if err = os.MkdirAll(filepath.Dir(targetPathname),
+			os.ModePerm); err != nil {
+			return err
+		}
+
+		return os.Symlink(sourcePathname, targetPathname)
+	}
+
+	return filepath.Walk(sourceDir,
+		getFileGenerationWalkFunc(sourceDir, projectDir, linkFile))
 }
 
 // For each source file in 'templateDir', generateBuildFilesFromProjectTemplate
 // generates an output file with the same relative pathname inside 'projectDir'.
 func generateBuildFilesFromProjectTemplate(templateDir,
 	projectDir string, pd *packageDefinition) error {
-
-	sourceDir := filepath.Dir(pd.pathname)
-
-	if err := filepath.Walk(sourceDir, getFileGenerationWalkFunc(sourceDir,
-		projectDir, fileLinker)); err != nil {
+	if err := linkFilesFromSourceDir(pd, projectDir); err != nil {
 		return err
 	}
 
@@ -338,11 +367,7 @@ type embeddedTemplate map[string]embeddedTemplateFile
 // files from a built-in template pointed to by the 'template' parameter.
 func generateBuildFilesFromEmbeddedTemplate(template *embeddedTemplate,
 	projectDir string, pd *packageDefinition) error {
-
-	sourceDir := filepath.Dir(pd.pathname)
-
-	if err := filepath.Walk(sourceDir, getFileGenerationWalkFunc(sourceDir,
-		projectDir, fileLinker)); err != nil {
+	if err := linkFilesFromSourceDir(pd, projectDir); err != nil {
 		return err
 	}
 
