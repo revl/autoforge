@@ -213,6 +213,9 @@ func generateFileFromTemplate(projectDir, templatePathname string,
 type fileProcessor func(sourcePathname, relativePathname string,
 	sourceFileInfo os.FileInfo) error
 
+// GetFileGenerationWalkFunc returns a walker function for use with
+// filepath.Walk(). The walker function skips directories and package
+// definition files.
 func getFileGenerationWalkFunc(sourceDir, targetDir string,
 	processFile fileProcessor) filepath.WalkFunc {
 
@@ -245,56 +248,6 @@ func getFileGenerationWalkFunc(sourceDir, targetDir string,
 
 		return processFile(sourcePathname, relativePathname,
 			sourceFileInfo)
-	}
-}
-
-// GetTemplateWalkFunc returns a walker function for use with filepath.Walk().
-// The returned function interprets each file it visits as a 'text/template'
-// file and generates a new file with the same relative pathname in the output
-// directory 'projectDir'.
-func getTemplateWalkFunc(templateDir, projectDir string,
-	params templateParams) filepath.WalkFunc {
-
-	templateDir = filepath.Clean(templateDir) + string(filepath.Separator)
-
-	return func(templateFile string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if info.IsDir() {
-			return nil
-		}
-
-		// Panic if filepath.Walk() does not behave as expected.
-		if !strings.HasPrefix(templateFile, templateDir) {
-			panic(templateFile + " does not start with " +
-				templateDir)
-		}
-
-		// Read the contents of the template file. Cannot use
-		// template.ParseFiles() because a Funcs() call must be
-		// made between New() and Parse().
-		templateContents, err := ioutil.ReadFile(templateFile)
-		if err != nil {
-			return err
-		}
-
-		// Pathname of the template file relative to the
-		// template directory.
-		templateFile = templateFile[len(templateDir):]
-
-		// Ignore package definition file for the template.
-		if templateFile == packageDefinitionFilename {
-			return nil
-		}
-
-		if err = generateFileFromTemplate(projectDir, templateFile,
-			templateContents, info.Mode(), params); err != nil {
-			return err
-		}
-
-		return nil
 	}
 }
 
@@ -345,12 +298,29 @@ func generateBuildFilesFromProjectTemplate(templateDir,
 		return err
 	}
 
-	if err := filepath.Walk(templateDir, getTemplateWalkFunc(templateDir,
-		projectDir, pd.params)); err != nil {
-		return err
+	generateFile := func(sourcePathname, relativePathname string,
+		sourceFileInfo os.FileInfo) error {
+		// Read the contents of the template file. Cannot use
+		// template.ParseFiles() because a Funcs() call must be
+		// made between New() and Parse().
+		templateContents, err := ioutil.ReadFile(sourcePathname)
+		if err != nil {
+			return err
+		}
+
+		if err = generateFileFromTemplate(projectDir, relativePathname,
+			templateContents, sourceFileInfo.Mode(),
+			pd.params); err != nil {
+			return err
+		}
+
+		return nil
+
 	}
 
-	return nil
+	return filepath.Walk(templateDir,
+		getFileGenerationWalkFunc(templateDir,
+			projectDir, generateFile))
 }
 
 // EmbeddedTemplateFile defines the file mode and the contents
