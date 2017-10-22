@@ -165,7 +165,7 @@ MAINTAINERCLEANFILES = Makefile.in libtool.m4 lt*.m4
 `)},
 	"m4/ax_pthread.m4": embeddedTemplateFile{0644,
 		[]byte(`# ===========================================================================
-#        http://www.gnu.org/software/autoconf-archive/ax_pthread.html
+#        https://www.gnu.org/software/autoconf-archive/ax_pthread.html
 # ===========================================================================
 #
 # SYNOPSIS
@@ -210,7 +210,7 @@ MAINTAINERCLEANFILES = Makefile.in libtool.m4 lt*.m4
 #
 #   Please let the authors know if this macro fails on any platform, or if
 #   you have any other suggestions or comments. This macro was based on work
-#   by SGJ on autoconf scripts for FFTW (http://www.fftw.org/) (with help
+#   by SGJ on autoconf scripts for FFTW (https://www.fftw.org/) (with help
 #   from M. Frigo), as well as ac_pthread and hb_pthread macros posted by
 #   Alejandro Forero Cuervo to the autoconf macro repository. We are also
 #   grateful for the helpful feedback of numerous users.
@@ -233,7 +233,7 @@ MAINTAINERCLEANFILES = Makefile.in libtool.m4 lt*.m4
 #   Public License for more details.
 #
 #   You should have received a copy of the GNU General Public License along
-#   with this program. If not, see <http://www.gnu.org/licenses/>.
+#   with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 #   As a special exception, the respective Autoconf Macro's copyright owner
 #   gives unlimited permission to copy, distribute and modify the configure
