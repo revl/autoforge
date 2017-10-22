@@ -251,11 +251,16 @@ func getFileGenerationWalkFunc(sourceDir, targetDir string,
 	}
 }
 
-func linkFilesFromSourceDir(pd *packageDefinition, projectDir string) error {
+type filesFromSourceDir map[string]struct{}
+
+func linkFilesFromSourceDir(pd *packageDefinition,
+	projectDir string) (filesFromSourceDir, error) {
+	sourceFiles := make(filesFromSourceDir)
 	sourceDir := filepath.Dir(pd.pathname)
 
 	linkFile := func(sourcePathname, relativePathname string,
 		sourceFileInfo os.FileInfo) error {
+		sourceFiles[relativePathname] = struct{}{}
 		targetPathname := filepath.Join(projectDir, relativePathname)
 		targetFileInfo, err := os.Lstat(targetPathname)
 		if err == nil {
@@ -286,20 +291,28 @@ func linkFilesFromSourceDir(pd *packageDefinition, projectDir string) error {
 		return os.Symlink(sourcePathname, targetPathname)
 	}
 
-	return filepath.Walk(sourceDir,
+	err := filepath.Walk(sourceDir,
 		getFileGenerationWalkFunc(sourceDir, projectDir, linkFile))
+
+	return sourceFiles, err
 }
 
 // For each source file in 'templateDir', generateBuildFilesFromProjectTemplate
 // generates an output file with the same relative pathname inside 'projectDir'.
 func generateBuildFilesFromProjectTemplate(templateDir,
 	projectDir string, pd *packageDefinition) error {
-	if err := linkFilesFromSourceDir(pd, projectDir); err != nil {
+
+	sourceFiles, err := linkFilesFromSourceDir(pd, projectDir)
+	if err != nil {
 		return err
 	}
 
 	generateFile := func(sourcePathname, relativePathname string,
 		sourceFileInfo os.FileInfo) error {
+		if _, sourceFile := sourceFiles[relativePathname]; sourceFile {
+			return nil
+		}
+
 		// Read the contents of the template file. Cannot use
 		// template.ParseFiles() because a Funcs() call must be
 		// made between New() and Parse().
@@ -337,11 +350,17 @@ type embeddedTemplate map[string]embeddedTemplateFile
 // files from a built-in template pointed to by the 'template' parameter.
 func generateBuildFilesFromEmbeddedTemplate(template *embeddedTemplate,
 	projectDir string, pd *packageDefinition) error {
-	if err := linkFilesFromSourceDir(pd, projectDir); err != nil {
+
+	sourceFiles, err := linkFilesFromSourceDir(pd, projectDir)
+	if err != nil {
 		return err
 	}
 
 	for pathname, fileInfo := range *template {
+		if _, sourceFile := sourceFiles[pathname]; sourceFile {
+			continue
+		}
+
 		if err := generateFileFromTemplate(projectDir, pathname,
 			fileInfo.contents, fileInfo.mode,
 			pd.params); err != nil {
