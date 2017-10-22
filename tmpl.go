@@ -191,14 +191,29 @@ func generateFileFromTemplate(projectDir, templatePathname string,
 
 		newContents := buffer.Bytes()
 
-		oldContents, err := ioutil.ReadFile(projectFile)
+		mode := "R"
 
-		if os.IsNotExist(err) {
-			fmt.Println("A", projectFile)
-		} else if bytes.Compare(oldContents, newContents) != 0 {
-			fmt.Println("U", projectFile)
-		} else {
-			return nil
+		existingFileInfo, err := os.Lstat(projectFile)
+		if err != nil {
+			if os.IsNotExist(err) {
+				mode = "A"
+			}
+		} else if (existingFileInfo.Mode() & os.ModeSymlink) == 0 {
+			oldContents, err := ioutil.ReadFile(projectFile)
+			if err == nil {
+				if bytes.Compare(oldContents,
+					newContents) == 0 {
+					return nil
+				}
+				mode = "U"
+			}
+		}
+
+		fmt.Println(mode, projectFile)
+		if mode == "R" {
+			if err = os.Remove(projectFile); err != nil {
+				return err
+			}
 		}
 
 		if err = ioutil.WriteFile(projectFile, newContents,
