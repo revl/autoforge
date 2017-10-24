@@ -132,8 +132,9 @@ sources ={{range $v := .sources}} \
 {{VarName .name}}d_SOURCES = $(sources)
 {{VarName .name}}_SOURCES = $(sources)
 
-{{if .src_extra_dist}}EXTRA_DIST = \
-{{.src_extra_dist}}
+{{if .src_extra_dist}}EXTRA_DIST ={{range .src_extra_dist}} \
+	{{.}}{{end}}
+
 {{end}}MAINTAINERCLEANFILES = Makefile.in
 `)},
 	"autogen.sh": embeddedTemplateFile{0755, []byte(`#!/bin/sh
