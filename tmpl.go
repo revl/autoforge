@@ -156,10 +156,15 @@ func libName(arg string) string {
 	}, arg)
 }
 
+func stringList(elem ...string) []string {
+	return elem
+}
+
 var funcMap = template.FuncMap{
-	"VarName":   varName,
-	"VarNameUC": varNameUC,
-	"LibName":   libName,
+	"VarName":    varName,
+	"VarNameUC":  varNameUC,
+	"LibName":    libName,
+	"StringList": stringList,
 }
 
 func generateFileFromTemplate(projectDir, templatePathname string,
