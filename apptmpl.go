@@ -15,8 +15,9 @@ var appTemplate = embeddedTemplate{
 
 AC_INIT([{{.name}}], [{{.version}}])
 AC_CONFIG_AUX_DIR([config])
-AC_CONFIG_MACRO_DIRS([m4])
-AC_CONFIG_SRCDIR([src/{{index .sources 0}}])
+AC_CONFIG_MACRO_DIRS([m4]){{if .sources}}
+AC_CONFIG_SRCDIR([src/{{index .sources 0}}]){{else}}
+{{$ss := StringList "s1" "s2"}}AC_CONFIG_SRCDIR([src/{{index $ss 0}}]){{end}}
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([foreign])
 
@@ -125,17 +126,17 @@ bin_PROGRAMS = {{.name}}d
 else
 bin_PROGRAMS = {{.name}}
 endif
-
-sources ={{range $v := .sources}} \
-	{{$v}}{{end}}
-
+{{define "Multiline"}}{{range .}} \
+	{{.}}{{end}}{{end}}
+sources ={{if .sources}}{{template "Multiline" .sources}}
+{{else}}{{template "Multiline" StringList "s1" "s2"}}
+{{end}}
 {{VarName .name}}d_SOURCES = $(sources)
 {{VarName .name}}_SOURCES = $(sources)
-
-{{if .src_extra_dist}}EXTRA_DIST ={{range .src_extra_dist}} \
-	{{.}}{{end}}
-
-{{end}}MAINTAINERCLEANFILES = Makefile.in
+{{if .src_extra_dist}}
+EXTRA_DIST ={{template "Multiline" .src_extra_dist}}
+{{end}}
+MAINTAINERCLEANFILES = Makefile.in
 `)},
 	"autogen.sh": embeddedTemplateFile{0755, []byte(`#!/bin/sh
 
