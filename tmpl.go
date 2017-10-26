@@ -162,7 +162,7 @@ func stringList(elem ...string) []string {
 	return elem
 }
 
-func templateLogicError(errorMessage string) (string, error) {
+func templateExecutionError(errorMessage string) (string, error) {
 	return "", errors.New(errorMessage)
 }
 
@@ -171,7 +171,7 @@ var funcMap = template.FuncMap{
 	"VarNameUC":  varNameUC,
 	"LibName":    libName,
 	"StringList": stringList,
-	"Error":      templateLogicError,
+	"Error":      templateExecutionError,
 }
 
 func filterFileList(files *filesFromSourceDir, root, pattern string) []string {
@@ -197,7 +197,7 @@ func filterFileList(files *filesFromSourceDir, root, pattern string) []string {
 	return filtered
 }
 
-func generateFileFromTemplate(projectDir, templatePathname string,
+func generateFilesFromFileTemplate(projectDir, templatePathname string,
 	templateContents []byte, templateFileMode os.FileMode,
 	params templateParams, sourceFiles filesFromSourceDir) error {
 	// Parse the template file. The parsed template will be
@@ -216,14 +216,6 @@ func generateFileFromTemplate(projectDir, templatePathname string,
 	}
 
 	for _, fp := range expandPathnameTemplate(templatePathname, params) {
-
-		projectFile := filepath.Join(projectDir, fp.filename)
-
-		if err := os.MkdirAll(filepath.Dir(projectFile),
-			os.ModePerm); err != nil {
-			return err
-		}
-
 		buffer := bytes.NewBufferString("")
 
 		if err := t.Execute(buffer, fp.params); err != nil {
@@ -234,9 +226,16 @@ func generateFileFromTemplate(projectDir, templatePathname string,
 
 		mode := "R"
 
+		projectFile := filepath.Join(projectDir, fp.filename)
+
 		existingFileInfo, err := os.Lstat(projectFile)
 		if err != nil {
 			if os.IsNotExist(err) {
+				if err := os.MkdirAll(filepath.Dir(projectFile),
+					os.ModePerm); err != nil {
+					return err
+				}
+
 				mode = "A"
 			}
 		} else if (existingFileInfo.Mode() & os.ModeSymlink) == 0 {
@@ -377,8 +376,9 @@ func generateBuildFilesFromProjectTemplate(templateDir,
 			return err
 		}
 
-		if err = generateFileFromTemplate(projectDir, relativePathname,
-			templateContents, sourceFileInfo.Mode(),
+		if err = generateFilesFromFileTemplate(projectDir,
+			relativePathname, templateContents,
+			sourceFileInfo.Mode(),
 			pd.params, sourceFiles); err != nil {
 			return err
 		}
@@ -417,7 +417,7 @@ func generateBuildFilesFromEmbeddedTemplate(template *embeddedTemplate,
 			continue
 		}
 
-		if err := generateFileFromTemplate(projectDir, pathname,
+		if err := generateFilesFromFileTemplate(projectDir, pathname,
 			fileInfo.contents, fileInfo.mode,
 			pd.params, sourceFiles); err != nil {
 			return err
