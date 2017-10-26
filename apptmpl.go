@@ -17,7 +17,7 @@ AC_INIT([{{.name}}], [{{.version}}])
 AC_CONFIG_AUX_DIR([config])
 AC_CONFIG_MACRO_DIRS([m4]){{if .sources}}
 AC_CONFIG_SRCDIR([src/{{index .sources 0}}]){{else}}
-{{$ss := StringList "s1" "s2"}}AC_CONFIG_SRCDIR([src/{{index $ss 0}}]){{end}}
+{{$ss := FileList "src" "*"}}AC_CONFIG_SRCDIR([src/{{index $ss 0}}]){{end}}
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([foreign])
 

@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"text/template"
 )
@@ -167,15 +168,44 @@ var funcMap = template.FuncMap{
 	"StringList": stringList,
 }
 
+func filterFileList(files *filesFromSourceDir, root, pattern string) []string {
+	root += string(filepath.Separator)
+
+	var filtered []string
+
+	for sourceFile := range *files {
+		if !strings.HasPrefix(sourceFile, root) {
+			continue
+		}
+
+		relativePathname := sourceFile[len(root):]
+		filename := filepath.Base(relativePathname)
+
+		if matched, _ := filepath.Match(pattern, filename); matched {
+			filtered = append(filtered, relativePathname)
+		}
+	}
+
+	sort.Strings(filtered)
+
+	return filtered
+}
+
 func generateFileFromTemplate(projectDir, templatePathname string,
 	templateContents []byte, templateFileMode os.FileMode,
-	params templateParams) error {
+	params templateParams, sourceFiles filesFromSourceDir) error {
 	// Parse the template file. The parsed template will be
 	// reused multiple times if expandPathnameTemplate()
 	// returns more than one pathname expansion.
-	t, err := template.New(filepath.Base(templatePathname)).Funcs(
-		funcMap).Parse(string(templateContents))
-	if err != nil {
+	t := template.New(filepath.Base(templatePathname))
+	t.Funcs(funcMap)
+
+	t.Funcs(template.FuncMap{
+		"FileList": func(root, pattern string) []string {
+			return filterFileList(&sourceFiles, root, pattern)
+		}})
+
+	if _, err := t.Parse(string(templateContents)); err != nil {
 		return err
 	}
 
@@ -183,14 +213,14 @@ func generateFileFromTemplate(projectDir, templatePathname string,
 
 		projectFile := filepath.Join(projectDir, fp.filename)
 
-		if err = os.MkdirAll(filepath.Dir(projectFile),
+		if err := os.MkdirAll(filepath.Dir(projectFile),
 			os.ModePerm); err != nil {
 			return err
 		}
 
 		buffer := bytes.NewBufferString("")
 
-		if err = t.Execute(buffer, fp.params); err != nil {
+		if err := t.Execute(buffer, fp.params); err != nil {
 			return err
 		}
 
@@ -343,7 +373,7 @@ func generateBuildFilesFromProjectTemplate(templateDir,
 
 		if err = generateFileFromTemplate(projectDir, relativePathname,
 			templateContents, sourceFileInfo.Mode(),
-			pd.params); err != nil {
+			pd.params, sourceFiles); err != nil {
 			return err
 		}
 
@@ -383,7 +413,7 @@ func generateBuildFilesFromEmbeddedTemplate(template *embeddedTemplate,
 
 		if err := generateFileFromTemplate(projectDir, pathname,
 			fileInfo.contents, fileInfo.mode,
-			pd.params); err != nil {
+			pd.params, sourceFiles); err != nil {
 			return err
 		}
 	}
