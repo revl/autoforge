@@ -6,6 +6,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -161,11 +162,16 @@ func stringList(elem ...string) []string {
 	return elem
 }
 
+func templateLogicError(errorMessage string) (string, error) {
+	return "", errors.New(errorMessage)
+}
+
 var funcMap = template.FuncMap{
 	"VarName":    varName,
 	"VarNameUC":  varNameUC,
 	"LibName":    libName,
 	"StringList": stringList,
+	"Error":      templateLogicError,
 }
 
 func filterFileList(files *filesFromSourceDir, root, pattern string) []string {
