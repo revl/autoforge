@@ -419,19 +419,20 @@ func generateBuildFilesFromProjectTemplate(templateDir,
 			projectDir, generateFile))
 }
 
-// EmbeddedTemplateFile defines the file mode and the contents
+// FileTemplate defines the file mode and the contents
 // of a single file that is a part of an embedded project template.
-type embeddedTemplateFile struct {
+type fileTemplate struct {
+	pathname string
 	mode     os.FileMode
 	contents []byte
 }
 
 // EmbeddedTemplate defines a build-in project template.
-type embeddedTemplate map[string]embeddedTemplateFile
+type embeddedProjectTemplate []fileTemplate
 
 // GenerateBuildFilesFromEmbeddedTemplate generates project build
-// files from a built-in template pointed to by the 'template' parameter.
-func generateBuildFilesFromEmbeddedTemplate(template *embeddedTemplate,
+// files from a built-in template pointed to by the 't' parameter.
+func generateBuildFilesFromEmbeddedTemplate(t *embeddedProjectTemplate,
 	projectDir string, pd *packageDefinition) error {
 
 	sourceFiles, err := linkFilesFromSourceDir(pd, projectDir)
@@ -439,13 +440,13 @@ func generateBuildFilesFromEmbeddedTemplate(template *embeddedTemplate,
 		return err
 	}
 
-	for pathname, fileInfo := range *template {
-		if _, inSourceFiles := sourceFiles[pathname]; inSourceFiles {
+	for _, fileInfo := range *t {
+		if _, exists := sourceFiles[fileInfo.pathname]; exists {
 			continue
 		}
 
-		if err := generateFilesFromFileTemplate(projectDir, pathname,
-			fileInfo.contents, fileInfo.mode,
+		if err := generateFilesFromFileTemplate(projectDir,
+			fileInfo.pathname, fileInfo.contents, fileInfo.mode,
 			pd.params, sourceFiles); err != nil {
 			return err
 		}
