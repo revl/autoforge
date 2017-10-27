@@ -197,9 +197,17 @@ func filterFileList(files *filesFromSourceDir, root, pattern string) []string {
 	return filtered
 }
 
-func generateFilesFromFileTemplate(projectDir, templatePathname string,
-	templateContents []byte, templateFileMode os.FileMode,
-	params templateParams, sourceFiles filesFromSourceDir) error {
+type filenameAndContents struct {
+	filename string
+	contents []byte
+}
+
+type templateExecutionResult []filenameAndContents
+
+func executeFileTemplate(templatePathname string,
+	templateContents []byte, params templateParams,
+	sourceFiles filesFromSourceDir) ([]filenameAndContents, error) {
+
 	// Parse the template file. The parsed template will be
 	// reused multiple times if expandPathnameTemplate()
 	// returns more than one pathname expansion.
@@ -212,21 +220,40 @@ func generateFilesFromFileTemplate(projectDir, templatePathname string,
 		}})
 
 	if _, err := t.Parse(string(templateContents)); err != nil {
-		return err
+		return nil, err
 	}
+
+	var result []filenameAndContents
 
 	for _, fp := range expandPathnameTemplate(templatePathname, params) {
 		buffer := bytes.NewBufferString("")
 
 		if err := t.Execute(buffer, fp.params); err != nil {
-			return err
+			return nil, err
 		}
 
-		newContents := buffer.Bytes()
+		result = append(result, filenameAndContents{
+			fp.filename, buffer.Bytes()})
+	}
 
+	return result, nil
+}
+
+func generateFilesFromFileTemplate(projectDir, templatePathname string,
+	templateContents []byte, templateFileMode os.FileMode,
+	params templateParams, sourceFiles filesFromSourceDir) error {
+
+	outputFiles, err := executeFileTemplate(templatePathname,
+		templateContents, params, sourceFiles)
+
+	if err != nil {
+		return err
+	}
+
+	for _, outputFile := range outputFiles {
 		mode := "R"
 
-		projectFile := filepath.Join(projectDir, fp.filename)
+		projectFile := filepath.Join(projectDir, outputFile.filename)
 
 		existingFileInfo, err := os.Lstat(projectFile)
 		if err != nil {
@@ -242,7 +269,7 @@ func generateFilesFromFileTemplate(projectDir, templatePathname string,
 			oldContents, err := ioutil.ReadFile(projectFile)
 			if err == nil {
 				if bytes.Compare(oldContents,
-					newContents) == 0 {
+					outputFile.contents) == 0 {
 					return nil
 				}
 				mode = "U"
@@ -256,7 +283,7 @@ func generateFilesFromFileTemplate(projectDir, templatePathname string,
 			}
 		}
 
-		if err = ioutil.WriteFile(projectFile, newContents,
+		if err = ioutil.WriteFile(projectFile, outputFile.contents,
 			templateFileMode); err != nil {
 			return err
 		}
@@ -413,7 +440,7 @@ func generateBuildFilesFromEmbeddedTemplate(template *embeddedTemplate,
 	}
 
 	for pathname, fileInfo := range *template {
-		if _, sourceFile := sourceFiles[pathname]; sourceFile {
+		if _, inSourceFiles := sourceFiles[pathname]; inSourceFiles {
 			continue
 		}
 
