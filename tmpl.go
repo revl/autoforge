@@ -116,12 +116,6 @@ func expandPathnameTemplate(pathname string,
 	return result
 }
 
-func must(err error) {
-	if err != nil {
-		panic(err)
-	}
-}
-
 func varName(arg string) string {
 	return strings.Map(func(r rune) rune {
 		if r >= 'A' && r <= 'Z' || r >= 'a' && r <= 'z' ||
