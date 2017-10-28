@@ -88,8 +88,6 @@ type filenameAndContents struct {
 	contents []byte
 }
 
-type templateExecutionResult []filenameAndContents
-
 func executeFileTemplate(templatePathname string,
 	templateContents []byte, params templateParams,
 	sourceFiles filesFromSourceDir) ([]filenameAndContents, error) {
