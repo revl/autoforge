@@ -10,9 +10,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// listCmd represents the list command
-var listCmd = &cobra.Command{
-	Use:   "list",
+// MenuCmd represents the menu command
+var menuCmd = &cobra.Command{
+	Use:   "menu",
 	Short: "Print the list of packages found in $" + pkgPathEnvVar,
 	Args:  cobra.MaximumNArgs(0),
 	Run: func(_ *cobra.Command, _ []string) {
@@ -26,9 +26,9 @@ var listCmd = &cobra.Command{
 }
 
 func init() {
-	RootCmd.AddCommand(listCmd)
+	RootCmd.AddCommand(menuCmd)
 
-	listCmd.Flags().SortFlags = false
-	addWorkspaceDirFlag(listCmd)
-	addPkgPathFlag(listCmd)
+	menuCmd.Flags().SortFlags = false
+	addWorkspaceDirFlag(menuCmd)
+	addPkgPathFlag(menuCmd)
 }
