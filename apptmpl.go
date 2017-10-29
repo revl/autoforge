@@ -5,7 +5,7 @@
 package main
 
 var appTemplate = embeddedProjectTemplate{
-	fileTemplate{"configure.ac", 0644,
+	embeddedTemplateFile{"configure.ac", 0644,
 		[]byte(`# {{.name}}: {{.description}}
 #
 # {{.copyright}}
@@ -75,7 +75,7 @@ src/Makefile
 config/Makefile
 m4/Makefile])
 `)},
-	fileTemplate{"config/Makefile.am", 0644,
+	embeddedTemplateFile{"config/Makefile.am", 0644,
 		[]byte(`# {{.name}}: {{.description}}
 #
 # {{.copyright}}
@@ -93,7 +93,7 @@ MAINTAINERCLEANFILES = \
 	test-driver \
 	Makefile.in
 `)},
-	fileTemplate{"Makefile.am", 0644,
+	embeddedTemplateFile{"Makefile.am", 0644,
 		[]byte(`# {{.name}}: {{.description}}
 #
 # {{.copyright}}
@@ -114,7 +114,7 @@ EXTRA_DIST = autogen.sh
 
 MAINTAINERCLEANFILES = Makefile.in
 `)},
-	fileTemplate{"src/Makefile.am", 0644,
+	embeddedTemplateFile{"src/Makefile.am", 0644,
 		[]byte(`# {{.name}}: {{.description}}
 #
 # {{.copyright}}
@@ -140,7 +140,7 @@ EXTRA_DIST ={{template "Multiline" .src_extra_dist}}
 {{end}}
 MAINTAINERCLEANFILES = Makefile.in
 `)},
-	fileTemplate{"autogen.sh", 0755,
+	embeddedTemplateFile{"autogen.sh", 0755,
 		[]byte(`#!/bin/sh
 
 # {{.name}}: {{.description}}
@@ -156,7 +156,7 @@ aclocal -I m4 &&
 	automake --foreign --add-missing && \
 	autoconf
 `)},
-	fileTemplate{"m4/Makefile.am", 0644,
+	embeddedTemplateFile{"m4/Makefile.am", 0644,
 		[]byte(`# {{.name}}: {{.description}}
 #
 # {{.copyright}}
@@ -168,7 +168,7 @@ EXTRA_DIST = ax_pthread.m4
 
 MAINTAINERCLEANFILES = Makefile.in libtool.m4 lt*.m4
 `)},
-	fileTemplate{"m4/ax_pthread.m4", 0644,
+	embeddedTemplateFile{"m4/ax_pthread.m4", 0644,
 		[]byte(`# ===========================================================================
 #        https://www.gnu.org/software/autoconf-archive/ax_pthread.html
 # ===========================================================================
