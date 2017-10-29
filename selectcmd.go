@@ -36,10 +36,10 @@ func generatePackageSources(packages []string) error {
 	return nil
 }
 
-// pullCmd represents the pull command
-var pullCmd = &cobra.Command{
-	Use:   "pull [package_range...]",
-	Short: "Generate Autotools files to build one or more packages",
+// SelectCmd represents the select command
+var selectCmd = &cobra.Command{
+	Use:   "select [package_range...]",
+	Short: "Choose one or more packages to work on",
 	Run: func(_ *cobra.Command, args []string) {
 		if err := generatePackageSources(args); err != nil {
 			log.Fatal(err)
@@ -48,10 +48,10 @@ var pullCmd = &cobra.Command{
 }
 
 func init() {
-	RootCmd.AddCommand(pullCmd)
+	RootCmd.AddCommand(selectCmd)
 
-	pullCmd.Flags().SortFlags = false
-	addQuietFlag(pullCmd)
-	addWorkspaceDirFlag(pullCmd)
-	addPkgPathFlag(pullCmd)
+	selectCmd.Flags().SortFlags = false
+	addQuietFlag(selectCmd)
+	addWorkspaceDirFlag(selectCmd)
+	addPkgPathFlag(selectCmd)
 }
