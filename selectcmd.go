@@ -38,8 +38,9 @@ func generatePackageSources(packages []string) error {
 
 // SelectCmd represents the select command
 var selectCmd = &cobra.Command{
-	Use:   "select [package_range...]",
+	Use:   "select package_range...",
 	Short: "Choose one or more packages to work on",
+	Args:  cobra.MinimumNArgs(1),
 	Run: func(_ *cobra.Command, args []string) {
 		if err := generatePackageSources(args); err != nil {
 			log.Fatal(err)
