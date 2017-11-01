@@ -6,11 +6,7 @@ package main
 
 var appTemplate = embeddedProjectTemplate{
 	embeddedTemplateFile{"configure.ac", 0644,
-		[]byte(`# {{.name}}: {{.description}}
-#
-# {{.copyright}}
-#
-# {{.license}}
+		[]byte(`# {{.header}}
 #
 
 AC_INIT([{{.name}}], [{{.version}}])
@@ -76,11 +72,7 @@ config/Makefile
 m4/Makefile])
 `)},
 	embeddedTemplateFile{"config/Makefile.am", 0644,
-		[]byte(`# {{.name}}: {{.description}}
-#
-# {{.copyright}}
-#
-# {{.license}}
+		[]byte(`# {{.header}}
 #
 
 MAINTAINERCLEANFILES = \
@@ -94,11 +86,7 @@ MAINTAINERCLEANFILES = \
 	Makefile.in
 `)},
 	embeddedTemplateFile{"Makefile.am", 0644,
-		[]byte(`# {{.name}}: {{.description}}
-#
-# {{.copyright}}
-#
-# {{.license}}
+		[]byte(`# {{.header}}
 #
 
 ACLOCAL_AMFLAGS = -I m4
@@ -115,11 +103,7 @@ EXTRA_DIST = autogen.sh
 MAINTAINERCLEANFILES = Makefile.in
 `)},
 	embeddedTemplateFile{"src/Makefile.am", 0644,
-		[]byte(`# {{.name}}: {{.description}}
-#
-# {{.copyright}}
-#
-# {{.license}}
+		[]byte(`# {{.header}}
 #
 {{if .snippets}}{{if index .snippets "src/Makefile.am"}}
 {{index .snippets "src/Makefile.am"}}{{end}}{{end}}
@@ -143,11 +127,7 @@ MAINTAINERCLEANFILES = Makefile.in
 	embeddedTemplateFile{"autogen.sh", 0755,
 		[]byte(`#!/bin/sh
 
-# {{.name}}: {{.description}}
-#
-# {{.copyright}}
-#
-# {{.license}}
+# {{.header}}
 #
 
 aclocal -I m4 &&
@@ -157,11 +137,7 @@ aclocal -I m4 &&
 	autoconf
 `)},
 	embeddedTemplateFile{"m4/Makefile.am", 0644,
-		[]byte(`# {{.name}}: {{.description}}
-#
-# {{.copyright}}
-#
-# {{.license}}
+		[]byte(`# {{.header}}
 #
 
 EXTRA_DIST = ax_pthread.m4
