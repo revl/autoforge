@@ -53,6 +53,8 @@ func getFileGenerationWalkFunc(sourceDir, targetDir string,
 	}
 }
 
+type filesFromSourceDir map[string]struct{}
+
 func linkFilesFromSourceDir(pd *packageDefinition,
 	projectDir string) (filesFromSourceDir, error) {
 	sourceFiles := make(filesFromSourceDir)

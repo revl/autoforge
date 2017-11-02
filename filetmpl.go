@@ -60,8 +60,6 @@ var funcMap = template.FuncMap{
 	},
 }
 
-type filesFromSourceDir map[string]struct{}
-
 func filterFileList(files *filesFromSourceDir, root, pattern string) []string {
 	root += string(filepath.Separator)
 
