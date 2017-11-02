@@ -23,7 +23,8 @@ func TestTemplateFunctions(t *testing.T) {
 	runTemplateFunctionTest(t, "VarName", "one-half", "one_half")
 
 	runTemplateFunctionTest(t, "VarNameUC", "C++11", "CXX11")
-	runTemplateFunctionTest(t, "VarNameUC", "cross-country", "CROSS_COUNTRY")
+	runTemplateFunctionTest(t, "VarNameUC",
+		"cross-country", "CROSS_COUNTRY")
 
 	runTemplateFunctionTest(t, "LibName", "libc++11", "libc++11")
 	runTemplateFunctionTest(t, "LibName", "dash-dot.", "dash-dot.")
