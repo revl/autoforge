@@ -58,6 +58,10 @@ var funcMap = template.FuncMap{
 	"Error": func(errorMessage string) (string, error) {
 		return "", errors.New(errorMessage)
 	},
+	"Comment": func(text string) string {
+		return strings.Replace(strings.TrimSpace(text),
+			"\n", "\n# ", -1)
+	},
 }
 
 func filterFileList(files *filesFromSourceDir, root, pattern string) []string {
