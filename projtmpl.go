@@ -43,8 +43,9 @@ func getFileGenerationWalkFunc(sourceDir, targetDir string,
 		// directory (and the target file in the target directory).
 		relativePathname := sourcePathname[len(sourceDir):]
 
-		// Ignore the package definition file.
-		if relativePathname == packageDefinitionFilename {
+		// Ignore hidden files and the package definition file.
+		if strings.HasPrefix(filepath.Base(relativePathname), ".") ||
+			relativePathname == packageDefinitionFilename {
 			return nil
 		}
 
