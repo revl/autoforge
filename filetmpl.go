@@ -18,6 +18,21 @@ import (
 
 type templateParams map[string]interface{}
 
+func filterPathnames(pathnames, patterns []string, invert bool) []string {
+	var filtered []string
+
+	for _, pathname := range pathnames {
+		for _, pattern := range patterns {
+			if match, _ := filepath.Match(pattern,
+				filepath.Base(pathname)); match != invert {
+				filtered = append(filtered, pathname)
+			}
+		}
+	}
+
+	return filtered
+}
+
 var funcMap = template.FuncMap{
 	"VarName": func(arg string) string {
 		return strings.Map(func(r rune) rune {
@@ -56,20 +71,10 @@ var funcMap = template.FuncMap{
 		return elem
 	},
 	"Select": func(pathnames []string, patterns ...string) []string {
-		var filtered []string
-
-		for _, pathname := range pathnames {
-			for _, pattern := range patterns {
-				filename := filepath.Base(pathname)
-
-				if matched, _ := filepath.Match(pattern,
-					filename); matched {
-					filtered = append(filtered, pathname)
-				}
-			}
-		}
-
-		return filtered
+		return filterPathnames(pathnames, patterns, false)
+	},
+	"Exclude": func(pathnames []string, patterns ...string) []string {
+		return filterPathnames(pathnames, patterns, true)
 	},
 	"Error": func(errorMessage string) (string, error) {
 		return "", errors.New(errorMessage)
