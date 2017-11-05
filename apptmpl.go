@@ -121,7 +121,9 @@ sources ={{if .sources}}{{template "Multiline" .sources}}
 {{VarName .name}}_SOURCES = $(sources)
 {{if .src_extra_dist}}
 EXTRA_DIST ={{template "Multiline" .src_extra_dist}}
-{{end}}
+{{else}}{{$extraFiles := Exclude (Dir "src") "*?.c*"}}{{if $extraFiles}}
+EXTRA_DIST ={{template "Multiline" $extraFiles}}
+{{end}}{{end}}
 MAINTAINERCLEANFILES = Makefile.in
 `)},
 	embeddedTemplateFile{"autogen.sh", 0755,
