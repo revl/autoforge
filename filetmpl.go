@@ -55,6 +55,22 @@ var funcMap = template.FuncMap{
 	"StringList": func(elem ...string) []string {
 		return elem
 	},
+	"Select": func(pathnames []string, patterns ...string) []string {
+		var filtered []string
+
+		for _, pathname := range pathnames {
+			for _, pattern := range patterns {
+				filename := filepath.Base(pathname)
+
+				if matched, _ := filepath.Match(pattern,
+					filename); matched {
+					filtered = append(filtered, pathname)
+				}
+			}
+		}
+
+		return filtered
+	},
 	"Error": func(errorMessage string) (string, error) {
 		return "", errors.New(errorMessage)
 	},
@@ -62,29 +78,6 @@ var funcMap = template.FuncMap{
 		return strings.Replace(strings.TrimSpace(text),
 			"\n", "\n# ", -1)
 	},
-}
-
-func filterFileList(files *filesFromSourceDir, root, pattern string) []string {
-	root += string(filepath.Separator)
-
-	var filtered []string
-
-	for sourceFile := range *files {
-		if !strings.HasPrefix(sourceFile, root) {
-			continue
-		}
-
-		relativePathname := sourceFile[len(root):]
-		filename := filepath.Base(relativePathname)
-
-		if matched, _ := filepath.Match(pattern, filename); matched {
-			filtered = append(filtered, relativePathname)
-		}
-	}
-
-	sort.Strings(filtered)
-
-	return filtered
 }
 
 type filenameAndContents struct {
@@ -103,8 +96,21 @@ func executeFileTemplate(templatePathname string,
 	t.Funcs(funcMap)
 
 	t.Funcs(template.FuncMap{
-		"FileList": func(root, pattern string) []string {
-			return filterFileList(&sourceFiles, root, pattern)
+		"Dir": func(root string) []string {
+			root += string(filepath.Separator)
+
+			var filtered []string
+
+			for sourceFile := range sourceFiles {
+				if strings.HasPrefix(sourceFile, root) {
+					filtered = append(filtered,
+						sourceFile[len(root):])
+				}
+			}
+
+			sort.Strings(filtered)
+
+			return filtered
 		}})
 
 	if _, err := t.Parse(string(templateContents)); err != nil {

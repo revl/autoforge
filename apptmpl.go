@@ -13,7 +13,7 @@ AC_INIT([{{.name}}], [{{.version}}])
 AC_CONFIG_AUX_DIR([config])
 AC_CONFIG_MACRO_DIRS([m4]){{if .sources}}
 AC_CONFIG_SRCDIR([src/{{index .sources 0}}]){{else}}
-{{$ss := FileList "src" "*"}}{{if eq (len $ss) 0}}
+{{$ss := Dir "src"}}{{if eq (len $ss) 0}}
 	{{Error "The app template requires at least one source file in src/"}}
 {{end}}AC_CONFIG_SRCDIR([src/{{index $ss 0}}]){{end}}
 AC_CONFIG_HEADERS([config.h])
@@ -115,7 +115,7 @@ endif
 {{define "Multiline"}}{{range .}} \
 	{{.}}{{end}}{{end}}
 sources ={{if .sources}}{{template "Multiline" .sources}}
-{{else}}{{template "Multiline" FileList "src" "*?.c*"}}
+{{else}}{{template "Multiline" Select (Dir "src")  "*?.c*"}}
 {{end}}
 {{VarName .name}}d_SOURCES = $(sources)
 {{VarName .name}}_SOURCES = $(sources)
