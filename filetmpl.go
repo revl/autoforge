@@ -18,15 +18,22 @@ import (
 
 type templateParams map[string]interface{}
 
+func matchAny(pathname string, patterns []string) bool {
+	for _, pattern := range patterns {
+		if match, _ := filepath.Match(pattern,
+			filepath.Base(pathname)); match {
+			return true
+		}
+	}
+	return false
+}
+
 func filterPathnames(pathnames, patterns []string, invert bool) []string {
 	var filtered []string
 
 	for _, pathname := range pathnames {
-		for _, pattern := range patterns {
-			if match, _ := filepath.Match(pattern,
-				filepath.Base(pathname)); match != invert {
-				filtered = append(filtered, pathname)
-			}
+		if matchAny(pathname, patterns) != invert {
+			filtered = append(filtered, pathname)
 		}
 	}
 
@@ -70,10 +77,10 @@ var funcMap = template.FuncMap{
 	"StringList": func(elem ...string) []string {
 		return elem
 	},
-	"Select": func(pathnames []string, patterns ...string) []string {
+	"Select": func(pathnames, patterns []string) []string {
 		return filterPathnames(pathnames, patterns, false)
 	},
-	"Exclude": func(pathnames []string, patterns ...string) []string {
+	"Exclude": func(pathnames, patterns []string) []string {
 		return filterPathnames(pathnames, patterns, true)
 	},
 	"Error": func(errorMessage string) (string, error) {

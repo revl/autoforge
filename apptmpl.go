@@ -111,17 +111,17 @@ if DEBUG
 bin_PROGRAMS = {{.name}}d
 else
 bin_PROGRAMS = {{.name}}
-endif
+endif{{$srcFileTypes := StringList "*?.C" "*?.c" "*?.cc" "*?.cxx" "*?.cpp"}}
 {{define "Multiline"}}{{range .}} \
 	{{.}}{{end}}{{end}}
 sources ={{if .sources}}{{template "Multiline" .sources}}
-{{else}}{{template "Multiline" Select (Dir "src")  "*?.c*"}}
+{{else}}{{template "Multiline" Select (Dir "src") $srcFileTypes}}
 {{end}}
 {{VarName .name}}d_SOURCES = $(sources)
 {{VarName .name}}_SOURCES = $(sources)
 {{if .src_extra_dist}}
 EXTRA_DIST ={{template "Multiline" .src_extra_dist}}
-{{else}}{{$extraFiles := Exclude (Dir "src") "*?.c*"}}{{if $extraFiles}}
+{{else}}{{$extraFiles := Exclude (Dir "src") $srcFileTypes}}{{if $extraFiles}}
 EXTRA_DIST ={{template "Multiline" $extraFiles}}
 {{end}}{{end}}
 MAINTAINERCLEANFILES = Makefile.in
