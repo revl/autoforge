@@ -15,33 +15,35 @@ import (
 type fileProcessor func(sourcePathname, relativePathname string,
 	info os.FileInfo) error
 
-// GetFileGenerationWalkFunc returns a walker function for use with
-// filepath.Walk(). The walker function skips directories and package
-// definition files.
-func getFileGenerationWalkFunc(sourceDir, targetDir string,
-	processFile fileProcessor) filepath.WalkFunc {
+// ProcessAllFiles calls the processFile() function for every file in
+// sourceDir. All hidden files and all files in hidden subdirectories
+// as well as package definition files are skipped.
+func processAllFiles(sourceDir, targetDir string,
+	processFile fileProcessor) error {
 
-	sourceDir = filepath.Clean(sourceDir) + string(filepath.Separator)
+	sourceDir = filepath.Clean(sourceDir)
+	sourceDirWithSlash := sourceDir + string(filepath.Separator)
 
-	return func(sourcePathname string, info os.FileInfo, err error) error {
+	return filepath.Walk(sourceDir, func(sourcePathname string,
+		info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
 		// Ignore the top-level directory (sourceDir itself).
-		if len(sourcePathname) <= len(sourceDir) {
+		if len(sourcePathname) <= len(sourceDirWithSlash) {
 			return nil
 		}
 
 		// Panic if filepath.Walk() does not behave as expected.
-		if !strings.HasPrefix(sourcePathname, sourceDir) {
+		if !strings.HasPrefix(sourcePathname, sourceDirWithSlash) {
 			panic(sourcePathname + " does not start with " +
-				sourceDir)
+				sourceDirWithSlash)
 		}
 
 		// Relative pathname of the source file in the source
 		// directory (and the target file in the target directory).
-		relativePathname := sourcePathname[len(sourceDir):]
+		relativePathname := sourcePathname[len(sourceDirWithSlash):]
 
 		// Ignore hidden files and the package definition file.
 		if filepath.Base(relativePathname)[0] == '.' {
@@ -56,7 +58,7 @@ func getFileGenerationWalkFunc(sourceDir, targetDir string,
 		}
 
 		return processFile(sourcePathname, relativePathname, info)
-	}
+	})
 }
 
 type filesFromSourceDir map[string]struct{}
@@ -99,8 +101,7 @@ func linkFilesFromSourceDir(pd *packageDefinition,
 		return os.Symlink(sourcePathname, targetPathname)
 	}
 
-	err := filepath.Walk(sourceDir,
-		getFileGenerationWalkFunc(sourceDir, projectDir, linkFile))
+	err := processAllFiles(sourceDir, projectDir, linkFile)
 
 	return sourceFiles, err
 }
@@ -140,9 +141,7 @@ func generateBuildFilesFromProjectTemplate(templateDir,
 
 	}
 
-	return filepath.Walk(templateDir,
-		getFileGenerationWalkFunc(templateDir,
-			projectDir, generateFile))
+	return processAllFiles(templateDir, projectDir, generateFile)
 }
 
 // EmbeddedTemplateFile defines the file mode and the contents
@@ -177,5 +176,6 @@ func generateBuildFilesFromEmbeddedTemplate(t *embeddedProjectTemplate,
 			return err
 		}
 	}
+
 	return nil
 }
