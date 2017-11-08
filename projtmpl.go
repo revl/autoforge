@@ -13,7 +13,7 @@ import (
 )
 
 type fileProcessor func(sourcePathname, relativePathname string,
-	sourceFileInfo os.FileInfo) error
+	info os.FileInfo) error
 
 // GetFileGenerationWalkFunc returns a walker function for use with
 // filepath.Walk(). The walker function skips directories and package
@@ -23,13 +23,13 @@ func getFileGenerationWalkFunc(sourceDir, targetDir string,
 
 	sourceDir = filepath.Clean(sourceDir) + string(filepath.Separator)
 
-	return func(sourcePathname string, sourceFileInfo os.FileInfo,
-		err error) error {
+	return func(sourcePathname string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
-		if sourceFileInfo.IsDir() {
+		// Ignore the top-level directory (sourceDir itself).
+		if len(sourcePathname) <= len(sourceDir) {
 			return nil
 		}
 
@@ -44,13 +44,18 @@ func getFileGenerationWalkFunc(sourceDir, targetDir string,
 		relativePathname := sourcePathname[len(sourceDir):]
 
 		// Ignore hidden files and the package definition file.
-		if strings.HasPrefix(filepath.Base(relativePathname), ".") ||
-			relativePathname == packageDefinitionFilename {
+		if filepath.Base(relativePathname)[0] == '.' {
+			if info.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		} else if info.IsDir() {
+			return nil
+		} else if relativePathname == packageDefinitionFilename {
 			return nil
 		}
 
-		return processFile(sourcePathname, relativePathname,
-			sourceFileInfo)
+		return processFile(sourcePathname, relativePathname, info)
 	}
 }
 
