@@ -7,6 +7,7 @@ package main
 import (
 	"errors"
 	"log"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 )
@@ -23,11 +24,13 @@ func generatePackageSources(packages []string) error {
 		}
 	}
 
+	buildDir := filepath.Join(getWorkspaceDir(), "build")
+
 	for _, pkg := range packages {
 		pd := packageIndex.packageByName[pkg]
 
 		err = generateBuildFilesFromEmbeddedTemplate(&appTemplate,
-			"output-"+pd.packageName, pd)
+			filepath.Join(buildDir, pd.packageName), pd)
 		if err != nil {
 			return err
 		}
