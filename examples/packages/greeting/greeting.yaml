@@ -1,5 +1,0 @@
-name: greeting
-type: application
-requires:
-    - blue
-    - green
