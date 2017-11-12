@@ -161,13 +161,14 @@ func generateFilesFromFileTemplate(projectDir, templatePathname string,
 	outputFiles, err := executeFileTemplate(templatePathname,
 		templateContents, pd, sourceFiles)
 
-	if err, ok := err.(template.ExecError); ok {
-		splitMessage := strings.Split(err.Error(), templateErrorMarker)
-
-		return errors.New(splitMessage[len(splitMessage)-1])
-	}
-
 	if err != nil {
+		if err, ok := err.(template.ExecError); ok {
+			splitMessage := strings.SplitN(err.Error(),
+				templateErrorMarker, 2)
+
+			return errors.New(splitMessage[len(splitMessage)-1])
+		}
+
 		return err
 	}
 
