@@ -6,9 +6,7 @@ package main
 
 var appTemplate = embeddedProjectTemplate{
 	embeddedTemplateFile{"configure.ac", 0644,
-		[]byte(`# {{Comment .header}}
-#
-
+		[]byte(`{{template "FileHeader" . -}}
 AC_INIT([{{.name}}], [{{.version}}])
 AC_CONFIG_AUX_DIR([config])
 AC_CONFIG_MACRO_DIRS([m4]){{if .sources}}
@@ -72,9 +70,7 @@ config/Makefile
 m4/Makefile])
 `)},
 	embeddedTemplateFile{"config/Makefile.am", 0644,
-		[]byte(`# {{Comment .header}}
-#
-
+		[]byte(`{{template "FileHeader" . -}}
 MAINTAINERCLEANFILES = \
 	config.guess \
 	config.sub \
@@ -86,9 +82,7 @@ MAINTAINERCLEANFILES = \
 	Makefile.in
 `)},
 	embeddedTemplateFile{"Makefile.am", 0644,
-		[]byte(`# {{Comment .header}}
-#
-
+		[]byte(`{{template "FileHeader" . -}}
 ACLOCAL_AMFLAGS = -I m4
 
 AUTOMAKE_OPTIONS = foreign
@@ -103,11 +97,10 @@ EXTRA_DIST = autogen.sh
 MAINTAINERCLEANFILES = Makefile.in
 `)},
 	embeddedTemplateFile{"src/Makefile.am", 0644,
-		[]byte(`# {{Comment .header}}
-#
-{{if .snippets}}{{if index .snippets "src/Makefile.am"}}
-{{index .snippets "src/Makefile.am"}}{{end}}{{end}}
-if DEBUG
+		[]byte(`{{template "FileHeader" . -}}
+{{if .snippets}}{{if index .snippets "src/Makefile.am" -}}
+{{index .snippets "src/Makefile.am"}}
+{{end}}{{end}}if DEBUG
 bin_PROGRAMS = {{.name}}d
 else
 bin_PROGRAMS = {{.name}}
@@ -129,9 +122,7 @@ MAINTAINERCLEANFILES = Makefile.in
 	embeddedTemplateFile{"autogen.sh", 0755,
 		[]byte(`#!/bin/sh
 
-# {{Comment .header}}
-#
-
+{{template "FileHeader" . -}}
 aclocal -I m4 &&
 	libtoolize --automake && \
 	autoheader && \
@@ -139,9 +130,7 @@ aclocal -I m4 &&
 	autoconf
 `)},
 	embeddedTemplateFile{"m4/Makefile.am", 0644,
-		[]byte(`# {{Comment .header}}
-#
-
+		[]byte(`{{template "FileHeader" . -}}
 EXTRA_DIST = ax_pthread.m4
 
 MAINTAINERCLEANFILES = Makefile.in libtool.m4 lt*.m4

@@ -125,6 +125,10 @@ func executeFileTemplate(templatePathname string,
 			return filtered
 		}})
 
+	for name, text := range commonTemplates {
+		template.Must(t.New(name).Parse(text))
+	}
+
 	if _, err := t.Parse(string(templateContents)); err != nil {
 		return nil, err
 	}
