@@ -105,8 +105,7 @@ bin_PROGRAMS = {{.name}}d
 else
 bin_PROGRAMS = {{.name}}
 endif{{$srcFileTypes := StringList "*?.C" "*?.c" "*?.cc" "*?.cxx" "*?.cpp"}}
-{{define "Multiline"}}{{range .}} \
-	{{.}}{{end}}{{end}}
+
 sources ={{if .sources}}{{template "Multiline" .sources}}
 {{else}}{{template "Multiline" Select (Dir "src") $srcFileTypes}}
 {{end}}

@@ -4,9 +4,12 @@
 
 package main
 
-var commonTemplates = map[string]string{"FileHeader": `{{if .header -}}
+var commonTemplates = map[string]string{
+	"FileHeader": `{{if .header -}}
 # {{Comment .header}}
 #
 
 {{end}}`,
+	"Multiline": `{{range .}} \
+	{{.}}{{end}}`,
 }
