@@ -83,9 +83,6 @@ var funcMap = template.FuncMap{
 	"Exclude": func(pathnames, patterns []string) []string {
 		return filterPathnames(pathnames, patterns, true)
 	},
-	"Error": func(errorMessage string) (string, error) {
-		return "", errors.New(errorMessage)
-	},
 	"Comment": func(text string) string {
 		return strings.Replace(strings.TrimSpace(text),
 			"\n", "\n# ", -1)
@@ -97,8 +94,10 @@ type filenameAndContents struct {
 	contents []byte
 }
 
+var templateErrorMarker = "AFTMPLERR"
+
 func executeFileTemplate(templatePathname string,
-	templateContents []byte, params templateParams,
+	templateContents []byte, pd *packageDefinition,
 	sourceFiles filesFromSourceDir) ([]filenameAndContents, error) {
 
 	// Parse the template file. The parsed template will be
@@ -106,6 +105,12 @@ func executeFileTemplate(templatePathname string,
 	// returns more than one pathname expansion.
 	t := template.New(filepath.Base(templatePathname))
 	t.Funcs(funcMap)
+
+	t.Funcs(template.FuncMap{
+		"Error": func(errorMessage string) (string, error) {
+			return "", errors.New(templateErrorMarker +
+				pd.packageName + ": " + errorMessage)
+		}})
 
 	t.Funcs(template.FuncMap{
 		"Dir": func(root string) []string {
@@ -135,7 +140,7 @@ func executeFileTemplate(templatePathname string,
 
 	var result []filenameAndContents
 
-	for _, fp := range expandPathnameTemplate(templatePathname, params) {
+	for _, fp := range expandPathnameTemplate(templatePathname, pd.params) {
 		buffer := bytes.NewBufferString("")
 
 		if err := t.Execute(buffer, fp.params); err != nil {
@@ -151,10 +156,16 @@ func executeFileTemplate(templatePathname string,
 
 func generateFilesFromFileTemplate(projectDir, templatePathname string,
 	templateContents []byte, templateFileMode os.FileMode,
-	params templateParams, sourceFiles filesFromSourceDir) error {
+	pd *packageDefinition, sourceFiles filesFromSourceDir) error {
 
 	outputFiles, err := executeFileTemplate(templatePathname,
-		templateContents, params, sourceFiles)
+		templateContents, pd, sourceFiles)
+
+	if err, ok := err.(template.ExecError); ok {
+		splitMessage := strings.Split(err.Error(), templateErrorMarker)
+
+		return errors.New(splitMessage[len(splitMessage)-1])
+	}
 
 	if err != nil {
 		return err

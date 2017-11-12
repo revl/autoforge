@@ -133,7 +133,7 @@ func generateBuildFilesFromProjectTemplate(templateDir,
 		if err = generateFilesFromFileTemplate(projectDir,
 			relativePathname, templateContents,
 			sourceFileInfo.Mode(),
-			pd.params, sourceFiles); err != nil {
+			pd, sourceFiles); err != nil {
 			return err
 		}
 
@@ -172,7 +172,7 @@ func generateBuildFilesFromEmbeddedTemplate(t *embeddedProjectTemplate,
 
 		if err := generateFilesFromFileTemplate(projectDir,
 			fileInfo.pathname, fileInfo.contents, fileInfo.mode,
-			pd.params, sourceFiles); err != nil {
+			pd, sourceFiles); err != nil {
 			return err
 		}
 	}
