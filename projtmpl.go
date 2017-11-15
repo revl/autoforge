@@ -130,15 +130,10 @@ func generateBuildFilesFromProjectTemplate(templateDir,
 			return err
 		}
 
-		if err = generateFilesFromFileTemplate(projectDir,
+		return generateFilesFromFileTemplate(projectDir,
 			relativePathname, templateContents,
 			sourceFileInfo.Mode(),
-			pd, sourceFiles); err != nil {
-			return err
-		}
-
-		return nil
-
+			pd, sourceFiles)
 	}
 
 	return processAllFiles(templateDir, projectDir, generateFile)
