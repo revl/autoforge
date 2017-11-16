@@ -29,7 +29,7 @@ func generatePackageSources(packages []string) error {
 	for _, pkg := range packages {
 		pd := packageIndex.packageByName[pkg]
 
-		err = generateBuildFilesFromEmbeddedTemplate(&appTemplate,
+		err = generateBuildFilesFromEmbeddedTemplate(&appTemplateFiles,
 			filepath.Join(buildDir, pd.packageName), pd)
 		if err != nil {
 			return err
