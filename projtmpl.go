@@ -147,12 +147,9 @@ type embeddedTemplateFile struct {
 	contents []byte
 }
 
-// EmbeddedTemplate defines a build-in project template.
-type embeddedProjectTemplate []embeddedTemplateFile
-
 // GenerateBuildFilesFromEmbeddedTemplate generates project build
 // files from a built-in template pointed to by the 't' parameter.
-func generateBuildFilesFromEmbeddedTemplate(t *embeddedProjectTemplate,
+func generateBuildFilesFromEmbeddedTemplate(t *[]embeddedTemplateFile,
 	projectDir string, pd *packageDefinition) error {
 
 	sourceFiles, err := linkFilesFromSourceDir(pd, projectDir)
