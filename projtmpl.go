@@ -157,7 +157,7 @@ func generateBuildFilesFromEmbeddedTemplate(t *[]embeddedTemplateFile,
 		return err
 	}
 
-	for _, fileInfo := range *t {
+	for _, fileInfo := range append(*t, commonTemplateFiles...) {
 		if _, exists := sourceFiles[fileInfo.pathname]; exists {
 			continue
 		}
