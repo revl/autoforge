@@ -130,7 +130,7 @@ func executeFileTemplate(templatePathname string,
 			return filtered
 		}})
 
-	for name, text := range commonTemplates {
+	for name, text := range commonDefinitions {
 		template.Must(t.New(name).Parse(text))
 	}
 

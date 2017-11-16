@@ -4,7 +4,7 @@
 
 package main
 
-var commonTemplates = map[string]string{
+var commonDefinitions = map[string]string{
 	"FileHeader": `{{if .header -}}
 # {{Comment .header}}
 #
