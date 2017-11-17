@@ -123,9 +123,9 @@ MAINTAINERCLEANFILES = Makefile.in
 
 {{template "FileHeader" . -}}
 aclocal &&
-	libtoolize --automake && \
+	libtoolize --automake --copy && \
 	autoheader && \
-	automake --foreign --add-missing && \
+	automake --foreign --add-missing --copy && \
 	autoconf
 `)},
 	embeddedTemplateFile{"m4/Makefile.am", 0644,
