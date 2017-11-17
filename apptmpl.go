@@ -122,7 +122,7 @@ MAINTAINERCLEANFILES = Makefile.in
 		[]byte(`#!/bin/sh
 
 {{template "FileHeader" . -}}
-aclocal -I m4 &&
+aclocal &&
 	libtoolize --automake && \
 	autoheader && \
 	automake --foreign --add-missing && \
