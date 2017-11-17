@@ -84,8 +84,20 @@ var funcMap = template.FuncMap{
 		return filterPathnames(pathnames, patterns, true)
 	},
 	"Comment": func(text string) string {
-		return strings.Replace(strings.TrimSpace(text),
-			"\n", "\n# ", -1)
+		var result string
+
+		for _, line := range strings.Split(
+			strings.TrimSpace(text), "\n") {
+			if line = strings.TrimSpace(line); line != "" {
+				result += "# "
+				result += line
+				result += "\n"
+			} else {
+				result += "#\n"
+			}
+		}
+
+		return result + "#\n"
 	},
 }
 

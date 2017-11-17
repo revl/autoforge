@@ -5,10 +5,7 @@
 package main
 
 var commonDefinitions = map[string]string{
-	"FileHeader": `{{if .header -}}
-# {{Comment .header}}
-#
-
+	"FileHeader": `{{if .header}}{{Comment .header}}
 {{end}}`,
 	"Multiline": `{{range .}} \
 	{{.}}{{end}}`,
