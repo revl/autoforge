@@ -122,8 +122,18 @@ MAINTAINERCLEANFILES = Makefile.in
 		[]byte(`#!/bin/sh
 
 {{template "FileHeader" . -}}
+libtoolize="` + "`which libtoolize`" + `"
+
+if ! test -x "$libtoolize"; then
+	libtoolize="` + "`which glibtoolize`" + `"
+	if ! test -x "$libtoolize"; then
+		echo 'libtoolize: not found' >&2
+		exit 1
+	fi
+fi
+
 aclocal &&
-	libtoolize --automake --copy && \
+	"$libtoolize" --automake --copy && \
 	autoheader && \
 	automake --foreign --add-missing --copy && \
 	autoconf
