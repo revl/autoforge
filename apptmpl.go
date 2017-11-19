@@ -69,18 +69,6 @@ src/Makefile
 config/Makefile
 m4/Makefile])
 `)},
-	embeddedTemplateFile{"config/Makefile.am", 0644,
-		[]byte(`{{template "FileHeader" . -}}
-MAINTAINERCLEANFILES = \
-	config.guess \
-	config.sub \
-	depcomp \
-	install-sh \
-	ltconfig \
-	mkinstalldirs \
-	test-driver \
-	Makefile.in
-`)},
 	embeddedTemplateFile{"Makefile.am", 0644,
 		[]byte(`{{template "FileHeader" . -}}
 ACLOCAL_AMFLAGS = -I m4

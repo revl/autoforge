@@ -499,6 +499,18 @@ fi
 AC_LANG_POP
 ])dnl AX_PTHREAD
 `)},
+	embeddedTemplateFile{"config/Makefile.am", 0644,
+		[]byte(`{{template "FileHeader" . -}}
+MAINTAINERCLEANFILES = \
+	config.guess \
+	config.sub \
+	depcomp \
+	install-sh \
+	ltconfig \
+	mkinstalldirs \
+	test-driver \
+	Makefile.in
+`)},
 	embeddedTemplateFile{"m4/Makefile.am", 0644,
 		[]byte(`{{template "FileHeader" . -}}
 EXTRA_DIST = ax_pthread.m4
