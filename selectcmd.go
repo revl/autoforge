@@ -18,19 +18,33 @@ func generatePackageSources(packages []string) error {
 		return err
 	}
 
-	for _, pkg := range packages {
-		if _, ok := packageIndex.packageByName[pkg]; !ok {
-			return errors.New("no such package: " + pkg)
-		}
-	}
+	var generators []func() error
 
 	buildDir := filepath.Join(getWorkspaceDir(), "build")
 
 	for _, pkg := range packages {
-		pd := packageIndex.packageByName[pkg]
+		pd, ok := packageIndex.packageByName[pkg]
+		if !ok {
+			return errors.New("no such package: " + pkg)
+		}
 
-		err = generateBuildFilesFromEmbeddedTemplate(&appTemplateFiles,
-			filepath.Join(buildDir, pd.packageName), pd)
+		projectDir := filepath.Join(buildDir, pd.packageName)
+
+		switch pd.packageType {
+		case "app", "application":
+			generators = append(generators, func() error {
+				return generateBuildFilesFromEmbeddedTemplate(
+					&appTemplateFiles, projectDir, pd)
+			})
+
+		default:
+			return errors.New(pkg + ": unknown package type '" +
+				pd.packageType + "'")
+		}
+	}
+
+	for _, generator := range generators {
+		err = generator()
 		if err != nil {
 			return err
 		}
