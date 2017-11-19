@@ -34,7 +34,13 @@ func generatePackageSources(packages []string) error {
 		case "app", "application":
 			generators = append(generators, func() error {
 				return generateBuildFilesFromEmbeddedTemplate(
-					&appTemplateFiles, projectDir, pd)
+					&appTemplate, projectDir, pd)
+			})
+
+		case "lib", "library":
+			generators = append(generators, func() error {
+				return generateBuildFilesFromEmbeddedTemplate(
+					&libTemplate, projectDir, pd)
 			})
 
 		default:

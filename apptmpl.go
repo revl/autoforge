@@ -4,7 +4,7 @@
 
 package main
 
-var appTemplateFiles = []embeddedTemplateFile{
+var appTemplate = []embeddedTemplateFile{
 	embeddedTemplateFile{"configure.ac", 0644,
 		[]byte(`{{template "FileHeader" . -}}
 AC_INIT([{{.name}}], [{{.version}}])
