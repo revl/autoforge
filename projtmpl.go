@@ -5,6 +5,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -170,4 +171,27 @@ func generateBuildFilesFromEmbeddedTemplate(t *[]embeddedTemplateFile,
 	}
 
 	return nil
+}
+
+func (pd *packageDefinition) getProjectGeneratorFunc(
+	buildDir string) (func() error, error) {
+	projectDir := filepath.Join(buildDir, pd.packageName)
+
+	switch pd.packageType {
+	case "app", "application":
+		return func() error {
+			return generateBuildFilesFromEmbeddedTemplate(
+				&appTemplate, projectDir, pd)
+		}, nil
+
+	case "lib", "library":
+		return func() error {
+			return generateBuildFilesFromEmbeddedTemplate(
+				&libTemplate, projectDir, pd)
+		}, nil
+
+	default:
+		return nil, errors.New(pd.packageName +
+			": unknown package type '" + pd.packageType + "'")
+	}
 }
