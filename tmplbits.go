@@ -499,4 +499,30 @@ fi
 AC_LANG_POP
 ])dnl AX_PTHREAD
 `)},
+	embeddedTemplateFile{"m4/Makefile.am", 0644,
+		[]byte(`{{template "FileHeader" . -}}
+EXTRA_DIST = ax_pthread.m4
+
+MAINTAINERCLEANFILES = Makefile.in libtool.m4 lt*.m4
+`)},
+	embeddedTemplateFile{"autogen.sh", 0755,
+		[]byte(`#!/bin/sh
+
+{{template "FileHeader" . -}}
+libtoolize="` + "`which libtoolize`" + `"
+
+if ! test -x "$libtoolize"; then
+	libtoolize="` + "`which glibtoolize`" + `"
+	if ! test -x "$libtoolize"; then
+		echo 'libtoolize: not found' >&2
+		exit 1
+	fi
+fi
+
+aclocal &&
+	"$libtoolize" --automake --copy && \
+	autoheader && \
+	automake --foreign --add-missing --copy && \
+	autoconf
+`)},
 }
