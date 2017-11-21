@@ -88,18 +88,11 @@ MAINTAINERCLEANFILES = Makefile.in
 		[]byte(`{{template "FileHeader" . -}}
 {{if .snippets}}{{if index .snippets "src/Makefile.am" -}}
 {{index .snippets "src/Makefile.am"}}
-{{end}}{{end}}if DEBUG
-bin_PROGRAMS = {{.name}}d
-else
-bin_PROGRAMS = {{.name}}
-endif{{$srcFileTypes := StringList "*?.C" "*?.c" "*?.cc" "*?.cxx" "*?.cpp"}}
-
-sources ={{if .sources}}{{template "Multiline" .sources}}
+{{end}}{{end}}bin_PROGRAMS = {{.name}}
+{{$srcFileTypes := StringList "*?.C" "*?.c" "*?.cc" "*?.cxx" "*?.cpp"}}
+{{VarName .name}}_SOURCES ={{if .sources}}{{template "Multiline" .sources}}
 {{else}}{{template "Multiline" Select (Dir "src") $srcFileTypes}}
-{{end}}
-{{VarName .name}}d_SOURCES = $(sources)
-{{VarName .name}}_SOURCES = $(sources)
-{{if .src_extra_dist}}
+{{end}}{{if .src_extra_dist}}
 EXTRA_DIST ={{template "Multiline" .src_extra_dist}}
 {{else}}{{$extraFiles := Exclude (Dir "src") $srcFileTypes}}{{if $extraFiles}}
 EXTRA_DIST ={{template "Multiline" $extraFiles}}
