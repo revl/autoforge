@@ -66,7 +66,6 @@ LIBS="$LIBS ${{VarNameUC .}}_LIBS"
 {{end}}{{end}}
 AC_OUTPUT([Makefile
 src/Makefile
-config/Makefile
 m4/Makefile])
 `)},
 	embeddedTemplateFile{"Makefile.am", 0644,
@@ -75,14 +74,12 @@ ACLOCAL_AMFLAGS = -I m4
 
 AUTOMAKE_OPTIONS = foreign
 
-SUBDIRS = . config m4 src
+SUBDIRS = . m4 src
 
 maintainer-clean-local:
 	rm -rf autom4te.cache
 
 EXTRA_DIST = autogen.sh
-
-MAINTAINERCLEANFILES = Makefile.in
 `)},
 	embeddedTemplateFile{"src/Makefile.am", 0644,
 		[]byte(`{{template "FileHeader" . -}}
@@ -96,7 +93,5 @@ MAINTAINERCLEANFILES = Makefile.in
 EXTRA_DIST ={{template "Multiline" .src_extra_dist}}
 {{else}}{{$extraFiles := Exclude (Dir "src") $srcFileTypes}}{{if $extraFiles}}
 EXTRA_DIST ={{template "Multiline" $extraFiles}}
-{{end}}{{end}}
-MAINTAINERCLEANFILES = Makefile.in
-`)},
+{{end}}{{end}}`)},
 }
