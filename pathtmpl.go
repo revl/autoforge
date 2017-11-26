@@ -6,6 +6,7 @@ package main
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 )
 
@@ -69,6 +70,10 @@ func expandPathnameTemplate(pathname string,
 
 	result := make([]outputFileParams, resultSize)
 
+	if resultSize == 0 {
+		return result
+	}
+
 	for i := 0; i < resultSize; i++ {
 		result[i].filename = root.text
 		copyOfParams := templateParams{}
@@ -76,10 +81,6 @@ func expandPathnameTemplate(pathname string,
 			copyOfParams[name] = value
 		}
 		result[i].params = copyOfParams
-	}
-
-	if resultSize == 0 {
-		return result
 	}
 
 	sliceSize := 1
@@ -102,6 +103,12 @@ func expandPathnameTemplate(pathname string,
 		}
 
 		sliceSize *= numberOfValues
+	}
+
+	// Let the templates know their output file and directory names.
+	for _, outputFile := range result {
+		outputFile.params["filename"] = outputFile.filename
+		outputFile.params["dirname"] = filepath.Dir(outputFile.filename)
 	}
 
 	return result
