@@ -7,6 +7,8 @@ package main
 var commonDefinitions = map[string]string{
 	"FileHeader": `{{if .header}}{{Comment .header}}
 {{end}}`,
+	"Snippet": `{{if .snippets}}{{if index .snippets .filename}}
+{{index .snippets .filename}}{{end}}{{end}}`,
 	"Multiline": `{{range .}} \
 	{{.}}{{end}}`,
 }

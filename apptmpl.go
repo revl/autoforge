@@ -82,10 +82,8 @@ maintainer-clean-local:
 EXTRA_DIST = autogen.sh
 `)},
 	embeddedTemplateFile{"src/Makefile.am", 0644,
-		[]byte(`{{template "FileHeader" . -}}
-{{if .snippets}}{{if index .snippets "src/Makefile.am" -}}
-{{index .snippets "src/Makefile.am"}}
-{{end}}{{end}}bin_PROGRAMS = {{.name}}
+		[]byte(`{{template "FileHeader" .}}{{template "Snippet" . -}}
+bin_PROGRAMS = {{.name}}
 {{$srcFileTypes := StringList "*?.C" "*?.c" "*?.cc" "*?.cxx" "*?.cpp"}}
 {{VarName .name}}_SOURCES ={{if .sources}}{{template "Multiline" .sources}}
 {{else}}{{template "Multiline" Select (Dir "src") $srcFileTypes}}
