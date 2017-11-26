@@ -9,11 +9,12 @@ var appTemplate = []embeddedTemplateFile{
 		[]byte(`{{template "FileHeader" . -}}
 AC_INIT([{{.name}}], [{{.version}}])
 AC_CONFIG_AUX_DIR([config])
-AC_CONFIG_MACRO_DIRS([m4]){{if .sources}}
-AC_CONFIG_SRCDIR([src/{{index .sources 0}}]){{else}}
-{{$ss := Dir "src"}}{{if eq (len $ss) 0}}
-	{{Error "The app template requires at least one source file in src/"}}
-{{end}}AC_CONFIG_SRCDIR([src/{{index $ss 0}}]){{end}}
+AC_CONFIG_MACRO_DIRS([m4])
+{{$sources := Dir "src" -}}
+{{if eq (len $sources) 0}}
+{{Error "The app template requires at least one source file in src/"}}
+{{end -}}
+AC_CONFIG_SRCDIR([src/{{index $sources 0}}])
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([foreign])
 
@@ -82,14 +83,16 @@ maintainer-clean-local:
 EXTRA_DIST = autogen.sh
 `)},
 	embeddedTemplateFile{"src/Makefile.am", 0644,
-		[]byte(`{{template "FileHeader" .}}{{template "Snippet" . -}}
+		[]byte(`{{template "FileHeader" . -}}
 bin_PROGRAMS = {{.name}}
-{{$srcFileTypes := StringList "*?.C" "*?.c" "*?.cc" "*?.cxx" "*?.cpp"}}
-{{VarName .name}}_SOURCES ={{if .sources}}{{template "Multiline" .sources}}
-{{else}}{{template "Multiline" Select (Dir "src") $srcFileTypes}}
-{{end}}{{if .src_extra_dist}}
-EXTRA_DIST ={{template "Multiline" .src_extra_dist}}
-{{else}}{{$extraFiles := Exclude (Dir "src") $srcFileTypes}}{{if $extraFiles}}
+
+{{$sourceExt := StringList "*?.C" "*?.c" "*?.cc" "*?.cxx" "*?.cpp" -}}
+{{$allFiles := Dir .dirname -}}
+{{VarName .name -}}
+_SOURCES ={{template "Multiline" Select $allFiles $sourceExt}}
+{{$extraFiles := Exclude $allFiles $sourceExt -}}
+{{if $extraFiles}}
 EXTRA_DIST ={{template "Multiline" $extraFiles}}
-{{end}}{{end}}`)},
+{{end -}}
+{{template "Snippet" .}}`)},
 }
