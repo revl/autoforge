@@ -32,12 +32,6 @@ elif test "$CXX" = cxx && cxx -V < /dev/null 2>&1 | \
 	CXXFLAGS="$CXXFLAGS -w0 -msg_display_tag -std ansi -nousing_std"
 	CXXFLAGS="$CXXFLAGS -D__USE_STD_IOSTREAM -D_POSIX_PII_SOCKET"
 fi
-{{if .snippets}}{{if index .snippets "configure.ac"}}
-{{index .snippets "configure.ac"}}{{end}}{{end}}
-ACX_PTHREAD(,[AC_MSG_ERROR([this package requires pthreads support])])
-
-CXXFLAGS="$CXXFLAGS $PTHREAD_CFLAGS"
-LIBS="$LIBS $PTHREAD_LIBS"
 
 AC_ARG_ENABLE(debug, changequote(<<, >>)<<  --enable-debug          >>dnl
 <<enable debug info and runtime checks [default=no]>>changequote([, ]))
@@ -64,10 +58,10 @@ PKG_PROG_PKG_CONFIG()
 PKG_CHECK_MODULES([{{VarNameUC .}}], [{{VarName .}}])
 CXXFLAGS="$CXXFLAGS ${{VarNameUC .}}_CFLAGS"
 LIBS="$LIBS ${{VarNameUC .}}_LIBS"
-{{end}}{{end}}
+{{end}}{{end -}}
+{{template "Snippet" .}}
 AC_OUTPUT([Makefile
-src/Makefile
-m4/Makefile])
+src/Makefile])
 `)},
 	embeddedTemplateFile{"Makefile.am", 0644,
 		[]byte(`{{template "FileHeader" . -}}
@@ -75,7 +69,7 @@ ACLOCAL_AMFLAGS = -I m4
 
 AUTOMAKE_OPTIONS = foreign
 
-SUBDIRS = . m4 src
+SUBDIRS = . src
 
 maintainer-clean-local:
 	rm -rf autom4te.cache
