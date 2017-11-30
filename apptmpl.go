@@ -20,21 +20,25 @@ AM_INIT_AUTOMAKE([foreign])
 
 test -z "$CXXFLAGS" && CXXFLAGS=""
 
-dnl Checks for programs.
 AC_PROG_CXX
-AC_PROG_LIBTOOL
+LT_INIT([disable-shared])
 
-if test "x$GXX" = "xyes"; then
-	CXXFLAGS="$CXXFLAGS -Wall"
-elif test "$CXX" = cxx && cxx -V < /dev/null 2>&1 | \
-	grep -Eiq 'digital|compaq'; then
-	DIGITALCXX="yes"
-	CXXFLAGS="$CXXFLAGS -w0 -msg_display_tag -std ansi -nousing_std"
-	CXXFLAGS="$CXXFLAGS -D__USE_STD_IOSTREAM -D_POSIX_PII_SOCKET"
-fi
+dnl When compiling with GNU C++, display more warnings.
+AS_IF([test "$GXX" = yes],
+	[CXXFLAGS="$CXXFLAGS -ansi -pedantic -Wall \
+-Woverloaded-virtual -Wsign-promo -W -Wshadow -Wpointer-arith -Wcast-qual \
+-Wwrite-strings -Wconversion -Wsign-compare -Wredundant-decls -Winline"],
+dnl Display all levels of the Digital (Compaq) C++ warnings.
+[test "$CXX" = cxx &&
+	cxx -V < /dev/null 2>&1 | grep -Eiq 'digital|compaq'],
+	[DIGITALCXX="yes"
+	CXXFLAGS="$CXXFLAGS -w0 -msg_display_tag -std strict_ansi"],
+dnl Enable all warnings and remarks of the Intel C++ compiler.
+[test "$CXX" = icpc && icpc -V < /dev/null 2>&1 | grep -iq intel],
+	[CXXFLAGS="$CXXFLAGS -w2"])
 
-AC_ARG_ENABLE(debug, changequote(<<, >>)<<  --enable-debug          >>dnl
-<<enable debug info and runtime checks [default=no]>>changequote([, ]))
+AC_ARG_ENABLE(debug, AS_HELP_STRING([--enable-debug],
+	[enable debug info and runtime checks (default=no)]))
 
 AM_CONDITIONAL(DEBUG, test "$enable_debug" = yes)
 
@@ -60,8 +64,9 @@ CXXFLAGS="$CXXFLAGS ${{VarNameUC .}}_CFLAGS"
 LIBS="$LIBS ${{VarNameUC .}}_LIBS"
 {{end}}{{end -}}
 {{template "Snippet" .}}
-AC_OUTPUT([Makefile
+AC_CONFIG_FILES([Makefile
 src/Makefile])
+AC_OUTPUT
 `)},
 	embeddedTemplateFile{"Makefile.am", 0644,
 		[]byte(`{{template "FileHeader" . -}}
