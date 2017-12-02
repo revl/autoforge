@@ -74,6 +74,9 @@ var funcMap = template.FuncMap{
 			return '_'
 		}, arg)
 	},
+	"TrimExt": func(filename string) string {
+		return filename[:len(filename)-len(filepath.Ext(filename))]
+	},
 	"StringList": func(elem ...string) []string {
 		return elem
 	},
