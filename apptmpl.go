@@ -40,17 +40,17 @@ dnl Enable all warnings and remarks of the Intel C++ compiler.
 AC_ARG_ENABLE(debug, AS_HELP_STRING([--enable-debug],
 	[enable debug info and runtime checks (default=no)]))
 
-AM_CONDITIONAL(DEBUG, test "$enable_debug" = yes)
+AM_CONDITIONAL(DEBUG, [test "$enable_debug" = yes])
 
-if test "$enable_debug" != yes; then
-	CXXFLAGS="$CXXFLAGS -O3"
-elif test "$DIGITALCXX" = yes; then
-	CXXFLAGS="$CXXFLAGS -D_DEBUG -gall"
-elif test "$GXX" = yes; then
-	CXXFLAGS="$CXXFLAGS -D_DEBUG -ggdb"
-elif test "$ac_cv_prog_cxx_g" = yes; then
-	CXXFLAGS="$CXXFLAGS -D_DEBUG -g"
-fi
+AS_IF([test "$enable_debug" != yes],
+	[CXXFLAGS="$CXXFLAGS -O3"],
+[AC_DEFINE([DEBUG], 1, [Define to 1 to enable various runtime checks.])
+AS_IF([test "$GXX" = yes],
+	[CXXFLAGS="$CXXFLAGS -ggdb"],
+[test "$DIGITALCXX" = yes],
+	[CXXFLAGS="$CXXFLAGS -gall"],
+[test "$ac_cv_prog_cxx_g" = yes],
+	[CXXFLAGS="$CXXFLAGS -g"])])
 {{if or .external_libs .requires}}
 dnl Checks for libraries.{{end}}{{if .external_libs}}{{range .external_libs}}
 AC_CHECK_LIB([{{.name}}], [{{.function}}],,
