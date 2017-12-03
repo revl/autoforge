@@ -65,6 +65,9 @@ LDADD = ../src/lib$(PACKAGE).la
 {{$sourceExt := StringList "*?.C" "*?.c" "*?.cc" "*?.cxx" "*?.cpp" -}}
 {{$allFiles := Dir .dirname -}}
 {{$testSources := Select $allFiles $sourceExt -}}
+{{if eq (len $testSources) 0}}
+{{Error "'lib' template requires at least one test_*.{cc,c} file under tests/"}}
+{{end -}}
 check_PROGRAMS ={{range $testSources}} \
 	{{TrimExt .}}{{end}}
 
@@ -85,7 +88,7 @@ AC_CONFIG_AUX_DIR([config])
 AC_CONFIG_MACRO_DIRS([m4])
 {{$sources := Dir "src" -}}
 {{if eq (len $sources) 0}}
-{{Error "The app template requires at least one source file in src/"}}
+{{Error "'lib' template requires at least one source file in src/"}}
 {{end -}}
 AC_CONFIG_SRCDIR([src/{{index $sources 0}}])
 AC_CONFIG_HEADERS([config.h])

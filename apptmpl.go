@@ -12,7 +12,7 @@ AC_CONFIG_AUX_DIR([config])
 AC_CONFIG_MACRO_DIRS([m4])
 {{$sources := Dir "src" -}}
 {{if eq (len $sources) 0}}
-{{Error "The app template requires at least one source file in src/"}}
+{{Error "'app' template requires at least one source file in src/"}}
 {{end -}}
 AC_CONFIG_SRCDIR([src/{{index $sources 0}}])
 AC_CONFIG_HEADERS([config.h])
