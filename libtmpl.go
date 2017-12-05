@@ -165,4 +165,28 @@ tests/Makefile
 {{.name}}-uninstalled.pc])
 AC_OUTPUT
 `)},
+	embeddedTemplateFile{"{name}-uninstalled.pc.in", 0644,
+		[]byte(`prefix=@UNINST_PREFIX@
+exec_prefix=@UNINST_PREFIX@
+libdir=@UNINST_PREFIX@/src
+includedir=@UNINST_PREFIX@/include
+
+Name: @PACKAGE_NAME@
+Version: @PACKAGE_VERSION@
+Libs: @UNINST_LIBS@
+Libs.private: @PRIVATE_CONFIG_LIBS@
+Cflags: @UNINST_FLAGS@
+`)},
+	embeddedTemplateFile{"{name}.pc.in", 0644,
+		[]byte(`prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: @PACKAGE_NAME@
+Version: @PACKAGE_VERSION@
+Libs: @CONFIG_LIBS@
+Libs.private: @PRIVATE_CONFIG_LIBS@
+Cflags: @CONFIG_FLAGS@
+`)},
 }
