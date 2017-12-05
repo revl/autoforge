@@ -172,6 +172,7 @@ libdir=@UNINST_PREFIX@/src
 includedir=@UNINST_PREFIX@/include
 
 Name: @PACKAGE_NAME@
+Description: {{.description}}
 Version: @PACKAGE_VERSION@
 Libs: @UNINST_LIBS@
 Libs.private: @PRIVATE_CONFIG_LIBS@
@@ -184,6 +185,7 @@ libdir=@libdir@
 includedir=@includedir@
 
 Name: @PACKAGE_NAME@
+Description: {{.description}}
 Version: @PACKAGE_VERSION@
 Libs: @CONFIG_LIBS@
 Libs.private: @PRIVATE_CONFIG_LIBS@

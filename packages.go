@@ -19,6 +19,7 @@ var packageDefinitionFilename = appName + ".yaml"
 
 type packageDefinition struct {
 	packageName string
+	description string
 	packageType string
 	pathname    string
 	requires    []string
@@ -62,6 +63,11 @@ func loadPackageDefinition(pathname string) (pd packageDefinition, err error) {
 	}
 
 	pd.packageName, err = pd.getRequiredStringField("name")
+	if err != nil {
+		return
+	}
+
+	pd.description, err = pd.getRequiredStringField("description")
 	if err != nil {
 		return
 	}
@@ -181,6 +187,7 @@ func (index *packageIndex) printListOfPackages() {
 
 	for _, pd := range index.orderedPackages {
 		fmt.Println(pd.packageName)
+		fmt.Println(pd.description)
 		fmt.Println(pd.packageType)
 		for _, rp := range pd.requires {
 			fmt.Println("-", rp)
