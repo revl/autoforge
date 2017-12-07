@@ -81,6 +81,18 @@ TESTS = $(check_PROGRAMS)
 EXTRA_DIST ={{template "Multiline" $extraFiles}}
 {{end -}}
 {{template "Snippet" .}}`)},
+	embeddedTemplateFile{"Makefile.am", 0644,
+		[]byte(`{{template "FileHeader" . -}}
+ACLOCAL_AMFLAGS = -I m4
+
+AUTOMAKE_OPTIONS = foreign
+
+SUBDIRS = . include src tests
+
+pkgconfig_DATA = {{.name}}.pc
+
+EXTRA_DIST = autogen.sh
+{{template "Snippet" .}}`)},
 	embeddedTemplateFile{"configure.ac", 0644,
 		[]byte(`{{template "FileHeader" . -}}
 AC_INIT([{{.name}}], [{{.version}}])
