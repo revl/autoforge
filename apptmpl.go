@@ -76,9 +76,6 @@ AUTOMAKE_OPTIONS = foreign
 
 SUBDIRS = . src
 
-maintainer-clean-local:
-	rm -rf autom4te.cache
-
 EXTRA_DIST = autogen.sh
 `)},
 	embeddedTemplateFile{"src/Makefile.am", 0644,
