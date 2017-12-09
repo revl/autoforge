@@ -7,39 +7,61 @@ package main
 import (
 	"errors"
 	"log"
+	"os"
+	"os/exec"
 	"path/filepath"
 
 	"github.com/spf13/cobra"
 )
 
-func generatePackageSources(packages []string) error {
+func generateAndBootstrapPackage(pkgSelection []string) error {
 	packageIndex, err := buildPackageIndex()
 	if err != nil {
 		return err
 	}
 
-	buildDir := filepath.Join(getWorkspaceDir(), "build")
+	pkgRootDir := filepath.Join(getWorkspaceDir(), "packages")
 
-	var projectGenerators []func() error
-
-	for _, pkg := range packages {
-		pd, ok := packageIndex.packageByName[pkg]
-		if !ok {
-			return errors.New("no such package: " + pkg)
-		}
-
-		generator, err := pd.getProjectGeneratorFunc(buildDir)
-		if err != nil {
-			return err
-		}
-
-		projectGenerators = append(projectGenerators, generator)
+	type packageAndGenerator struct {
+		pd         *packageDefinition
+		packageDir string
+		generator  func() error
 	}
 
-	for _, generator := range projectGenerators {
-		err = generator()
+	var packagesAndGenerators []packageAndGenerator
+
+	for _, packageName := range pkgSelection {
+		pd, ok := packageIndex.packageByName[packageName]
+		if !ok {
+			return errors.New("no such package: " + packageName)
+		}
+
+		packageDir := filepath.Join(pkgRootDir, pd.packageName)
+
+		generator, err := pd.getPackageGeneratorFunc(packageDir)
 		if err != nil {
 			return err
+		}
+
+		packagesAndGenerators = append(packagesAndGenerators,
+			packageAndGenerator{pd, packageDir, generator})
+	}
+
+	for _, pg := range packagesAndGenerators {
+		// Generate autoconf and automake sources for the package.
+		if err = pg.generator(); err != nil {
+			return err
+		}
+
+		// Bootstrap the package if the 'configure' script
+		// does not exist.
+		_, err = os.Lstat(filepath.Join(pg.packageDir, "configure"))
+		if os.IsNotExist(err) {
+			cmd := exec.Command("./autogen.sh")
+			cmd.Dir = pg.packageDir
+			if err = cmd.Run(); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -52,7 +74,7 @@ var selectCmd = &cobra.Command{
 	Short: "Choose one or more packages to work on",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(_ *cobra.Command, args []string) {
-		if err := generatePackageSources(args); err != nil {
+		if err := generateAndBootstrapPackage(args); err != nil {
 			log.Fatal(err)
 		}
 	},

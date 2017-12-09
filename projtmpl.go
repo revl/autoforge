@@ -173,21 +173,19 @@ func generateBuildFilesFromEmbeddedTemplate(t *[]embeddedTemplateFile,
 	return nil
 }
 
-func (pd *packageDefinition) getProjectGeneratorFunc(
-	buildDir string) (func() error, error) {
-	projectDir := filepath.Join(buildDir, pd.packageName)
-
+func (pd *packageDefinition) getPackageGeneratorFunc(
+	packageDir string) (func() error, error) {
 	switch pd.packageType {
 	case "app", "application":
 		return func() error {
 			return generateBuildFilesFromEmbeddedTemplate(
-				&appTemplate, projectDir, pd)
+				&appTemplate, packageDir, pd)
 		}, nil
 
 	case "lib", "library":
 		return func() error {
 			return generateBuildFilesFromEmbeddedTemplate(
-				&libTemplate, projectDir, pd)
+				&libTemplate, packageDir, pd)
 		}, nil
 
 	default:
