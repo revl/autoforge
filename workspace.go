@@ -28,8 +28,8 @@ func getWorkspaceDir() string {
 	return workspaceDir
 }
 
-func getInitPathname(workspaceDir string) string {
-	return filepath.Join(workspaceDir, "init.yaml")
+func getPathToSettings(workspaceDir string) string {
+	return filepath.Join(workspaceDir, "settings.yaml")
 }
 
 func createWorkspace() (*workspaceParams, error) {
@@ -57,7 +57,7 @@ func createWorkspace() (*workspaceParams, error) {
 		return nil, err
 	}
 
-	err = ioutil.WriteFile(getInitPathname(workspaceDir),
+	err = ioutil.WriteFile(getPathToSettings(workspaceDir),
 		out, os.FileMode(0664))
 	if err != nil {
 		return nil, err
@@ -67,7 +67,7 @@ func createWorkspace() (*workspaceParams, error) {
 }
 
 func readWorkspaceParams() (*workspaceParams, error) {
-	in, err := ioutil.ReadFile(getInitPathname(getWorkspaceDir()))
+	in, err := ioutil.ReadFile(getPathToSettings(getWorkspaceDir()))
 	if err != nil {
 		return nil, err
 	}
