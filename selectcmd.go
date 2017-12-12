@@ -60,7 +60,8 @@ func generateAndBootstrapPackage(pkgSelection []string) error {
 			cmd := exec.Command("./autogen.sh")
 			cmd.Dir = pg.packageDir
 			if err = cmd.Run(); err != nil {
-				return err
+				return errors.New(filepath.Join(pg.packageDir,
+					"autogen.sh") + ": " + err.Error())
 			}
 		}
 	}
