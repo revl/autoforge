@@ -51,10 +51,12 @@ func generateAndBootstrapPackage(pkgSelection []string) error {
 			packageAndGenerator{pd, packageDir, generator})
 	}
 
-	optRegexp := regexp.MustCompile(`^--(enable|disable|with|without)` +
-		`-([^\s\[=]+)([^\s]*)\s*(.*)$`)
+	optRegexp := regexp.MustCompile(`^--([^\s\[=]+)([^\s]*)\s*(.*)$`)
 
-	autoconfOptions := map[string]bool{
+	featOrPkgRegexp := regexp.MustCompile(
+		`^(enable|disable|with|without)-(.+)$`)
+
+	ignoredFeatOrPkg := map[string]bool{
 		"FEATURE":             true,
 		"PACKAGE":             true,
 		"aix-soname":          true,
@@ -99,14 +101,14 @@ func generateAndBootstrapPackage(pkgSelection []string) error {
 			return err
 		}
 		helpScanner := bufio.NewScanner(configureHelpStdout)
-		type optionOrFeature = struct {
-			keyword     string
-			option      string
-			arg         string
-			description string
+		type optDescription = struct {
+			option           string
+			arg              string
+			description      string
+			visibleInConftab bool
 		}
-		var options []optionOrFeature
-		var currentOption *optionOrFeature
+		var options []optDescription
+		var currentOption *optDescription
 
 		for helpScanner.Scan() {
 			helpLine := strings.TrimRight(helpScanner.Text(), " ")
@@ -122,7 +124,7 @@ func generateAndBootstrapPackage(pkgSelection []string) error {
 
 			helpLine = strings.TrimLeft(helpLine, " ")
 
-			if strings.HasPrefix(helpLine, "--") {
+			if strings.HasPrefix(helpLine, "-") {
 				if currentOption != nil {
 					options = append(options, *currentOption)
 					currentOption = nil
@@ -137,18 +139,24 @@ func generateAndBootstrapPackage(pkgSelection []string) error {
 				continue
 			}
 
-			matches := optRegexp.FindStringSubmatch(helpLine)
+			parts := optRegexp.FindStringSubmatch(helpLine)
 
-			if len(matches) > 4 {
-				option := matches[2]
-				if _, present := autoconfOptions[option]; present {
-					continue
+			if len(parts) > 3 {
+				opt, arg, descr := parts[1], parts[2], parts[3]
+
+				parts = featOrPkgRegexp.FindStringSubmatch(opt)
+
+				visible := false
+
+				if len(parts) > 2 {
+					if _, present := ignoredFeatOrPkg[parts[2]]; present {
+						continue
+					}
+					visible = true
 				}
-				currentOption = &optionOrFeature{
-					matches[1],
-					option,
-					matches[3],
-					matches[4]}
+
+				currentOption = &optDescription{
+					opt, arg, descr, visible}
 			}
 		}
 		if err := helpScanner.Err(); err != nil {
@@ -158,10 +166,11 @@ func generateAndBootstrapPackage(pkgSelection []string) error {
 			return err
 		}
 		for _, opt := range options {
-			fmt.Println(opt.keyword)
-			fmt.Println(opt.option)
-			fmt.Println(opt.arg)
-			fmt.Println(opt.description)
+			if opt.visibleInConftab {
+				fmt.Println(opt.option)
+				fmt.Println(opt.arg)
+				fmt.Println(opt.description)
+			}
 		}
 	}
 
