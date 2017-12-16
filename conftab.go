@@ -113,8 +113,8 @@ func readConftab(filename string) (*conftabStruct, error) {
 		make(map[string]*conftabSection)}
 
 	for nextSectionCaption != "" {
-		packageName :=
-			nextSectionCaption[1 : len(nextSectionCaption)-2]
+		packageName := strings.TrimSpace(
+			nextSectionCaption[1 : len(nextSectionCaption)-2])
 		section, nextSectionCaption, err =
 			reader.readSection(nextSectionCaption)
 		if err != nil {

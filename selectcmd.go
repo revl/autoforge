@@ -149,7 +149,7 @@ func generateAndBootstrapPackage(pkgSelection []string) error {
 				visible := false
 
 				if len(parts) > 2 {
-					if _, present := ignoredFeatOrPkg[parts[2]]; present {
+					if ignoredFeatOrPkg[parts[2]] {
 						continue
 					}
 					visible = true
