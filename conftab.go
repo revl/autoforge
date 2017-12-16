@@ -18,6 +18,7 @@ import (
 )
 
 type conftabSection struct {
+	caption    string
 	options    map[string]bool
 	definition string
 }
@@ -34,9 +35,9 @@ func (reader *conftabReader) Err(message string) error {
 		reader.lineNumber, message))
 }
 
-func (reader *conftabReader) readSection() (*conftabSection,
+func (reader *conftabReader) readSection(sectionName string) (*conftabSection,
 	string, error) {
-	section := conftabSection{make(map[string]bool), ""}
+	section := conftabSection{sectionName, make(map[string]bool), ""}
 
 	for reader.scanner.Scan() {
 		reader.lineNumber++
@@ -52,7 +53,7 @@ func (reader *conftabReader) readSection() (*conftabSection,
 				return nil, "", reader.Err(
 					"invalid section caption format")
 			}
-			return &section, line[1 : len(line)-1], nil
+			return &section, line + "\n", nil
 		}
 
 		section.definition += line + "\n"
@@ -75,20 +76,22 @@ func (reader *conftabReader) readSection() (*conftabSection,
 	return &section, "", nil
 }
 
-func (section *conftabSection) printSection(stream *os.File) {
-	writer := bufio.NewWriter(stream)
-
-	writer.WriteString(section.definition)
-
-	writer.Flush()
+type conftabStruct struct {
+	globalSection        *conftabSection
+	packageSections      []*conftabSection
+	sectionByPackageName map[string]*conftabSection
 }
 
-type conftab struct {
-	globalSection   *conftabSection
-	packageSections []conftabSection
+func (conftab *conftabStruct) print(writer *bufio.Writer) {
+	writer.WriteString(conftab.globalSection.definition)
+
+	for _, section := range conftab.packageSections {
+		writer.WriteString(section.caption)
+		writer.WriteString(section.definition)
+	}
 }
 
-func readConftab(filename string) (*conftab, error) {
+func readConftab(filename string) (*conftabStruct, error) {
 	conftabFile, err := os.Open(filename)
 
 	if err != nil {
@@ -100,19 +103,33 @@ func readConftab(filename string) (*conftab, error) {
 	reader := conftabReader{filename, conftabScanner, 0,
 		regexp.MustCompile(`^--([^\s\[=]+)`)}
 
-	globalSection, nextSectionCaption, err := reader.readSection()
+	section, nextSectionCaption, err := reader.readSection("")
 
 	if err != nil {
 		return nil, err
 	}
 
-	if nextSectionCaption == "" {
-		if err = conftabFile.Close(); err != nil {
+	conftab := conftabStruct{section, nil,
+		make(map[string]*conftabSection)}
+
+	for nextSectionCaption != "" {
+		packageName :=
+			nextSectionCaption[1 : len(nextSectionCaption)-2]
+		section, nextSectionCaption, err =
+			reader.readSection(nextSectionCaption)
+		if err != nil {
 			return nil, err
 		}
+		conftab.packageSections = append(conftab.packageSections,
+			section)
+		conftab.sectionByPackageName[packageName] = section
 	}
 
-	return &conftab{globalSection, nil}, err
+	if err = conftabFile.Close(); err != nil {
+		return nil, err
+	}
+
+	return &conftab, nil
 }
 
 var dumpconftabCmd = &cobra.Command{
@@ -126,7 +143,11 @@ var dumpconftabCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
-		conftab.globalSection.printSection(os.Stdout)
+		writer := bufio.NewWriter(os.Stdout)
+
+		conftab.print(writer)
+
+		writer.Flush()
 	},
 }
 
