@@ -23,86 +23,95 @@ type packageDefinition struct {
 	packageType string
 	pathname    string
 	requires    []string
+	uniqueReq   map[string]bool
+	allReq      []string
+	requiredBy  []string
 	params      templateParams
 }
 
-func (pd *packageDefinition) getRequiredField(
+func getRequiredField(pathname string, params templateParams,
 	fieldName string) (interface{}, error) {
-	if value := pd.params[fieldName]; value != nil {
+	if value := params[fieldName]; value != nil {
 		return value, nil
 	}
-	return nil, errors.New(pd.pathname +
+	return nil, errors.New(pathname +
 		": missing required field '" + fieldName + "'")
 }
 
-func (pd *packageDefinition) getRequiredStringField(
+func getRequiredStringField(pathname string, params templateParams,
 	fieldName string) (string, error) {
-	if value, err := pd.getRequiredField(fieldName); err != nil {
+	if value, err := getRequiredField(pathname,
+		params, fieldName); err != nil {
 		return "", err
 	} else if stringValue, ok := value.(string); ok {
 		return stringValue, nil
 	} else {
-		return "", errors.New(pd.pathname +
+		return "", errors.New(pathname +
 			": '" + fieldName + "' field must be a string")
 	}
 }
 
-func loadPackageDefinition(pathname string) (pd packageDefinition, err error) {
-	pd.pathname = pathname
-
+func loadPackageDefinition(pathname string) (*packageDefinition, error) {
 	data, err := ioutil.ReadFile(pathname)
-
 	if err != nil {
-		return
+		return nil, err
 	}
 
-	if err = yaml.Unmarshal(data, &pd.params); err != nil {
+	var params templateParams
+
+	if err = yaml.Unmarshal(data, &params); err != nil {
 		errMessage := strings.TrimPrefix(err.Error(), "yaml: ")
 		err = errors.New(pathname + ": " + errMessage)
-		return
+		return nil, err
 	}
 
-	pd.packageName, err = pd.getRequiredStringField("name")
+	packageName, err := getRequiredStringField(pathname, params, "name")
 	if err != nil {
-		return
+		return nil, err
 	}
 
-	pd.description, err = pd.getRequiredStringField("description")
+	description, err := getRequiredStringField(pathname, params, "description")
 	if err != nil {
-		return
+		return nil, err
 	}
 
-	pd.packageType, err = pd.getRequiredStringField("type")
+	packageType, err := getRequiredStringField(pathname, params, "type")
 	if err != nil {
-		return
+		return nil, err
 	}
 
-	_, err = pd.getRequiredStringField("version")
-	if err != nil {
-		return
+	if _, err = getRequiredStringField(pathname, params, "version"); err != nil {
+		return nil, err
 	}
 
-	if requiredPackages := pd.params["requires"]; requiredPackages != nil {
+	requires := []string{}
+
+	if requiredPackages := params["requires"]; requiredPackages != nil {
 		pkgList, ok := requiredPackages.([]interface{})
 		if !ok {
-			err = errors.New(pathname +
+			return nil, errors.New(pathname +
 				": 'requires' must be a list")
-			return
 		}
 		for _, pkgName := range pkgList {
-			switch pkgName.(type) {
-			case string:
-				pd.requires = append(pd.requires,
-					pkgName.(string))
-			default:
-				err = errors.New(pathname + ": 'requires' " +
+			pkgNameStr, ok := pkgName.(string)
+			if !ok {
+				return nil, errors.New(pathname + ": 'requires' " +
 					"must be a list of strings")
-				return
 			}
+			requires = append(requires, pkgNameStr)
 		}
 	}
 
-	return
+	return &packageDefinition{
+		packageName,
+		description,
+		packageType,
+		pathname,
+		requires,
+		/*uniqueReq*/ make(map[string]bool),
+		/*allReq*/ []string{},
+		/*requiredBy*/ []string{},
+		params}, nil
 }
 
 type packageIndex struct {
@@ -141,7 +150,7 @@ func getPackagePathFromWorkspaceOrEnvironment() (string, error) {
 	return getPackagePathFromEnvironment()
 }
 
-func buildPackageIndex() (packageIndex, error) {
+func buildPackageIndex() (*packageIndex, error) {
 	var pi packageIndex
 
 	pi.packageByName = make(map[string]*packageDefinition)
@@ -149,7 +158,7 @@ func buildPackageIndex() (packageIndex, error) {
 	pkgpath, err := getPackagePathFromWorkspaceOrEnvironment()
 
 	if err != nil {
-		return pi, err
+		return nil, err
 	}
 
 	pkgpathDirs := append(strings.Split(pkgpath, ":"),
@@ -170,24 +179,84 @@ func buildPackageIndex() (packageIndex, error) {
 			pd, err := loadPackageDefinition(dirEntryPathname)
 
 			if err != nil {
-				return packageIndex{}, err
+				return nil, err
 			}
 
 			existingPackage, ok := pi.packageByName[pd.packageName]
 			if ok {
-				return packageIndex{},
-					errors.New("duplicate package name: " +
-						pd.packageName + " (from " +
-						pd.pathname + "); " +
-						"previously declared in " +
-						existingPackage.pathname)
+				return nil, errors.New("duplicate " +
+					"package name: " + pd.packageName +
+					" (from " + pd.pathname +
+					"); previously declared in " +
+					existingPackage.pathname)
 			}
-			pi.packageByName[pd.packageName] = &pd
-			pi.orderedPackages = append(pi.orderedPackages, &pd)
+			pi.packageByName[pd.packageName] = pd
 		}
 	}
 
-	return pi, nil
+	// Queue for ordering packages from least dependent to most dependent.
+	queue := []string{}
+
+	// Resolve package dependencies.
+	for pkgName, pd := range pi.packageByName {
+		if len(pd.requires) == 0 {
+			queue = append(queue, pkgName)
+			continue
+		}
+
+		for _, dependency := range pd.requires {
+			requiredPackage := pi.packageByName[dependency]
+			if requiredPackage == nil {
+				return nil, errors.New("package " +
+					pkgName + " requires " +
+					dependency + ", which is not " +
+					"available in the search path")
+			}
+			requiredPackage.requiredBy =
+				append(requiredPackage.requiredBy, pkgName)
+
+			pd.uniqueReq[dependency] = true
+		}
+	}
+
+	for len(queue) > 0 {
+		pkgName := queue[0]
+		queue = queue[1:]
+
+		pd := pi.packageByName[pkgName]
+
+		pi.orderedPackages = append(pi.orderedPackages, pd)
+
+		for _, requiredBy := range pd.requiredBy {
+			dependentPackage := pi.packageByName[requiredBy]
+
+			delete(dependentPackage.uniqueReq, pkgName)
+
+			if len(dependentPackage.uniqueReq) == 0 {
+				queue = append(queue,
+					dependentPackage.packageName)
+			}
+		}
+	}
+
+	for _, pd := range pi.orderedPackages {
+		added := make(map[string]bool)
+
+		for _, required := range pd.requires {
+			for _, dependency := range pi.packageByName[required].allReq {
+				if !added[dependency] {
+					pd.allReq = append(pd.allReq, dependency)
+					added[dependency] = true
+				}
+			}
+			if !added[required] {
+				pd.allReq = append(pd.allReq, required)
+				added[required] = true
+			}
+		}
+	}
+
+	return &pi, nil
 }
 
 func (index *packageIndex) printListOfPackages() {
