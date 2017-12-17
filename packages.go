@@ -90,7 +90,15 @@ func loadPackageDefinition(pathname string) (pd packageDefinition, err error) {
 			return
 		}
 		for _, pkgName := range pkgList {
-			pd.requires = append(pd.requires, pkgName.(string))
+			switch pkgName.(type) {
+			case string:
+				pd.requires = append(pd.requires,
+					pkgName.(string))
+			default:
+				err = errors.New(pathname + ": 'requires' " +
+					"must be a list of strings")
+				return
+			}
 		}
 	}
 
