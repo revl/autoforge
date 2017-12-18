@@ -8,8 +8,7 @@ import (
 	"testing"
 )
 
-func runTemplateFunctionTest(t *testing.T,
-	funcName, arg, expected string) {
+func runTemplateFunctionTest(t *testing.T, funcName, arg, expected string) {
 
 	result := funcMap[funcName].(func(string) string)(arg)
 

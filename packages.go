@@ -70,7 +70,8 @@ func loadPackageDefinition(pathname string) (*packageDefinition, error) {
 		return nil, err
 	}
 
-	description, err := getRequiredStringField(pathname, params, "description")
+	description, err := getRequiredStringField(pathname, params,
+		"description")
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +81,8 @@ func loadPackageDefinition(pathname string) (*packageDefinition, error) {
 		return nil, err
 	}
 
-	if _, err = getRequiredStringField(pathname, params, "version"); err != nil {
+	_, err = getRequiredStringField(pathname, params, "version")
+	if err != nil {
 		return nil, err
 	}
 
@@ -95,8 +97,9 @@ func loadPackageDefinition(pathname string) (*packageDefinition, error) {
 		for _, pkgName := range pkgList {
 			pkgNameStr, ok := pkgName.(string)
 			if !ok {
-				return nil, errors.New(pathname + ": 'requires' " +
-					"must be a list of strings")
+				return nil, errors.New(pathname +
+					": 'requires' must be " +
+					"a list of strings")
 			}
 			requires = append(requires, pkgNameStr)
 		}
@@ -248,20 +251,25 @@ func buildPackageIndex(packages packageDefinitionList) (*packageIndex, error) {
 		}
 	}
 
+	// For each package, find all of its indirect dependencies.
 	for _, pd := range pi.orderedPackages {
 		added := make(map[string]bool)
 
+		addDep := func(pkgName string) {
+			if !added[pkgName] {
+				pd.allReq = append(pd.allReq, pkgName)
+				added[pkgName] = true
+			}
+		}
+
+		// Recursion is not needed because the packages
+		// are already ordered in such a way that the current
+		// package never depends on those that follow it.
 		for _, required := range pd.requires {
-			for _, dependency := range pi.packageByName[required].allReq {
-				if !added[dependency] {
-					pd.allReq = append(pd.allReq, dependency)
-					added[dependency] = true
-				}
+			for _, dep := range pi.packageByName[required].allReq {
+				addDep(dep)
 			}
-			if !added[required] {
-				pd.allReq = append(pd.allReq, required)
-				added[required] = true
-			}
+			addDep(required)
 		}
 	}
 
