@@ -16,7 +16,7 @@ var menuCmd = &cobra.Command{
 	Short: "Print the list of packages found in $" + pkgPathEnvVar,
 	Args:  cobra.MaximumNArgs(0),
 	Run: func(_ *cobra.Command, _ []string) {
-		packageIndex, err := buildPackageIndex()
+		packageIndex, err := readPackageDefinitions()
 		if err != nil {
 			log.Fatal(err)
 		}

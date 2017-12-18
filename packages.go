@@ -114,9 +114,11 @@ func loadPackageDefinition(pathname string) (*packageDefinition, error) {
 		params}, nil
 }
 
+type packageDefinitionList []*packageDefinition
+
 type packageIndex struct {
 	packageByName   map[string]*packageDefinition
-	orderedPackages []*packageDefinition
+	orderedPackages packageDefinitionList
 }
 
 func getPackagePathFromEnvironment() (string, error) {
@@ -150,13 +152,10 @@ func getPackagePathFromWorkspaceOrEnvironment() (string, error) {
 	return getPackagePathFromEnvironment()
 }
 
-func buildPackageIndex() (*packageIndex, error) {
-	var pi packageIndex
-
-	pi.packageByName = make(map[string]*packageDefinition)
+func readPackageDefinitions() (*packageIndex, error) {
+	var packages packageDefinitionList
 
 	pkgpath, err := getPackagePathFromWorkspaceOrEnvironment()
-
 	if err != nil {
 		return nil, err
 	}
@@ -177,21 +176,31 @@ func buildPackageIndex() (*packageIndex, error) {
 			}
 
 			pd, err := loadPackageDefinition(dirEntryPathname)
-
 			if err != nil {
 				return nil, err
 			}
 
-			existingPackage, ok := pi.packageByName[pd.packageName]
-			if ok {
-				return nil, errors.New("duplicate " +
-					"package name: " + pd.packageName +
-					" (from " + pd.pathname +
-					"); previously declared in " +
-					existingPackage.pathname)
-			}
-			pi.packageByName[pd.packageName] = pd
+			packages = append(packages, pd)
 		}
+	}
+
+	return buildPackageIndex(packages)
+}
+
+func buildPackageIndex(packages packageDefinitionList) (*packageIndex, error) {
+	pi := &packageIndex{make(map[string]*packageDefinition),
+		packageDefinitionList{}}
+
+	for _, pd := range packages {
+		existingPackage, ok := pi.packageByName[pd.packageName]
+		if ok {
+			return nil, errors.New("duplicate " +
+				"package name: " + pd.packageName +
+				" (from " + pd.pathname +
+				"); previously declared in " +
+				existingPackage.pathname)
+		}
+		pi.packageByName[pd.packageName] = pd
 	}
 
 	// Queue for ordering packages from least dependent to most dependent.
@@ -256,7 +265,7 @@ func buildPackageIndex() (*packageIndex, error) {
 		}
 	}
 
-	return &pi, nil
+	return pi, nil
 }
 
 func (index *packageIndex) printListOfPackages() {

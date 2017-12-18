@@ -19,7 +19,7 @@ import (
 )
 
 func generateAndBootstrapPackage(pkgSelection []string) error {
-	packageIndex, err := buildPackageIndex()
+	packageIndex, err := readPackageDefinitions()
 	if err != nil {
 		return err
 	}
