@@ -280,12 +280,10 @@ func (index *packageIndex) printListOfPackages() {
 	fmt.Println("List of packages:")
 
 	for _, pd := range index.orderedPackages {
-		fmt.Println(pd.packageName)
-		fmt.Println(pd.description)
-		fmt.Println(pd.packageType)
-		for _, rp := range pd.requires {
-			fmt.Println("-", rp)
-		}
+		fmt.Println("Name:", pd.packageName)
+		fmt.Println("Description:", pd.description)
+		fmt.Println("Type:", pd.packageType)
+		fmt.Println("Requires:", strings.Join(pd.requires, ","))
 		fmt.Println()
 	}
 }
