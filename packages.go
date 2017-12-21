@@ -23,7 +23,6 @@ type packageDefinition struct {
 	packageType string
 	pathname    string
 	requires    []string
-	uniqueReq   map[string]bool
 	allReq      []string
 	requiredBy  []string
 	params      templateParams
@@ -111,7 +110,6 @@ func loadPackageDefinition(pathname string) (*packageDefinition, error) {
 		packageType,
 		pathname,
 		requires,
-		/*uniqueReq*/ make(map[string]bool),
 		/*allReq*/ []string{},
 		/*requiredBy*/ []string{},
 		params}, nil
@@ -194,20 +192,19 @@ func buildPackageIndex(packages packageDefinitionList) (*packageIndex, error) {
 	pi := &packageIndex{make(map[string]*packageDefinition),
 		packageDefinitionList{}}
 
+	// Having two different packages with the same name is not allowed.
 	for _, pd := range packages {
-		existingPackage, ok := pi.packageByName[pd.packageName]
-		if ok {
-			return nil, errors.New("duplicate " +
-				"package name: " + pd.packageName +
-				" (from " + pd.pathname +
-				"); previously declared in " +
-				existingPackage.pathname)
+		if dup, ok := pi.packageByName[pd.packageName]; ok {
+			return nil, errors.New("duplicate package name: " +
+				pd.packageName + " (from " + pd.pathname +
+				"); previously declared in " + dup.pathname)
 		}
 		pi.packageByName[pd.packageName] = pd
 	}
 
 	// Queue for ordering packages from least dependent to most dependent.
 	queue := []string{}
+	uniqReq := make(map[string]map[string]bool)
 
 	// Resolve package dependencies.
 	for pkgName, pd := range pi.packageByName {
@@ -215,6 +212,9 @@ func buildPackageIndex(packages packageDefinitionList) (*packageIndex, error) {
 			queue = append(queue, pkgName)
 			continue
 		}
+
+		pkgUniqReq := make(map[string]bool)
+		uniqReq[pkgName] = pkgUniqReq
 
 		for _, dependency := range pd.requires {
 			requiredPackage := pi.packageByName[dependency]
@@ -227,7 +227,7 @@ func buildPackageIndex(packages packageDefinitionList) (*packageIndex, error) {
 			requiredPackage.requiredBy =
 				append(requiredPackage.requiredBy, pkgName)
 
-			pd.uniqueReq[dependency] = true
+			pkgUniqReq[dependency] = true
 		}
 	}
 
@@ -242,9 +242,11 @@ func buildPackageIndex(packages packageDefinitionList) (*packageIndex, error) {
 		for _, requiredBy := range pd.requiredBy {
 			dependentPackage := pi.packageByName[requiredBy]
 
-			delete(dependentPackage.uniqueReq, pkgName)
+			pkgUniqReq := uniqReq[dependentPackage.packageName]
 
-			if len(dependentPackage.uniqueReq) == 0 {
+			delete(pkgUniqReq, pkgName)
+
+			if len(pkgUniqReq) == 0 {
 				queue = append(queue,
 					dependentPackage.packageName)
 			}
