@@ -46,20 +46,35 @@ func TestDuplicateDefinition(t *testing.T) {
 	}
 }
 
-func TestCircularDependency(t *testing.T) {
-	pkgList := packageDefinitionList{
-		dummyPackageDefinition("a", "b"),
-		dummyPackageDefinition("b", "c"),
-		dummyPackageDefinition("c", "a"),
-	}
-
+func testCircularDependency(t *testing.T,
+	pkgList packageDefinitionList, cycle string) {
 	_, err := buildPackageIndex(pkgList)
 
 	if err == nil {
 		t.Error("Circular dependency was not detected")
 	} else if !strings.Contains(err.Error(),
-		"circular dependency detected: a -> b -> c -> a") {
+		"circular dependency detected: "+cycle) {
 		t.Error("Unexpected circular dependency error: " +
 			err.Error())
 	}
+}
+
+func TestCircularDependency(t *testing.T) {
+	testCircularDependency(t, packageDefinitionList{
+		dummyPackageDefinition("a", "b"),
+		dummyPackageDefinition("b", "c"),
+		dummyPackageDefinition("c", "a"),
+	}, "a -> b -> c -> a")
+
+	testCircularDependency(t, packageDefinitionList{
+		dummyPackageDefinition("a", "b"),
+		dummyPackageDefinition("b", "c"),
+		dummyPackageDefinition("c", "b", "d"),
+		dummyPackageDefinition("d"),
+	}, "b -> c -> b")
+
+	testCircularDependency(t, packageDefinitionList{
+		dummyPackageDefinition("a", "b", "a"),
+		dummyPackageDefinition("b"),
+	}, "a -> a")
 }
