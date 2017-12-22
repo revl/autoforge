@@ -101,7 +101,7 @@ func generateAndBootstrapPackage(pkgSelection []string) error {
 			return err
 		}
 		helpScanner := bufio.NewScanner(configureHelpStdout)
-		type optDescription = struct {
+		type optDescription struct {
 			option           string
 			arg              string
 			description      string
