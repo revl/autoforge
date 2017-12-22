@@ -193,12 +193,18 @@ type topologicalSorter struct {
 	pi      *packageIndex
 }
 
+const (
+	unvisited = iota
+	beingVisited
+	visited
+)
+
 // Cycle returns a string representing the cycle that
 // has been detected in visit()
 func (ts *topologicalSorter) cycle(pd, endp *packageDefinition) string {
 	for _, dep := range pd.requires {
 		depp := ts.pi.packageByName[dep]
-		if ts.visited[depp] == 1 {
+		if ts.visited[depp] == beingVisited {
 			if depp == endp {
 				return pd.packageName + " -> " +
 					endp.packageName
@@ -213,17 +219,17 @@ func (ts *topologicalSorter) cycle(pd, endp *packageDefinition) string {
 
 func (ts *topologicalSorter) visit(pd *packageDefinition) error {
 	switch ts.visited[pd] {
-	case 0:
-		ts.visited[pd] = 1
+	case unvisited:
+		ts.visited[pd] = beingVisited
 		for _, dep := range pd.requires {
 			err := ts.visit(ts.pi.packageByName[dep])
 			if err != nil {
 				return err
 			}
 		}
-		ts.visited[pd] = 2
+		ts.visited[pd] = visited
 		ts.pi.orderedPackages = append(ts.pi.orderedPackages, pd)
-	case 1:
+	case beingVisited:
 		return errors.New("circular dependency detected: " +
 			ts.cycle(pd, pd))
 	}
@@ -273,7 +279,7 @@ func buildPackageIndex(packages packageDefinitionList) (*packageIndex, error) {
 	pi.orderedPackages = packageDefinitionList{}
 
 	for _, pd := range packages {
-		if ts.visited[pd] == 0 {
+		if ts.visited[pd] == unvisited {
 			if err := ts.visit(pd); err != nil {
 				return nil, err
 			}
