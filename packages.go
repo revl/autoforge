@@ -23,8 +23,8 @@ type packageDefinition struct {
 	packageType string
 	pathname    string
 	requires    []string
-	allReq      []string
-	requiredBy  []string
+	allReq      packageDefinitionList
+	requiredBy  packageDefinitionList
 	params      templateParams
 }
 
@@ -110,8 +110,8 @@ func loadPackageDefinition(pathname string) (*packageDefinition, error) {
 		packageType,
 		pathname,
 		requires,
-		/*allReq*/ []string{},
-		/*requiredBy*/ []string{},
+		/*allReq*/ packageDefinitionList{},
+		/*requiredBy*/ packageDefinitionList{},
 		params}, nil
 }
 
@@ -188,12 +188,61 @@ func readPackageDefinitions() (*packageIndex, error) {
 	return buildPackageIndex(packages)
 }
 
+type topologicalSorter struct {
+	visited map[*packageDefinition]int
+	pi      *packageIndex
+}
+
+// Cycle returns a string representing the cycle that
+// has been detected in visit()
+func (ts *topologicalSorter) cycle(pd, endp *packageDefinition) string {
+	for _, dep := range pd.requires {
+		depp := ts.pi.packageByName[dep]
+		if ts.visited[depp] == 1 {
+			if depp == endp {
+				return pd.packageName + " -> " +
+					endp.packageName
+			}
+			if cycle := ts.cycle(depp, endp); cycle != "" {
+				return pd.packageName + " -> " + cycle
+			}
+		}
+	}
+	return ""
+}
+
+func (ts *topologicalSorter) visit(pd *packageDefinition) error {
+	switch ts.visited[pd] {
+	case 0:
+		ts.visited[pd] = 1
+		for _, dep := range pd.requires {
+			err := ts.visit(ts.pi.packageByName[dep])
+			if err != nil {
+				return err
+			}
+		}
+		ts.visited[pd] = 2
+		ts.pi.orderedPackages = append(ts.pi.orderedPackages, pd)
+	case 1:
+		return errors.New("circular dependency detected: " +
+			ts.cycle(pd, pd))
+	}
+	return nil
+}
+
+// BuildPackageIndex creates two types of structures for the
+// input list of packages:
+// 1. A map from package names to their definitions, and
+// 2. A list of packages that contains a topological ordering
+//    of the package dependency DAG.
 func buildPackageIndex(packages packageDefinitionList) (*packageIndex, error) {
 	pi := &packageIndex{make(map[string]*packageDefinition),
 		packageDefinitionList{}}
 
-	// Having two different packages with the same name is not allowed.
+	// Create the packageByName index.
 	for _, pd := range packages {
+		// Having two different packages with the same name
+		// is not allowed.
 		if dup, ok := pi.packageByName[pd.packageName]; ok {
 			return nil, errors.New("duplicate package name: " +
 				pd.packageName + " (from " + pd.pathname +
@@ -202,65 +251,44 @@ func buildPackageIndex(packages packageDefinitionList) (*packageIndex, error) {
 		pi.packageByName[pd.packageName] = pd
 	}
 
-	// Queue for ordering packages from least dependent to most dependent.
-	queue := []string{}
-	uniqReq := make(map[string]map[string]bool)
-
-	// Resolve package dependencies.
-	for pkgName, pd := range pi.packageByName {
-		if len(pd.requires) == 0 {
-			queue = append(queue, pkgName)
-			continue
-		}
-
-		pkgUniqReq := make(map[string]bool)
-		uniqReq[pkgName] = pkgUniqReq
-
-		for _, dependency := range pd.requires {
-			requiredPackage := pi.packageByName[dependency]
-			if requiredPackage == nil {
+	// Resolve dependencies and establish the edges of the
+	// reverse dependency DAG.
+	for _, pd := range packages {
+		for _, dep := range pd.requires {
+			depp := pi.packageByName[dep]
+			if depp == nil {
 				return nil, errors.New("package " +
-					pkgName + " requires " +
-					dependency + ", which is not " +
+					pd.packageName + " requires " +
+					dep + ", which is not " +
 					"available in the search path")
 			}
-			requiredPackage.requiredBy =
-				append(requiredPackage.requiredBy, pkgName)
-
-			pkgUniqReq[dependency] = true
+			depp.requiredBy = append(depp.requiredBy, pd)
 		}
 	}
 
-	for len(queue) > 0 {
-		pkgName := queue[0]
-		queue = queue[1:]
+	// Apply topological sorting to the dependency DAG so that
+	// no package comes before the packages it depends on.
+	ts := topologicalSorter{make(map[*packageDefinition]int), pi}
 
-		pd := pi.packageByName[pkgName]
+	pi.orderedPackages = packageDefinitionList{}
 
-		pi.orderedPackages = append(pi.orderedPackages, pd)
-
-		for _, requiredBy := range pd.requiredBy {
-			dependentPackage := pi.packageByName[requiredBy]
-
-			pkgUniqReq := uniqReq[dependentPackage.packageName]
-
-			delete(pkgUniqReq, pkgName)
-
-			if len(pkgUniqReq) == 0 {
-				queue = append(queue,
-					dependentPackage.packageName)
+	for _, pd := range packages {
+		if ts.visited[pd] == 0 {
+			if err := ts.visit(pd); err != nil {
+				return nil, err
 			}
 		}
 	}
 
-	// For each package, find all of its indirect dependencies.
+	// For each package, find all of its dependencies,
+	// including indirect ones.
 	for _, pd := range pi.orderedPackages {
-		added := make(map[string]bool)
+		added := make(map[*packageDefinition]bool)
 
-		addDep := func(pkgName string) {
-			if !added[pkgName] {
-				pd.allReq = append(pd.allReq, pkgName)
-				added[pkgName] = true
+		addDep := func(dep *packageDefinition) {
+			if !added[dep] {
+				pd.allReq = append(pd.allReq, dep)
+				added[dep] = true
 			}
 		}
 
@@ -271,7 +299,7 @@ func buildPackageIndex(packages packageDefinitionList) (*packageIndex, error) {
 			for _, dep := range pi.packageByName[required].allReq {
 				addDep(dep)
 			}
-			addDep(required)
+			addDep(pi.packageByName[required])
 		}
 	}
 

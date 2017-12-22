@@ -5,13 +5,29 @@
 package main
 
 import (
+	"path/filepath"
 	"strings"
 	"testing"
 )
 
-func dummyPackageDefinition(pkgName string) *packageDefinition {
+func TestNoPackages(t *testing.T) {
+	pi, err := buildPackageIndex(packageDefinitionList{})
+
+	if err != nil {
+		t.Error("Building index for an empty list returned an error")
+	}
+
+	if pi.packageByName == nil || pi.orderedPackages == nil ||
+		len(pi.packageByName) != 0 || len(pi.orderedPackages) != 0 {
+		t.Error("Index structures are not properly initialized")
+	}
+}
+
+func dummyPackageDefinition(pkgName string, dep ...string) *packageDefinition {
 	var pd packageDefinition
 	pd.packageName = pkgName
+	pd.pathname = filepath.Join(pkgName, packageDefinitionFilename)
+	pd.requires = dep
 	return &pd
 }
 
@@ -24,7 +40,26 @@ func TestDuplicateDefinition(t *testing.T) {
 
 	pi, err := buildPackageIndex(pkgList)
 
-	if pi != nil || err == nil || !strings.Contains(err.Error(), "dup") {
+	if pi != nil || err == nil || !strings.Contains(err.Error(),
+		"duplicate package name: base") {
 		t.Error("Package duplicate was not detected")
+	}
+}
+
+func TestCircularDependency(t *testing.T) {
+	pkgList := packageDefinitionList{
+		dummyPackageDefinition("a", "b"),
+		dummyPackageDefinition("b", "c"),
+		dummyPackageDefinition("c", "a"),
+	}
+
+	_, err := buildPackageIndex(pkgList)
+
+	if err == nil {
+		t.Error("Circular dependency was not detected")
+	} else if !strings.Contains(err.Error(),
+		"circular dependency detected: a -> b -> c -> a") {
+		t.Error("Unexpected circular dependency error: " +
+			err.Error())
 	}
 }
