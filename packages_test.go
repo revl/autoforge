@@ -5,6 +5,7 @@
 package main
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -46,7 +47,7 @@ func TestDuplicateDefinition(t *testing.T) {
 	}
 }
 
-func testCircularDependency(t *testing.T,
+func checkForCircularDependency(t *testing.T,
 	pkgList packageDefinitionList, cycle string) {
 	_, err := buildPackageIndex(pkgList)
 
@@ -60,21 +61,65 @@ func testCircularDependency(t *testing.T,
 }
 
 func TestCircularDependency(t *testing.T) {
-	testCircularDependency(t, packageDefinitionList{
+	checkForCircularDependency(t, packageDefinitionList{
 		dummyPackageDefinition("a", "b"),
 		dummyPackageDefinition("b", "c"),
 		dummyPackageDefinition("c", "a"),
 	}, "a -> b -> c -> a")
 
-	testCircularDependency(t, packageDefinitionList{
+	checkForCircularDependency(t, packageDefinitionList{
 		dummyPackageDefinition("a", "b"),
 		dummyPackageDefinition("b", "c"),
 		dummyPackageDefinition("c", "b", "d"),
 		dummyPackageDefinition("d"),
 	}, "b -> c -> b")
 
-	testCircularDependency(t, packageDefinitionList{
+	checkForCircularDependency(t, packageDefinitionList{
 		dummyPackageDefinition("a", "b", "a"),
 		dummyPackageDefinition("b"),
 	}, "a -> a")
+}
+
+func packageNames(pkgList packageDefinitionList) string {
+	names := []string{}
+	for _, pd := range pkgList {
+		names = append(names, pd.packageName)
+	}
+	return fmt.Sprintf("%v", names)
+}
+
+func TestDiamondDependency(t *testing.T) {
+	pi, err := buildPackageIndex(packageDefinitionList{
+		dummyPackageDefinition("d", "b", "c"),
+		dummyPackageDefinition("b", "a"),
+		dummyPackageDefinition("c", "a"),
+		dummyPackageDefinition("a"),
+	})
+
+	if err != nil {
+		t.Error("Unexpected error")
+	}
+
+	if len(pi.packageByName) != len(pi.orderedPackages) {
+		t.Error("Index size mismatch")
+	}
+
+	packageOrder := packageNames(pi.orderedPackages)
+	if packageOrder != "[a b c d]" {
+		t.Error("Invalid package order: " + packageOrder)
+	}
+
+	checkIndirectDependencies := func(pkgName, expectedDeps string) {
+		deps := packageNames(pi.packageByName[pkgName].allReq)
+		if deps != expectedDeps {
+			t.Error("Indirect dependencies for " + pkgName +
+				" do not match: expected=" + expectedDeps +
+				"; actual=" + deps)
+		}
+	}
+
+	checkIndirectDependencies("a", "[]")
+	checkIndirectDependencies("b", "[a]")
+	checkIndirectDependencies("c", "[a]")
+	checkIndirectDependencies("d", "[a b c]")
 }
