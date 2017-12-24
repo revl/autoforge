@@ -22,7 +22,7 @@ type packageDefinition struct {
 	description string
 	packageType string
 	pathname    string
-	requires    []string
+	requires    packageDefinitionList
 	allReq      packageDefinitionList
 	requiredBy  packageDefinitionList
 	params      templateParams
@@ -50,10 +50,11 @@ func getRequiredStringField(pathname string, params templateParams,
 	}
 }
 
-func loadPackageDefinition(pathname string) (*packageDefinition, error) {
+func loadPackageDefinition(pathname string) (*packageDefinition, []string,
+	error) {
 	data, err := ioutil.ReadFile(pathname)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	var params templateParams
@@ -61,28 +62,28 @@ func loadPackageDefinition(pathname string) (*packageDefinition, error) {
 	if err = yaml.Unmarshal(data, &params); err != nil {
 		errMessage := strings.TrimPrefix(err.Error(), "yaml: ")
 		err = errors.New(pathname + ": " + errMessage)
-		return nil, err
+		return nil, nil, err
 	}
 
 	packageName, err := getRequiredStringField(pathname, params, "name")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	description, err := getRequiredStringField(pathname, params,
 		"description")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	packageType, err := getRequiredStringField(pathname, params, "type")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	_, err = getRequiredStringField(pathname, params, "version")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	requires := []string{}
@@ -90,13 +91,13 @@ func loadPackageDefinition(pathname string) (*packageDefinition, error) {
 	if requiredPackages := params["requires"]; requiredPackages != nil {
 		pkgList, ok := requiredPackages.([]interface{})
 		if !ok {
-			return nil, errors.New(pathname +
+			return nil, nil, errors.New(pathname +
 				": 'requires' must be a list")
 		}
 		for _, pkgName := range pkgList {
 			pkgNameStr, ok := pkgName.(string)
 			if !ok {
-				return nil, errors.New(pathname +
+				return nil, nil, errors.New(pathname +
 					": 'requires' must be " +
 					"a list of strings")
 			}
@@ -109,10 +110,10 @@ func loadPackageDefinition(pathname string) (*packageDefinition, error) {
 		description,
 		packageType,
 		pathname,
-		requires,
+		/*requires*/ packageDefinitionList{},
 		/*allReq*/ packageDefinitionList{},
 		/*requiredBy*/ packageDefinitionList{},
-		params}, nil
+		params}, requires, nil
 }
 
 type packageDefinitionList []*packageDefinition
@@ -155,6 +156,7 @@ func getPackagePathFromWorkspaceOrEnvironment() (string, error) {
 
 func readPackageDefinitions() (*packageIndex, error) {
 	var packages packageDefinitionList
+	dependencies := [][]string{}
 
 	pkgpath, err := getPackagePathFromWorkspaceOrEnvironment()
 	if err != nil {
@@ -176,21 +178,23 @@ func readPackageDefinitions() (*packageIndex, error) {
 				continue
 			}
 
-			pd, err := loadPackageDefinition(dirEntryPathname)
+			pd, requires, err := loadPackageDefinition(
+				dirEntryPathname)
 			if err != nil {
 				return nil, err
 			}
 
 			packages = append(packages, pd)
+			dependencies = append(dependencies, requires)
 		}
 	}
 
-	return buildPackageIndex(packages)
+	return buildPackageIndex(packages, dependencies)
 }
 
 type topologicalSorter struct {
-	visited map[*packageDefinition]int
-	pi      *packageIndex
+	visited         map[*packageDefinition]int
+	orderedPackages packageDefinitionList
 }
 
 const (
@@ -203,13 +207,12 @@ const (
 // has been detected in visit()
 func (ts *topologicalSorter) cycle(pd, endp *packageDefinition) string {
 	for _, dep := range pd.requires {
-		depp := ts.pi.packageByName[dep]
-		if ts.visited[depp] == beingVisited {
-			if depp == endp {
+		if ts.visited[dep] == beingVisited {
+			if dep == endp {
 				return pd.packageName + " -> " +
 					endp.packageName
 			}
-			if cycle := ts.cycle(depp, endp); cycle != "" {
+			if cycle := ts.cycle(dep, endp); cycle != "" {
 				return pd.packageName + " -> " + cycle
 			}
 		}
@@ -222,13 +225,13 @@ func (ts *topologicalSorter) visit(pd *packageDefinition) error {
 	case unvisited:
 		ts.visited[pd] = beingVisited
 		for _, dep := range pd.requires {
-			err := ts.visit(ts.pi.packageByName[dep])
+			err := ts.visit(dep)
 			if err != nil {
 				return err
 			}
 		}
 		ts.visited[pd] = visited
-		ts.pi.orderedPackages = append(ts.pi.orderedPackages, pd)
+		ts.orderedPackages = append(ts.orderedPackages, pd)
 	case beingVisited:
 		return errors.New("circular dependency detected: " +
 			ts.cycle(pd, pd))
@@ -236,12 +239,32 @@ func (ts *topologicalSorter) visit(pd *packageDefinition) error {
 	return nil
 }
 
+// TopologicalSort sorts the given package list using an algorithm based
+// on depth-first search. Packages in the returned list are ordered so that
+// all dependent packages come after packages they depend on.
+func topologicalSort(packages packageDefinitionList) (packageDefinitionList,
+	error) {
+	ts := topologicalSorter{make(map[*packageDefinition]int),
+		packageDefinitionList{}}
+
+	for _, pd := range packages {
+		if ts.visited[pd] == unvisited {
+			if err := ts.visit(pd); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return ts.orderedPackages, nil
+}
+
 // BuildPackageIndex creates two types of structures for the
 // input list of packages:
 // 1. A map from package names to their definitions, and
 // 2. A list of packages that contains a topological ordering
 //    of the package dependency DAG.
-func buildPackageIndex(packages packageDefinitionList) (*packageIndex, error) {
+func buildPackageIndex(packages packageDefinitionList,
+	dependencies [][]string) (*packageIndex, error) {
 	pi := &packageIndex{make(map[string]*packageDefinition),
 		packageDefinitionList{}}
 
@@ -259,8 +282,8 @@ func buildPackageIndex(packages packageDefinitionList) (*packageIndex, error) {
 
 	// Resolve dependencies and establish the edges of the
 	// reverse dependency DAG.
-	for _, pd := range packages {
-		for _, dep := range pd.requires {
+	for i, pd := range packages {
+		for _, dep := range dependencies[i] {
 			depp := pi.packageByName[dep]
 			if depp == nil {
 				return nil, errors.New("package " +
@@ -268,22 +291,17 @@ func buildPackageIndex(packages packageDefinitionList) (*packageIndex, error) {
 					dep + ", which is not " +
 					"available in the search path")
 			}
+			pd.requires = append(pd.requires, depp)
 			depp.requiredBy = append(depp.requiredBy, pd)
 		}
 	}
 
 	// Apply topological sorting to the dependency DAG so that
 	// no package comes before the packages it depends on.
-	ts := topologicalSorter{make(map[*packageDefinition]int), pi}
-
-	pi.orderedPackages = packageDefinitionList{}
-
-	for _, pd := range packages {
-		if ts.visited[pd] == unvisited {
-			if err := ts.visit(pd); err != nil {
-				return nil, err
-			}
-		}
+	var err error
+	pi.orderedPackages, err = topologicalSort(packages)
+	if err != nil {
+		return nil, err
 	}
 
 	// For each package, find all of its dependencies,
@@ -302,10 +320,10 @@ func buildPackageIndex(packages packageDefinitionList) (*packageIndex, error) {
 		// are already ordered in such a way that the current
 		// package never depends on those that follow it.
 		for _, required := range pd.requires {
-			for _, dep := range pi.packageByName[required].allReq {
+			for _, dep := range required.allReq {
 				addDep(dep)
 			}
-			addDep(pi.packageByName[required])
+			addDep(required)
 		}
 	}
 
@@ -319,7 +337,6 @@ func (index *packageIndex) printListOfPackages() {
 		fmt.Println("Name:", pd.packageName)
 		fmt.Println("Description:", pd.description)
 		fmt.Println("Type:", pd.packageType)
-		fmt.Println("Requires:", strings.Join(pd.requires, ","))
 		fmt.Println()
 	}
 }
