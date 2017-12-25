@@ -330,6 +330,14 @@ func buildPackageIndex(packages packageDefinitionList,
 	return pi, nil
 }
 
+func packageNames(pkgList packageDefinitionList) string {
+	names := []string{}
+	for _, pd := range pkgList {
+		names = append(names, pd.packageName)
+	}
+	return strings.Join(names, ", ")
+}
+
 func (index *packageIndex) printListOfPackages() {
 	fmt.Println("List of packages:")
 
@@ -337,6 +345,9 @@ func (index *packageIndex) printListOfPackages() {
 		fmt.Println("Name:", pd.packageName)
 		fmt.Println("Description:", pd.description)
 		fmt.Println("Type:", pd.packageType)
+		if len(pd.requires) > 0 {
+			fmt.Println("Requires:", packageNames(pd.requires))
+		}
 		fmt.Println()
 	}
 }

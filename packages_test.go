@@ -5,7 +5,6 @@
 package main
 
 import (
-	"fmt"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -95,14 +94,6 @@ func TestCircularDependency(t *testing.T) {
 		"a -> a")
 }
 
-func packageNames(pkgList packageDefinitionList) string {
-	names := []string{}
-	for _, pd := range pkgList {
-		names = append(names, pd.packageName)
-	}
-	return fmt.Sprintf("%v", names)
-}
-
 func TestDiamondDependency(t *testing.T) {
 	pi, err := buildPackageIndex(packageDefinitionList{
 		dummyPackageDefinition("d"),
@@ -125,7 +116,7 @@ func TestDiamondDependency(t *testing.T) {
 	}
 
 	packageOrder := packageNames(pi.orderedPackages)
-	if packageOrder != "[a b c d]" {
+	if packageOrder != "a, b, c, d" {
 		t.Error("Invalid package order: " + packageOrder)
 	}
 
@@ -138,8 +129,8 @@ func TestDiamondDependency(t *testing.T) {
 		}
 	}
 
-	checkIndirectDependencies("a", "[]")
-	checkIndirectDependencies("b", "[a]")
-	checkIndirectDependencies("c", "[a]")
-	checkIndirectDependencies("d", "[a b c]")
+	checkIndirectDependencies("a", "")
+	checkIndirectDependencies("b", "a")
+	checkIndirectDependencies("c", "a")
+	checkIndirectDependencies("d", "a, b, c")
 }
