@@ -194,6 +194,6 @@ func init() {
 
 	selectCmd.Flags().SortFlags = false
 	addQuietFlag(selectCmd)
-	addWorkspaceDirFlag(selectCmd)
 	addPkgPathFlag(selectCmd)
+	addWorkspaceDirFlag(selectCmd)
 }

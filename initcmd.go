@@ -31,7 +31,7 @@ func init() {
 	initCmd.Flags().SortFlags = false
 
 	addQuietFlag(initCmd)
-	addWorkspaceDirFlag(initCmd)
 	addPkgPathFlag(initCmd)
+	addWorkspaceDirFlag(initCmd)
 	addInstallDirFlag(initCmd)
 }

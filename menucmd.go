@@ -29,6 +29,6 @@ func init() {
 	RootCmd.AddCommand(menuCmd)
 
 	menuCmd.Flags().SortFlags = false
-	addWorkspaceDirFlag(menuCmd)
 	addPkgPathFlag(menuCmd)
+	addWorkspaceDirFlag(menuCmd)
 }
