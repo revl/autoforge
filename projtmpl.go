@@ -150,7 +150,7 @@ type embeddedTemplateFile struct {
 
 // GenerateBuildFilesFromEmbeddedTemplate generates project build
 // files from a built-in template pointed to by the 't' parameter.
-func generateBuildFilesFromEmbeddedTemplate(t *[]embeddedTemplateFile,
+func generateBuildFilesFromEmbeddedTemplate(t []embeddedTemplateFile,
 	projectDir string, pd *packageDefinition) error {
 
 	sourceFiles, err := linkFilesFromSourceDir(pd, projectDir)
@@ -158,7 +158,7 @@ func generateBuildFilesFromEmbeddedTemplate(t *[]embeddedTemplateFile,
 		return err
 	}
 
-	for _, fileInfo := range append(*t, commonTemplateFiles...) {
+	for _, fileInfo := range append(t, commonTemplateFiles...) {
 		if _, exists := sourceFiles[fileInfo.pathname]; exists {
 			continue
 		}
@@ -179,13 +179,13 @@ func (pd *packageDefinition) getPackageGeneratorFunc(
 	case "app", "application":
 		return func() error {
 			return generateBuildFilesFromEmbeddedTemplate(
-				&appTemplate, packageDir, pd)
+				appTemplate, packageDir, pd)
 		}, nil
 
 	case "lib", "library":
 		return func() error {
 			return generateBuildFilesFromEmbeddedTemplate(
-				&libTemplate, packageDir, pd)
+				libTemplate, packageDir, pd)
 		}, nil
 
 	default:
