@@ -19,23 +19,21 @@ type workspaceParams struct {
 }
 
 func getWorkspaceDir() string {
-	workspaceDir := "." + appName
-
-	if flags.workspaceDir != "" {
-		workspaceDir = filepath.Join(flags.workspaceDir, workspaceDir)
-	}
-
-	return workspaceDir
+	return flags.workspaceDir
 }
 
-func getPathToSettings(workspaceDir string) string {
-	return filepath.Join(workspaceDir, "settings.yaml")
+func getPrivateDir(workspaceDir string) string {
+	return filepath.Join(workspaceDir, "."+appName)
 }
 
-func createWorkspace() (*workspaceParams, error) {
-	workspaceDir := getWorkspaceDir()
+func getPathToSettings(privateDir string) string {
+	return filepath.Join(privateDir, "settings.yaml")
+}
 
-	if _, err := os.Stat(workspaceDir); err == nil {
+func createWorkspace(workspaceDir string) (*workspaceParams, error) {
+	privateDir := getPrivateDir(workspaceDir)
+
+	if _, err := os.Stat(privateDir); err == nil {
 		return nil, errors.New("workspace already initialized")
 	}
 
@@ -52,12 +50,12 @@ func createWorkspace() (*workspaceParams, error) {
 		return nil, err
 	}
 
-	err = os.Mkdir(workspaceDir, os.FileMode(0775))
+	err = os.Mkdir(privateDir, os.FileMode(0775))
 	if err != nil {
 		return nil, err
 	}
 
-	err = ioutil.WriteFile(getPathToSettings(workspaceDir),
+	err = ioutil.WriteFile(getPathToSettings(privateDir),
 		out, os.FileMode(0664))
 	if err != nil {
 		return nil, err
@@ -66,8 +64,9 @@ func createWorkspace() (*workspaceParams, error) {
 	return &workspaceParams{}, nil
 }
 
-func readWorkspaceParams() (*workspaceParams, error) {
-	in, err := ioutil.ReadFile(getPathToSettings(getWorkspaceDir()))
+func readWorkspaceParams(workspaceDir string) (*workspaceParams, error) {
+	in, err := ioutil.ReadFile(
+		getPathToSettings(getPrivateDir(workspaceDir)))
 	if err != nil {
 		return nil, err
 	}

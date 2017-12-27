@@ -10,7 +10,7 @@ import (
 
 func runTemplateFunctionTest(t *testing.T, funcName, arg, expected string) {
 
-	result := funcMap[funcName].(func(string) string)(arg)
+	result := commonFuncMap[funcName].(func(string) string)(arg)
 
 	if result != expected {
 		t.Error("Error: \"" + result + "\" != \"" + expected + "\"")

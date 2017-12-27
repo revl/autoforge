@@ -18,13 +18,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func generateAndBootstrapPackage(pkgSelection []string) error {
-	packageIndex, err := readPackageDefinitions()
+func generateAndBootstrapPackage(workspaceDir string,
+	pkgSelection []string) error {
+	packageIndex, err := readPackageDefinitions(workspaceDir)
 	if err != nil {
 		return err
 	}
 
-	pkgRootDir := filepath.Join(getWorkspaceDir(), "packages")
+	privateDir := getPrivateDir(workspaceDir)
+
+	pkgRootDir := filepath.Join(privateDir, "packages")
 
 	type packageAndGenerator struct {
 		pd         *packageDefinition
@@ -49,6 +52,15 @@ func generateAndBootstrapPackage(pkgSelection []string) error {
 
 		packagesAndGenerators = append(packagesAndGenerators,
 			packageAndGenerator{pd, packageDir, generator})
+	}
+
+	params := templateParams{
+		"makefile":       flags.makefile,
+		"default_target": flags.defaultMakeTarget,
+	}
+
+	if err = generateWorkspaceFiles(workspaceDir, params); err != nil {
+		return err
 	}
 
 	optRegexp := regexp.MustCompile(`^--([^\s\[=]+)([^\s]*)\s*(.*)$`)
@@ -183,7 +195,8 @@ var selectCmd = &cobra.Command{
 	Short: "Choose one or more packages to work on",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(_ *cobra.Command, args []string) {
-		if err := generateAndBootstrapPackage(args); err != nil {
+		if err := generateAndBootstrapPackage(getWorkspaceDir(),
+			args); err != nil {
 			log.Fatal(err)
 		}
 	},
@@ -196,4 +209,6 @@ func init() {
 	addQuietFlag(selectCmd)
 	addPkgPathFlag(selectCmd)
 	addWorkspaceDirFlag(selectCmd)
+	addMakefileFlag(selectCmd)
+	addDefaultMakeTargetFlag(selectCmd)
 }

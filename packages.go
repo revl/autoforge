@@ -136,8 +136,8 @@ func getPackagePathFromEnvironment() (string, error) {
 		pkgPathEnvVar + " is not defined")
 }
 
-func getPackagePathFromWorkspace() (string, error) {
-	wp, err := readWorkspaceParams()
+func getPackagePathFromWorkspace(workspaceDir string) (string, error) {
+	wp, err := readWorkspaceParams(workspaceDir)
 	if err != nil {
 		return "", err
 	}
@@ -145,8 +145,9 @@ func getPackagePathFromWorkspace() (string, error) {
 	return wp.PkgPath, nil
 }
 
-func getPackagePathFromWorkspaceOrEnvironment() (string, error) {
-	pkgpath, err := getPackagePathFromWorkspace()
+func getPackagePathFromWorkspaceOrEnvironment(
+	workspaceDir string) (string, error) {
+	pkgpath, err := getPackagePathFromWorkspace(workspaceDir)
 	if pkgpath != "" && err == nil {
 		return pkgpath, nil
 	}
@@ -154,11 +155,11 @@ func getPackagePathFromWorkspaceOrEnvironment() (string, error) {
 	return getPackagePathFromEnvironment()
 }
 
-func readPackageDefinitions() (*packageIndex, error) {
+func readPackageDefinitions(workspaceDir string) (*packageIndex, error) {
 	var packages packageDefinitionList
 	dependencies := [][]string{}
 
-	pkgpath, err := getPackagePathFromWorkspaceOrEnvironment()
+	pkgpath, err := getPackagePathFromWorkspaceOrEnvironment(workspaceDir)
 	if err != nil {
 		return nil, err
 	}

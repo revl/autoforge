@@ -40,7 +40,7 @@ func filterPathnames(pathnames, patterns []string, invert bool) []string {
 	return filtered
 }
 
-var funcMap = template.FuncMap{
+var commonFuncMap = template.FuncMap{
 	"VarName": func(arg string) string {
 		return strings.Map(func(r rune) rune {
 			if r >= 'A' && r <= 'Z' || r >= 'a' && r <= 'z' ||
@@ -109,25 +109,53 @@ type filenameAndContents struct {
 	contents []byte
 }
 
-var templateErrorMarker = "AFTMPLERR"
-
-func executeFileTemplate(templatePathname string,
-	templateContents []byte, pd *packageDefinition,
-	sourceFiles filesFromSourceDir) ([]filenameAndContents, error) {
+func parseAndExecuteTemplate(templateName string, templateContents []byte,
+	funcMap template.FuncMap, associatedTemplates map[string]string,
+	params templateParams) ([]filenameAndContents, error) {
 
 	// Parse the template file. The parsed template will be
 	// reused multiple times if expandPathnameTemplate()
 	// returns more than one pathname expansion.
-	t := template.New(filepath.Base(templatePathname))
+	t := template.New(filepath.Base(templateName))
+	t.Funcs(commonFuncMap)
+
 	t.Funcs(funcMap)
 
-	t.Funcs(template.FuncMap{
+	for name, text := range associatedTemplates {
+		template.Must(t.New(name).Parse(text))
+	}
+
+	if _, err := t.Parse(string(templateContents)); err != nil {
+		return nil, err
+	}
+
+	var result []filenameAndContents
+
+	for _, fp := range expandPathnameTemplate(templateName, params) {
+		buffer := bytes.NewBufferString("")
+
+		if err := t.Execute(buffer, fp.params); err != nil {
+			return nil, err
+		}
+
+		result = append(result, filenameAndContents{
+			fp.filename, buffer.Bytes()})
+	}
+
+	return result, nil
+}
+
+var templateErrorMarker = "AFTMPLERR"
+
+func executePackageFileTemplate(templateName string,
+	templateContents []byte, pd *packageDefinition,
+	sourceFiles filesFromSourceDir) ([]filenameAndContents, error) {
+
+	funcMap := template.FuncMap{
 		"Error": func(errorMessage string) (string, error) {
 			return "", errors.New(templateErrorMarker +
 				pd.packageName + ": " + errorMessage)
-		}})
-
-	t.Funcs(template.FuncMap{
+		},
 		"Dir": func(root string) []string {
 			root += string(filepath.Separator)
 
@@ -143,54 +171,18 @@ func executeFileTemplate(templatePathname string,
 			sort.Strings(filtered)
 
 			return filtered
-		}})
+		}}
 
-	for name, text := range commonDefinitions {
-		template.Must(t.New(name).Parse(text))
-	}
-
-	if _, err := t.Parse(string(templateContents)); err != nil {
-		return nil, err
-	}
-
-	var result []filenameAndContents
-
-	for _, fp := range expandPathnameTemplate(templatePathname, pd.params) {
-		buffer := bytes.NewBufferString("")
-
-		if err := t.Execute(buffer, fp.params); err != nil {
-			return nil, err
-		}
-
-		result = append(result, filenameAndContents{
-			fp.filename, buffer.Bytes()})
-	}
-
-	return result, nil
+	return parseAndExecuteTemplate(templateName, templateContents,
+		funcMap, commonDefinitions, pd.params)
 }
 
-func generateFilesFromFileTemplate(projectDir, templatePathname string,
-	templateContents []byte, templateFileMode os.FileMode,
-	pd *packageDefinition, sourceFiles filesFromSourceDir) error {
-
-	outputFiles, err := executeFileTemplate(templatePathname,
-		templateContents, pd, sourceFiles)
-
-	if err != nil {
-		if err, ok := err.(template.ExecError); ok {
-			splitMessage := strings.SplitN(err.Error(),
-				templateErrorMarker, 2)
-
-			return errors.New(splitMessage[len(splitMessage)-1])
-		}
-
-		return err
-	}
-
+func writeGeneratedFiles(targetDir string, outputFiles []filenameAndContents,
+	templateFileMode os.FileMode) error {
 	for _, outputFile := range outputFiles {
 		mode := "R"
 
-		projectFile := filepath.Join(projectDir, outputFile.filename)
+		projectFile := filepath.Join(targetDir, outputFile.filename)
 
 		existingFileInfo, err := os.Lstat(projectFile)
 		if err != nil {
@@ -227,4 +219,25 @@ func generateFilesFromFileTemplate(projectDir, templatePathname string,
 	}
 
 	return nil
+}
+
+func generateFilesFromProjectFileTemplate(projectDir, templateName string,
+	templateContents []byte, templateFileMode os.FileMode,
+	pd *packageDefinition, sourceFiles filesFromSourceDir) error {
+
+	outputFiles, err := executePackageFileTemplate(templateName,
+		templateContents, pd, sourceFiles)
+
+	if err != nil {
+		if err, ok := err.(template.ExecError); ok {
+			splitMessage := strings.SplitN(err.Error(),
+				templateErrorMarker, 2)
+
+			return errors.New(splitMessage[len(splitMessage)-1])
+		}
+
+		return err
+	}
+
+	return writeGeneratedFiles(projectDir, outputFiles, templateFileMode)
 }

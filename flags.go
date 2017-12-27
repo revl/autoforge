@@ -12,6 +12,7 @@ var flags = struct {
 	quiet             bool
 	pkgPath           string
 	workspaceDir      string
+	makefile          string
 	defaultMakeTarget string
 	installDir        string
 	docDir            string
@@ -23,26 +24,33 @@ func addQuietFlag(c *cobra.Command) {
 }
 
 func addPkgPathFlag(c *cobra.Command) {
-	c.Flags().StringVarP(&flags.pkgPath, "pkgpath", "", "",
+	c.Flags().StringVar(&flags.pkgPath, "pkgpath", "",
 		"the list of directories where to search for packages")
 }
 
 func addWorkspaceDirFlag(c *cobra.Command) {
-	c.Flags().StringVarP(&flags.workspaceDir, "workspacedir", "", ".",
+	c.Flags().StringVar(&flags.workspaceDir, "workspacedir", ".",
 		"pathname of the workspace directory")
 }
 
+func addMakefileFlag(c *cobra.Command) {
+	c.Flags().StringVar(&flags.makefile, "makefile", "Makefile",
+		"filename of the generated makefile")
+}
+
+const maketargetOption = "maketarget"
+
 func addDefaultMakeTargetFlag(c *cobra.Command) {
-	c.Flags().StringVarP(&flags.defaultMakeTarget, "maketarget", "", "help",
-		"default makefile target")
+	c.Flags().StringVar(&flags.defaultMakeTarget, maketargetOption, "help",
+		"default make target")
 }
 
 func addInstallDirFlag(c *cobra.Command) {
-	c.Flags().StringVarP(&flags.installDir, "installdir", "", "",
+	c.Flags().StringVar(&flags.installDir, "installdir", "",
 		"target directory for 'make install'")
 }
 
 func addDocDirFlag(c *cobra.Command) {
-	c.Flags().StringVarP(&flags.docDir, "docdir", "", "",
+	c.Flags().StringVar(&flags.docDir, "docdir", "",
 		"installation directory for documentation")
 }

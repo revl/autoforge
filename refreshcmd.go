@@ -15,7 +15,8 @@ var refreshCmd = &cobra.Command{
 	Use:   "refresh",
 	Short: "Regenerate Autotools files in the current workspace",
 	Run: func(_ *cobra.Command, args []string) {
-		if err := generateAndBootstrapPackage([]string{}); err != nil {
+		if err := generateAndBootstrapPackage(getWorkspaceDir(),
+			[]string{}); err != nil {
 			log.Fatal(err)
 		}
 	},
