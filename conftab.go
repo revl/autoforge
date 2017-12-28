@@ -6,7 +6,6 @@ package main
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -17,27 +16,39 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const (
+	optFeat = iota
+	optPkg
+	optOther
+)
+
+type optionKey struct {
+	optType int
+	optName string
+}
+
 type conftabSection struct {
-	caption    string
-	options    map[string]bool
+	title      string
+	options    map[optionKey]struct{}
 	definition string
 }
 
 type conftabReader struct {
-	filename   string
-	scanner    *bufio.Scanner
-	lineNumber int
-	optRegexp  *regexp.Regexp
+	filename      string
+	scanner       *bufio.Scanner
+	lineNumber    int
+	optRegexp     *regexp.Regexp
+	optTypeRegexp *regexp.Regexp
 }
 
 func (reader *conftabReader) Err(message string) error {
-	return errors.New(fmt.Sprintf("%s:%d: %s", reader.filename,
-		reader.lineNumber, message))
+	return fmt.Errorf("%s:%d: %s", reader.filename,
+		reader.lineNumber, message)
 }
 
 func (reader *conftabReader) readSection(sectionName string) (*conftabSection,
 	string, error) {
-	section := conftabSection{sectionName, make(map[string]bool), ""}
+	section := conftabSection{sectionName, make(map[optionKey]struct{}), ""}
 
 	for reader.scanner.Scan() {
 		reader.lineNumber++
@@ -69,7 +80,22 @@ func (reader *conftabReader) readSection(sectionName string) (*conftabSection,
 
 		matches := reader.optRegexp.FindStringSubmatch(line)
 		if len(matches) > 1 {
-			section.options[matches[1]] = true
+			option := matches[1]
+			matches = reader.optTypeRegexp.FindStringSubmatch(
+				option)
+			var key optionKey
+			if len(matches) < 5 {
+				key.optType = optOther
+				key.optName = option
+			} else {
+				if matches[2] != "" {
+					key.optType = optFeat
+				} else {
+					key.optType = optPkg
+				}
+				key.optName = matches[4]
+			}
+			section.options[key] = struct{}{}
 		}
 	}
 
@@ -86,7 +112,7 @@ func (conftab *conftabStruct) print(writer *bufio.Writer) {
 	writer.WriteString(conftab.globalSection.definition)
 
 	for _, section := range conftab.packageSections {
-		writer.WriteString(section.caption)
+		writer.WriteString(section.title)
 		writer.WriteString(section.definition)
 	}
 }
@@ -101,7 +127,9 @@ func readConftab(filename string) (*conftabStruct, error) {
 	conftabScanner := bufio.NewScanner(conftabFile)
 
 	reader := conftabReader{filename, conftabScanner, 0,
-		regexp.MustCompile(`^--([^\s\[=]+)`)}
+		regexp.MustCompile(`^--([^\s\[=]+)`),
+		regexp.MustCompile(
+			`^((enable|disable)|(with|without))-(.+)`)}
 
 	section, nextSectionCaption, err := reader.readSection("")
 
