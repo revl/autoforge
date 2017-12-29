@@ -108,25 +108,43 @@ type conftabStruct struct {
 	sectionByPackageName map[string]*conftabSection
 }
 
-func (conftab *conftabStruct) print(writer *bufio.Writer) {
-	writer.WriteString(conftab.globalSection.definition)
+func (conftab *conftabStruct) print(writer *bufio.Writer) (err error) {
+
+	if _, err = writer.WriteString(
+		conftab.globalSection.definition); err != nil {
+		return
+	}
 
 	for _, section := range conftab.packageSections {
-		writer.WriteString(section.title)
-		writer.WriteString(section.definition)
+		if _, err = writer.WriteString(section.title); err != nil {
+			return
+		}
+
+		if _, err = writer.WriteString(section.definition); err != nil {
+			return
+		}
 	}
+
+	return
 }
 
-func readConftab(filename string) (*conftabStruct, error) {
-	conftabFile, err := os.Open(filename)
+func readConftab(pathname string) (conftab *conftabStruct, err error) {
+	conftabFile, err := os.Open(pathname)
 
 	if err != nil {
-		return nil, err
+		return
 	}
+
+	defer func() {
+		closeErr := conftabFile.Close()
+		if err == nil {
+			err = closeErr
+		}
+	}()
 
 	conftabScanner := bufio.NewScanner(conftabFile)
 
-	reader := conftabReader{filename, conftabScanner, 0,
+	reader := conftabReader{pathname, conftabScanner, 0,
 		regexp.MustCompile(`^--([^\s\[=]+)`),
 		regexp.MustCompile(
 			`^((enable|disable)|(with|without))-(.+)`)}
@@ -134,11 +152,10 @@ func readConftab(filename string) (*conftabStruct, error) {
 	section, nextSectionCaption, err := reader.readSection("")
 
 	if err != nil {
-		return nil, err
+		return
 	}
 
-	conftab := conftabStruct{section, nil,
-		make(map[string]*conftabSection)}
+	conftab = &conftabStruct{section, nil, make(map[string]*conftabSection)}
 
 	for nextSectionCaption != "" {
 		packageName := strings.TrimSpace(
@@ -146,18 +163,40 @@ func readConftab(filename string) (*conftabStruct, error) {
 		section, nextSectionCaption, err =
 			reader.readSection(nextSectionCaption)
 		if err != nil {
-			return nil, err
+			return
 		}
 		conftab.packageSections = append(conftab.packageSections,
 			section)
 		conftab.sectionByPackageName[packageName] = section
 	}
 
-	if err = conftabFile.Close(); err != nil {
-		return nil, err
+	return
+}
+
+func (conftab *conftabStruct) writeTo(pathname string) (err error) {
+	conftabFile, err := os.Create(pathname)
+	if err != nil {
+		return
 	}
 
-	return &conftab, nil
+	defer func() {
+		closeErr := conftabFile.Close()
+		if err == nil {
+			err = closeErr
+		}
+	}()
+
+	writer := bufio.NewWriter(conftabFile)
+
+	if err = conftab.print(writer); err != nil {
+		return
+	}
+
+	if err = writer.Flush(); err != nil {
+		return
+	}
+
+	return
 }
 
 var dumpconftabCmd = &cobra.Command{
@@ -166,16 +205,13 @@ var dumpconftabCmd = &cobra.Command{
 	Args:  cobra.MaximumNArgs(0),
 	Run: func(_ *cobra.Command, _ []string) {
 		conftab, err := readConftab("conftab")
-
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		writer := bufio.NewWriter(os.Stdout)
-
-		conftab.print(writer)
-
-		writer.Flush()
+		if err = conftab.writeTo("conftab"); err != nil {
+			log.Fatal(err)
+		}
 	},
 }
 
