@@ -38,12 +38,37 @@ type conftabReader struct {
 	scanner       *bufio.Scanner
 	lineNumber    int
 	optRegexp     *regexp.Regexp
-	optTypeRegexp *regexp.Regexp
+	optClassifier featOrPkgClassifier
 }
 
 func (reader *conftabReader) Err(message string) error {
 	return fmt.Errorf("%s:%d: %s", reader.filename,
 		reader.lineNumber, message)
+}
+
+type featOrPkgClassifier struct {
+	optTypeRegexp *regexp.Regexp
+}
+
+func createFeatOrPkgClassifier() featOrPkgClassifier {
+	return featOrPkgClassifier{regexp.MustCompile(
+		`^((enable|disable)|(with|without))-(.+)$`)}
+}
+
+func (classifier *featOrPkgClassifier) classify(option string) (key optionKey) {
+	matches := classifier.optTypeRegexp.FindStringSubmatch(option)
+	if len(matches) < 5 {
+		key.optType = optOther
+		key.optName = option
+	} else {
+		if matches[2] != "" {
+			key.optType = optFeat
+		} else {
+			key.optType = optPkg
+		}
+		key.optName = matches[4]
+	}
+	return
 }
 
 func (reader *conftabReader) readSection(sectionName string) (*conftabSection,
@@ -81,20 +106,7 @@ func (reader *conftabReader) readSection(sectionName string) (*conftabSection,
 		matches := reader.optRegexp.FindStringSubmatch(line)
 		if len(matches) > 1 {
 			option := matches[1]
-			matches = reader.optTypeRegexp.FindStringSubmatch(
-				option)
-			var key optionKey
-			if len(matches) < 5 {
-				key.optType = optOther
-				key.optName = option
-			} else {
-				if matches[2] != "" {
-					key.optType = optFeat
-				} else {
-					key.optType = optPkg
-				}
-				key.optName = matches[4]
-			}
+			key := reader.optClassifier.classify(option)
 			section.options[key] = struct{}{}
 		}
 	}
@@ -146,8 +158,7 @@ func readConftab(pathname string) (conftab *conftabStruct, err error) {
 
 	reader := conftabReader{pathname, conftabScanner, 0,
 		regexp.MustCompile(`^--([^\s\[=]+)`),
-		regexp.MustCompile(
-			`^((enable|disable)|(with|without))-(.+)`)}
+		createFeatOrPkgClassifier()}
 
 	section, nextSectionCaption, err := reader.readSection("")
 

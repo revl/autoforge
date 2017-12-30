@@ -65,8 +65,7 @@ func generateAndBootstrapPackage(workspaceDir string,
 
 	optRegexp := regexp.MustCompile(`^--([^\s\[=]+)([^\s]*)\s*(.*)$`)
 
-	featOrPkgRegexp := regexp.MustCompile(
-		`^(enable|disable|with|without)-(.+)$`)
+	optClassifier := createFeatOrPkgClassifier()
 
 	ignoredFeatOrPkg := map[string]bool{
 		"FEATURE":             true,
@@ -156,12 +155,12 @@ func generateAndBootstrapPackage(workspaceDir string,
 			if len(parts) > 3 {
 				opt, arg, descr := parts[1], parts[2], parts[3]
 
-				parts = featOrPkgRegexp.FindStringSubmatch(opt)
+				key := optClassifier.classify(opt)
 
 				visible := false
 
-				if len(parts) > 2 {
-					if ignoredFeatOrPkg[parts[2]] {
+				if key.optType != optOther {
+					if ignoredFeatOrPkg[key.optName] {
 						continue
 					}
 					visible = true
