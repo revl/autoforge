@@ -16,14 +16,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type optTypeType int
+
 const (
-	optFeat = iota
+	optFeat optTypeType = iota
 	optPkg
 	optOther
 )
 
 type optionKey struct {
-	optType int
+	optType optTypeType
 	optName string
 }
 
@@ -38,7 +40,7 @@ type conftabReader struct {
 	scanner       *bufio.Scanner
 	lineNumber    int
 	optRegexp     *regexp.Regexp
-	optClassifier featOrPkgClassifier
+	optClassifier optClassifier
 }
 
 func (reader *conftabReader) Err(message string) error {
@@ -46,16 +48,16 @@ func (reader *conftabReader) Err(message string) error {
 		reader.lineNumber, message)
 }
 
-type featOrPkgClassifier struct {
+type optClassifier struct {
 	optTypeRegexp *regexp.Regexp
 }
 
-func createFeatOrPkgClassifier() featOrPkgClassifier {
-	return featOrPkgClassifier{regexp.MustCompile(
+func createOptClassifier() optClassifier {
+	return optClassifier{regexp.MustCompile(
 		`^((enable|disable)|(with|without))-(.+)$`)}
 }
 
-func (classifier *featOrPkgClassifier) classify(option string) (key optionKey) {
+func (classifier *optClassifier) classify(option string) (key optionKey) {
 	matches := classifier.optTypeRegexp.FindStringSubmatch(option)
 	if len(matches) < 5 {
 		key.optType = optOther
@@ -71,9 +73,9 @@ func (classifier *featOrPkgClassifier) classify(option string) (key optionKey) {
 	return
 }
 
-func (reader *conftabReader) readSection(sectionName string) (*conftabSection,
+func (reader *conftabReader) readSection(title string) (*conftabSection,
 	string, error) {
-	section := conftabSection{sectionName, make(map[optionKey]struct{}), ""}
+	section := conftabSection{title, make(map[optionKey]struct{}), ""}
 
 	for reader.scanner.Scan() {
 		reader.lineNumber++
@@ -87,7 +89,7 @@ func (reader *conftabReader) readSection(sectionName string) (*conftabSection,
 		if line[0] == '[' {
 			if line[len(line)-1] != ']' {
 				return nil, "", reader.Err(
-					"invalid section caption format")
+					"invalid section title format")
 			}
 			return &section, line + "\n", nil
 		}
@@ -95,9 +97,8 @@ func (reader *conftabReader) readSection(sectionName string) (*conftabSection,
 		section.definition += line + "\n"
 
 		if line[0] == '#' {
-			line = strings.TrimLeftFunc(
-				strings.TrimLeft(line, "#"),
-				unicode.IsSpace)
+			line = strings.TrimLeft(line, "#")
+			line = strings.TrimLeftFunc(line, unicode.IsSpace)
 		} else if line[0] != '-' {
 			return nil, "", reader.Err("invalid option format " +
 				"(must start with a dash)")
@@ -158,7 +159,7 @@ func readConftab(pathname string) (conftab *conftabStruct, err error) {
 
 	reader := conftabReader{pathname, conftabScanner, 0,
 		regexp.MustCompile(`^--([^\s\[=]+)`),
-		createFeatOrPkgClassifier()}
+		createOptClassifier()}
 
 	section, nextSectionCaption, err := reader.readSection("")
 

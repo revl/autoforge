@@ -18,6 +18,138 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// BootstrapInDir bootstraps the package if 'configure' does not exist.
+func bootstrapInDir(packageName, packageDir string) error {
+	_, err := os.Lstat(filepath.Join(packageDir, "configure"))
+	if os.IsNotExist(err) {
+		fmt.Println("Bootstrapping " + packageName + "...")
+		bootstrapCmd := exec.Command("./autogen.sh")
+		bootstrapCmd.Dir = packageDir
+		if err = bootstrapCmd.Run(); err != nil {
+			return errors.New(filepath.Join(packageDir,
+				"autogen.sh") + ": " + err.Error())
+		}
+	}
+
+	return nil
+}
+
+type configureHelpParser struct {
+	optRegexp        *regexp.Regexp
+	classifier       optClassifier
+	ignoredFeatOrPkg map[string]struct{}
+}
+
+func createConfigureHelpParser() configureHelpParser {
+	return configureHelpParser{
+		regexp.MustCompile(`^--([^\s\[=]+)([^\s]*)\s*(.*)$`),
+		createOptClassifier(),
+		map[string]struct{}{
+			"FEATURE":             struct{}{},
+			"PACKAGE":             struct{}{},
+			"aix-soname":          struct{}{},
+			"dependency-tracking": struct{}{},
+			"fast-install":        struct{}{},
+			"gnu-ld":              struct{}{},
+			"libtool-lock":        struct{}{},
+			"option-checking":     struct{}{},
+			"pic":                 struct{}{},
+			"pkgconfigdir":        struct{}{},
+			"shared":              struct{}{},
+			"silent-rules":        struct{}{},
+			"static":              struct{}{},
+			"sysroot":             struct{}{},
+		}}
+}
+
+func (helpParser *configureHelpParser) printOptions(packageDir string) error {
+	configureHelpCmd := exec.Command("./configure", "--help")
+	configureHelpCmd.Dir = packageDir
+	configureHelpStdout, err := configureHelpCmd.StdoutPipe()
+	if err != nil {
+		return err
+	}
+	if err = configureHelpCmd.Start(); err != nil {
+		return err
+	}
+	helpScanner := bufio.NewScanner(configureHelpStdout)
+	type optDescription struct {
+		option           string
+		arg              string
+		description      string
+		visibleInConftab bool
+	}
+	var options []optDescription
+	var currentOption *optDescription
+
+	for helpScanner.Scan() {
+		helpLine := strings.TrimRight(helpScanner.Text(), " ")
+
+		if helpLine == "" ||
+			!strings.HasPrefix(helpLine, " ") {
+			if currentOption != nil {
+				options = append(options, *currentOption)
+				currentOption = nil
+			}
+			continue
+		}
+
+		helpLine = strings.TrimLeft(helpLine, " ")
+
+		if strings.HasPrefix(helpLine, "-") {
+			if currentOption != nil {
+				options = append(options, *currentOption)
+				currentOption = nil
+			}
+		} else {
+			if currentOption != nil {
+				if currentOption.description != "" {
+					currentOption.description += " "
+				}
+				currentOption.description += helpLine
+			}
+			continue
+		}
+
+		parts := helpParser.optRegexp.FindStringSubmatch(helpLine)
+
+		if len(parts) < 4 {
+			continue
+		}
+		opt, arg, descr := parts[1], parts[2], parts[3]
+
+		key := helpParser.classifier.classify(opt)
+
+		visible := false
+
+		if key.optType != optOther {
+			_, present := helpParser.ignoredFeatOrPkg[key.optName]
+			if present {
+				continue
+			}
+			visible = true
+		}
+
+		currentOption = &optDescription{
+			opt, arg, descr, visible}
+	}
+	if err := helpScanner.Err(); err != nil {
+		return err
+	}
+	if err = configureHelpCmd.Wait(); err != nil {
+		return err
+	}
+	for _, opt := range options {
+		if opt.visibleInConftab {
+			fmt.Println(opt.option)
+			fmt.Println(opt.arg)
+			fmt.Println(opt.description)
+		}
+	}
+
+	return nil
+}
+
 func generateAndBootstrapPackage(workspaceDir string,
 	pkgSelection []string) error {
 	packageIndex, err := readPackageDefinitions(workspaceDir)
@@ -63,125 +195,26 @@ func generateAndBootstrapPackage(workspaceDir string,
 		return err
 	}
 
-	optRegexp := regexp.MustCompile(`^--([^\s\[=]+)([^\s]*)\s*(.*)$`)
+	helpParser := createConfigureHelpParser()
 
-	optClassifier := createFeatOrPkgClassifier()
-
-	ignoredFeatOrPkg := map[string]bool{
-		"FEATURE":             true,
-		"PACKAGE":             true,
-		"aix-soname":          true,
-		"dependency-tracking": true,
-		"fast-install":        true,
-		"gnu-ld":              true,
-		"libtool-lock":        true,
-		"option-checking":     true,
-		"pic":                 true,
-		"pkgconfigdir":        true,
-		"shared":              true,
-		"silent-rules":        true,
-		"static":              true,
-		"sysroot":             true,
-	}
-
+	// Generate autoconf and automake sources for the selected packages.
 	for _, pg := range packagesAndGenerators {
-		// Generate autoconf and automake sources for the package.
 		if err = pg.generator(); err != nil {
 			return err
 		}
+	}
 
-		configurePathname := filepath.Join(pg.packageDir, "configure")
-
-		// Bootstrap the package if 'configure' does not exist.
-		_, err = os.Lstat(configurePathname)
-		if os.IsNotExist(err) {
-			bootstrapCmd := exec.Command("./autogen.sh")
-			bootstrapCmd.Dir = pg.packageDir
-			if err = bootstrapCmd.Run(); err != nil {
-				return errors.New(filepath.Join(pg.packageDir,
-					"autogen.sh") + ": " + err.Error())
-			}
-		}
-
-		configureHelpCmd := exec.Command(configurePathname, "--help")
-		configureHelpStdout, err := configureHelpCmd.StdoutPipe()
-		if err != nil {
+	// Bootstrap the selected packages.
+	for _, pg := range packagesAndGenerators {
+		if err = bootstrapInDir(pg.pd.packageName,
+			pg.packageDir); err != nil {
 			return err
 		}
-		if err = configureHelpCmd.Start(); err != nil {
+	}
+
+	for _, pg := range packagesAndGenerators {
+		if err = helpParser.printOptions(pg.packageDir); err != nil {
 			return err
-		}
-		helpScanner := bufio.NewScanner(configureHelpStdout)
-		type optDescription struct {
-			option           string
-			arg              string
-			description      string
-			visibleInConftab bool
-		}
-		var options []optDescription
-		var currentOption *optDescription
-
-		for helpScanner.Scan() {
-			helpLine := strings.TrimRight(helpScanner.Text(), " ")
-
-			if helpLine == "" ||
-				!strings.HasPrefix(helpLine, " ") {
-				if currentOption != nil {
-					options = append(options, *currentOption)
-					currentOption = nil
-				}
-				continue
-			}
-
-			helpLine = strings.TrimLeft(helpLine, " ")
-
-			if strings.HasPrefix(helpLine, "-") {
-				if currentOption != nil {
-					options = append(options, *currentOption)
-					currentOption = nil
-				}
-			} else {
-				if currentOption != nil {
-					if currentOption.description != "" {
-						currentOption.description += " "
-					}
-					currentOption.description += helpLine
-				}
-				continue
-			}
-
-			parts := optRegexp.FindStringSubmatch(helpLine)
-
-			if len(parts) > 3 {
-				opt, arg, descr := parts[1], parts[2], parts[3]
-
-				key := optClassifier.classify(opt)
-
-				visible := false
-
-				if key.optType != optOther {
-					if ignoredFeatOrPkg[key.optName] {
-						continue
-					}
-					visible = true
-				}
-
-				currentOption = &optDescription{
-					opt, arg, descr, visible}
-			}
-		}
-		if err := helpScanner.Err(); err != nil {
-			return err
-		}
-		if err = configureHelpCmd.Wait(); err != nil {
-			return err
-		}
-		for _, opt := range options {
-			if opt.visibleInConftab {
-				fmt.Println(opt.option)
-				fmt.Println(opt.arg)
-				fmt.Println(opt.description)
-			}
 		}
 	}
 
