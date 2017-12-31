@@ -7,13 +7,10 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"os"
 	"regexp"
 	"strings"
 	"unicode"
-
-	"github.com/spf13/cobra"
 )
 
 type optTypeType int
@@ -29,10 +26,20 @@ type optionKey struct {
 	optName string
 }
 
+type optionValue struct {
+	isCommented bool
+	definition  string
+}
+
 type conftabSection struct {
 	title      string
-	options    map[optionKey]struct{}
+	options    map[optionKey]optionValue
 	definition string
+}
+
+func newSection(title, definition string) *conftabSection {
+	return &conftabSection{title,
+		make(map[optionKey]optionValue), definition}
 }
 
 type conftabReader struct {
@@ -75,7 +82,7 @@ func (classifier *optClassifier) classify(option string) (key optionKey) {
 
 func (reader *conftabReader) readSection(title string) (*conftabSection,
 	string, error) {
-	section := conftabSection{title, make(map[optionKey]struct{}), ""}
+	section := newSection(title, "")
 
 	for reader.scanner.Scan() {
 		reader.lineNumber++
@@ -91,12 +98,15 @@ func (reader *conftabReader) readSection(title string) (*conftabSection,
 				return nil, "", reader.Err(
 					"invalid section title format")
 			}
-			return &section, line + "\n", nil
+			return section, line + "\n", nil
 		}
 
 		section.definition += line + "\n"
 
+		isCommented := false
+
 		if line[0] == '#' {
+			isCommented = true
 			line = strings.TrimLeft(line, "#")
 			line = strings.TrimLeftFunc(line, unicode.IsSpace)
 		} else if line[0] != '-' {
@@ -108,11 +118,11 @@ func (reader *conftabReader) readSection(title string) (*conftabSection,
 		if len(matches) > 1 {
 			option := matches[1]
 			key := reader.optClassifier.classify(option)
-			section.options[key] = struct{}{}
+			section.options[key] = optionValue{isCommented, line}
 		}
 	}
 
-	return &section, "", nil
+	return section, "", nil
 }
 
 type conftabStruct struct {
@@ -122,7 +132,6 @@ type conftabStruct struct {
 }
 
 func (conftab *conftabStruct) print(writer *bufio.Writer) (err error) {
-
 	if _, err = writer.WriteString(
 		conftab.globalSection.definition); err != nil {
 		return
@@ -185,6 +194,49 @@ func readConftab(pathname string) (conftab *conftabStruct, err error) {
 	return
 }
 
+func newConftab() *conftabStruct {
+	globalSection := newSection("", "\n")
+
+	globalSection.addOption(&optDescription{optionKey{optFeat, "shared"},
+		"Global defaults go here.", "--disable-shared"})
+
+	return &conftabStruct{globalSection,
+		nil, make(map[string]*conftabSection)}
+}
+
+type optDescription struct {
+	key         optionKey
+	description string
+	definition  string
+}
+
+func (section *conftabSection) addOption(opt *optDescription) {
+	section.options[opt.key] = optionValue{true, opt.definition}
+
+	section.definition = "# " + opt.description + "\n#" +
+		opt.definition + "\n\n" + section.definition
+}
+
+func (conftab *conftabStruct) addOption(pkgName string,
+	opt *optDescription) bool {
+	section, found := conftab.sectionByPackageName[pkgName]
+	if found {
+		if _, found = section.options[opt.key]; found {
+			return false
+		}
+	} else {
+		section = newSection("["+pkgName+"]\n", "\n")
+
+		conftab.packageSections = append(conftab.packageSections,
+			section)
+		conftab.sectionByPackageName[pkgName] = section
+	}
+
+	section.addOption(opt)
+
+	return true
+}
+
 func (conftab *conftabStruct) writeTo(pathname string) (err error) {
 	conftabFile, err := os.Create(pathname)
 	if err != nil {
@@ -211,25 +263,27 @@ func (conftab *conftabStruct) writeTo(pathname string) (err error) {
 	return
 }
 
-var dumpconftabCmd = &cobra.Command{
-	Use:   "dumpconftab",
-	Short: "Dump the conftab.ini file",
-	Args:  cobra.MaximumNArgs(0),
-	Run: func(_ *cobra.Command, _ []string) {
-		conftab, err := readConftab("conftab")
-		if err != nil {
-			log.Fatal(err)
+func (conftab *conftabStruct) getConfigureArgs(pkgName string) []string {
+	var args []string
+
+	section, found := conftab.sectionByPackageName[pkgName]
+
+	if !found {
+		return args
+	}
+
+	for key, val := range section.options {
+		if !val.isCommented {
+			args = append(args, val.definition)
+		} else {
+			globalOption, found :=
+				conftab.globalSection.options[key]
+
+			if found && !globalOption.isCommented {
+				args = append(args, globalOption.definition)
+			}
 		}
+	}
 
-		if err = conftab.writeTo("conftab"); err != nil {
-			log.Fatal(err)
-		}
-	},
-}
-
-func init() {
-	RootCmd.AddCommand(dumpconftabCmd)
-
-	dumpconftabCmd.Flags().SortFlags = false
-	addWorkspaceDirFlag(dumpconftabCmd)
+	return args
 }

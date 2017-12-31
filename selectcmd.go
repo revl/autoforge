@@ -53,40 +53,32 @@ func createConfigureHelpParser() configureHelpParser {
 			"gnu-ld":              struct{}{},
 			"libtool-lock":        struct{}{},
 			"option-checking":     struct{}{},
-			"pic":                 struct{}{},
 			"pkgconfigdir":        struct{}{},
-			"shared":              struct{}{},
 			"silent-rules":        struct{}{},
-			"static":              struct{}{},
 			"sysroot":             struct{}{},
 		}}
 }
 
-func (helpParser *configureHelpParser) printOptions(packageDir string) error {
+func (helpParser *configureHelpParser) parseOptions(packageDir string) (
+	[]optDescription, error) {
 	configureHelpCmd := exec.Command("./configure", "--help")
 	configureHelpCmd.Dir = packageDir
 	configureHelpStdout, err := configureHelpCmd.StdoutPipe()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if err = configureHelpCmd.Start(); err != nil {
-		return err
+		return nil, err
 	}
 	helpScanner := bufio.NewScanner(configureHelpStdout)
-	type optDescription struct {
-		option           string
-		arg              string
-		description      string
-		visibleInConftab bool
-	}
+
 	var options []optDescription
 	var currentOption *optDescription
 
 	for helpScanner.Scan() {
 		helpLine := strings.TrimRight(helpScanner.Text(), " ")
 
-		if helpLine == "" ||
-			!strings.HasPrefix(helpLine, " ") {
+		if helpLine == "" || !strings.HasPrefix(helpLine, " ") {
 			if currentOption != nil {
 				options = append(options, *currentOption)
 				currentOption = nil
@@ -120,37 +112,26 @@ func (helpParser *configureHelpParser) printOptions(packageDir string) error {
 
 		key := helpParser.classifier.classify(opt)
 
-		visible := false
-
 		if key.optType != optOther {
 			_, present := helpParser.ignoredFeatOrPkg[key.optName]
 			if present {
 				continue
 			}
-			visible = true
 		}
 
-		currentOption = &optDescription{
-			opt, arg, descr, visible}
+		currentOption = &optDescription{key, descr, "--" + opt + arg}
 	}
 	if err := helpScanner.Err(); err != nil {
-		return err
+		return nil, err
 	}
 	if err = configureHelpCmd.Wait(); err != nil {
-		return err
-	}
-	for _, opt := range options {
-		if opt.visibleInConftab {
-			fmt.Println(opt.option)
-			fmt.Println(opt.arg)
-			fmt.Println(opt.description)
-		}
+		return nil, err
 	}
 
-	return nil
+	return options, nil
 }
 
-func generateAndBootstrapPackage(workspaceDir string,
+func generateAndBootstrapPackages(workspaceDir string,
 	pkgSelection []string) error {
 	packageIndex, err := readPackageDefinitions(workspaceDir)
 	if err != nil {
@@ -212,10 +193,40 @@ func generateAndBootstrapPackage(workspaceDir string,
 		}
 	}
 
-	for _, pg := range packagesAndGenerators {
-		if err = helpParser.printOptions(pg.packageDir); err != nil {
+	conftabPathname := filepath.Join(privateDir, "conftab")
+
+	conftabUpdated := false
+
+	conftab, err := readConftab(conftabPathname)
+	if err != nil {
+		if !os.IsNotExist(err) {
 			return err
 		}
+		conftab = newConftab()
+		conftabUpdated = true
+	}
+
+	for _, pg := range packagesAndGenerators {
+		options, err := helpParser.parseOptions(pg.packageDir)
+		if err != nil {
+			return err
+		}
+
+		for _, opt := range options {
+			if opt.key.optType != optOther &&
+				conftab.addOption(pg.pd.packageName, &opt) {
+				conftabUpdated = true
+			}
+		}
+	}
+
+	if conftabUpdated {
+		if err = conftab.writeTo(conftabPathname); err != nil {
+			return err
+		}
+		fmt.Println("conftab updated")
+		fmt.Println("Run '" + appName + " " +
+			conftabCmdName + "' to review changes.")
 	}
 
 	return nil
@@ -227,7 +238,7 @@ var selectCmd = &cobra.Command{
 	Short: "Choose one or more packages to work on",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(_ *cobra.Command, args []string) {
-		if err := generateAndBootstrapPackage(getWorkspaceDir(),
+		if err := generateAndBootstrapPackages(getWorkspaceDir(),
 			args); err != nil {
 			log.Fatal(err)
 		}
