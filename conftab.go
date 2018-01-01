@@ -16,9 +16,9 @@ import (
 type optTypeType int
 
 const (
-	optFeat optTypeType = iota
-	optPkg
-	optOther
+	optFeat  optTypeType = iota // --enable-FEATURE type of options
+	optPkg                      // --with-PACKAGE type of options
+	optOther                    // all other options
 )
 
 type optionKey struct {
@@ -26,20 +26,15 @@ type optionKey struct {
 	optName string
 }
 
-type optionValue struct {
-	isCommented bool
-	definition  string
-}
-
 type conftabSection struct {
-	title      string
-	options    map[optionKey]optionValue
-	definition string
+	title      string               // "[library]\n" or "" if global section
+	options    map[optionKey]string // "--opt=value" or "" if commented
+	definition string               // verbatim text including newlines
 }
 
 func newSection(title, definition string) *conftabSection {
 	return &conftabSection{title,
-		make(map[optionKey]optionValue), definition}
+		make(map[optionKey]string), definition}
 }
 
 type conftabReader struct {
@@ -103,22 +98,23 @@ func (reader *conftabReader) readSection(title string) (*conftabSection,
 
 		section.definition += line + "\n"
 
-		isCommented := false
+		var optDefinition string
 
 		if line[0] == '#' {
-			isCommented = true
 			line = strings.TrimLeft(line, "#")
 			line = strings.TrimLeftFunc(line, unicode.IsSpace)
 		} else if line[0] != '-' {
 			return nil, "", reader.Err("invalid option format " +
 				"(must start with a dash)")
+		} else {
+			optDefinition = line
 		}
 
 		matches := reader.optRegexp.FindStringSubmatch(line)
 		if len(matches) > 1 {
 			option := matches[1]
 			key := reader.optClassifier.classify(option)
-			section.options[key] = optionValue{isCommented, line}
+			section.options[key] = optDefinition
 		}
 	}
 
@@ -211,7 +207,7 @@ type optDescription struct {
 }
 
 func (section *conftabSection) addOption(opt *optDescription) {
-	section.options[opt.key] = optionValue{true, opt.definition}
+	section.options[opt.key] = ""
 
 	section.definition = "# " + opt.description + "\n#" +
 		opt.definition + "\n\n" + section.definition
@@ -273,15 +269,10 @@ func (conftab *conftabStruct) getConfigureArgs(pkgName string) []string {
 	}
 
 	for key, val := range section.options {
-		if !val.isCommented {
-			args = append(args, val.definition)
-		} else {
-			globalOption, found :=
-				conftab.globalSection.options[key]
-
-			if found && !globalOption.isCommented {
-				args = append(args, globalOption.definition)
-			}
+		if val != "" {
+			args = append(args, val)
+		} else if val = conftab.globalSection.options[key]; val != "" {
+			args = append(args, val)
 		}
 	}
 

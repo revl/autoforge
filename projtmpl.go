@@ -65,9 +65,10 @@ func processAllFiles(sourceDir, targetDir string,
 type filesFromSourceDir map[string]struct{}
 
 func linkFilesFromSourceDir(pd *packageDefinition,
-	projectDir string) (filesFromSourceDir, error) {
+	projectDir string) (filesFromSourceDir, bool, error) {
 	sourceFiles := make(filesFromSourceDir)
 	sourceDir := filepath.Dir(pd.pathname)
+	changesMade := false
 
 	linkFile := func(sourcePathname, relativePathname string,
 		sourceFileInfo os.FileInfo) error {
@@ -99,22 +100,24 @@ func linkFilesFromSourceDir(pd *packageDefinition,
 			return err
 		}
 
+		changesMade = true
+
 		return os.Symlink(sourcePathname, targetPathname)
 	}
 
 	err := processAllFiles(sourceDir, projectDir, linkFile)
 
-	return sourceFiles, err
+	return sourceFiles, changesMade, err
 }
 
 // For each source file in 'templateDir', generateBuildFilesFromProjectTemplate
 // generates an output file with the same relative pathname inside 'projectDir'.
 func generateBuildFilesFromProjectTemplate(templateDir,
-	projectDir string, pd *packageDefinition) error {
+	projectDir string, pd *packageDefinition) (bool, error) {
 
-	sourceFiles, err := linkFilesFromSourceDir(pd, projectDir)
+	sourceFiles, changesMade, err := linkFilesFromSourceDir(pd, projectDir)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	generateFile := func(sourcePathname, relativePathname string,
@@ -131,13 +134,21 @@ func generateBuildFilesFromProjectTemplate(templateDir,
 			return err
 		}
 
-		return generateFilesFromProjectFileTemplate(projectDir,
-			relativePathname, templateContents,
-			sourceFileInfo.Mode(),
-			pd, sourceFiles)
+		filesUpdated, err := generateFilesFromProjectFileTemplate(
+			projectDir, relativePathname, templateContents,
+			sourceFileInfo.Mode(), pd, sourceFiles)
+		if err != nil {
+			return err
+		}
+		if filesUpdated {
+			changesMade = true
+		}
+		return nil
 	}
 
-	return processAllFiles(templateDir, projectDir, generateFile)
+	err = processAllFiles(templateDir, projectDir, generateFile)
+
+	return changesMade, err
 }
 
 // EmbeddedTemplateFile defines the file mode and the contents
@@ -151,11 +162,11 @@ type embeddedTemplateFile struct {
 // GenerateBuildFilesFromEmbeddedTemplate generates project build
 // files from a built-in template pointed to by the 't' parameter.
 func generateBuildFilesFromEmbeddedTemplate(t []embeddedTemplateFile,
-	projectDir string, pd *packageDefinition) error {
+	projectDir string, pd *packageDefinition) (bool, error) {
 
-	sourceFiles, err := linkFilesFromSourceDir(pd, projectDir)
+	sourceFiles, changesMade, err := linkFilesFromSourceDir(pd, projectDir)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	for _, fileInfo := range append(t, commonTemplateFiles...) {
@@ -163,27 +174,31 @@ func generateBuildFilesFromEmbeddedTemplate(t []embeddedTemplateFile,
 			continue
 		}
 
-		if err := generateFilesFromProjectFileTemplate(projectDir,
-			fileInfo.pathname, fileInfo.contents, fileInfo.mode,
-			pd, sourceFiles); err != nil {
-			return err
+		filesUpdated, err := generateFilesFromProjectFileTemplate(
+			projectDir, fileInfo.pathname, fileInfo.contents,
+			fileInfo.mode, pd, sourceFiles)
+		if err != nil {
+			return false, err
+		}
+		if filesUpdated {
+			changesMade = true
 		}
 	}
 
-	return nil
+	return changesMade, nil
 }
 
 func (pd *packageDefinition) getPackageGeneratorFunc(
-	packageDir string) (func() error, error) {
+	packageDir string) (func() (bool, error), error) {
 	switch pd.packageType {
 	case "app", "application":
-		return func() error {
+		return func() (bool, error) {
 			return generateBuildFilesFromEmbeddedTemplate(
 				appTemplate, packageDir, pd)
 		}, nil
 
 	case "lib", "library":
-		return func() error {
+		return func() (bool, error) {
 			return generateBuildFilesFromEmbeddedTemplate(
 				libTemplate, packageDir, pd)
 		}, nil

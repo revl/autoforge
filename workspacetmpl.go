@@ -50,7 +50,7 @@ func generateWorkspaceFiles(workspaceDir string, params templateParams) error {
 		if err != nil {
 			return err
 		}
-		err = writeGeneratedFiles(workspaceDir, outputFiles,
+		_, err = writeGeneratedFiles(workspaceDir, outputFiles,
 			templateFile.mode)
 		if err != nil {
 			return err

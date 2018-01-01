@@ -18,17 +18,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// BootstrapInDir bootstraps the package if 'configure' does not exist.
+// bootstrapInDir bootstraps the package if 'configure' does not exist.
 func bootstrapInDir(packageName, packageDir string) error {
-	_, err := os.Lstat(filepath.Join(packageDir, "configure"))
-	if os.IsNotExist(err) {
-		fmt.Println("Bootstrapping " + packageName + "...")
-		bootstrapCmd := exec.Command("./autogen.sh")
-		bootstrapCmd.Dir = packageDir
-		if err = bootstrapCmd.Run(); err != nil {
-			return errors.New(filepath.Join(packageDir,
-				"autogen.sh") + ": " + err.Error())
-		}
+	fmt.Println("Bootstrapping " + packageName + "...")
+	bootstrapCmd := exec.Command("./autogen.sh")
+	bootstrapCmd.Dir = packageDir
+	if err := bootstrapCmd.Run(); err != nil {
+		return errors.New(filepath.Join(packageDir, "autogen.sh") +
+			": " + err.Error())
 	}
 
 	return nil
@@ -145,7 +142,7 @@ func generateAndBootstrapPackages(workspaceDir string,
 	type packageAndGenerator struct {
 		pd         *packageDefinition
 		packageDir string
-		generator  func() error
+		generator  func() (bool, error)
 	}
 
 	var packagesAndGenerators []packageAndGenerator
@@ -178,15 +175,21 @@ func generateAndBootstrapPackages(workspaceDir string,
 
 	helpParser := createConfigureHelpParser()
 
+	var packagesToBootstrap []packageAndGenerator
+
 	// Generate autoconf and automake sources for the selected packages.
 	for _, pg := range packagesAndGenerators {
-		if err = pg.generator(); err != nil {
+		changed, err := pg.generator()
+		if err != nil {
 			return err
+		}
+		if changed {
+			packagesToBootstrap = append(packagesToBootstrap, pg)
 		}
 	}
 
 	// Bootstrap the selected packages.
-	for _, pg := range packagesAndGenerators {
+	for _, pg := range packagesToBootstrap {
 		if err = bootstrapInDir(pg.pd.packageName,
 			pg.packageDir); err != nil {
 			return err
@@ -195,6 +198,7 @@ func generateAndBootstrapPackages(workspaceDir string,
 
 	conftabPathname := filepath.Join(privateDir, "conftab")
 
+	conftabCreated := false
 	conftabUpdated := false
 
 	conftab, err := readConftab(conftabPathname)
@@ -203,7 +207,7 @@ func generateAndBootstrapPackages(workspaceDir string,
 			return err
 		}
 		conftab = newConftab()
-		conftabUpdated = true
+		conftabCreated = true
 	}
 
 	for _, pg := range packagesAndGenerators {
@@ -220,13 +224,15 @@ func generateAndBootstrapPackages(workspaceDir string,
 		}
 	}
 
-	if conftabUpdated {
+	if conftabCreated || conftabUpdated {
+		if conftabCreated {
+			fmt.Println("conftab created")
+		} else {
+			fmt.Println("conftab updated")
+		}
 		if err = conftab.writeTo(conftabPathname); err != nil {
 			return err
 		}
-		fmt.Println("conftab updated")
-		fmt.Println("Run '" + appName + " " +
-			conftabCmdName + "' to review changes.")
 	}
 
 	return nil

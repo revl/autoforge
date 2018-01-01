@@ -178,7 +178,8 @@ func executePackageFileTemplate(templateName string,
 }
 
 func writeGeneratedFiles(targetDir string, outputFiles []filenameAndContents,
-	templateFileMode os.FileMode) error {
+	templateFileMode os.FileMode) (bool, error) {
+	changesMade := false
 	for _, outputFile := range outputFiles {
 		mode := "R"
 
@@ -189,7 +190,7 @@ func writeGeneratedFiles(targetDir string, outputFiles []filenameAndContents,
 			if os.IsNotExist(err) {
 				if err := os.MkdirAll(filepath.Dir(projectFile),
 					os.ModePerm); err != nil {
-					return err
+					return false, err
 				}
 
 				mode = "A"
@@ -199,7 +200,7 @@ func writeGeneratedFiles(targetDir string, outputFiles []filenameAndContents,
 			if err == nil {
 				if bytes.Compare(oldContents,
 					outputFile.contents) == 0 {
-					return nil
+					continue
 				}
 				mode = "U"
 			}
@@ -208,22 +209,24 @@ func writeGeneratedFiles(targetDir string, outputFiles []filenameAndContents,
 		fmt.Println(mode, projectFile)
 		if mode == "R" {
 			if err = os.Remove(projectFile); err != nil {
-				return err
+				return false, err
 			}
 		}
 
+		changesMade = true
+
 		if err = ioutil.WriteFile(projectFile, outputFile.contents,
 			templateFileMode); err != nil {
-			return err
+			return false, err
 		}
 	}
 
-	return nil
+	return changesMade, nil
 }
 
 func generateFilesFromProjectFileTemplate(projectDir, templateName string,
 	templateContents []byte, templateFileMode os.FileMode,
-	pd *packageDefinition, sourceFiles filesFromSourceDir) error {
+	pd *packageDefinition, sourceFiles filesFromSourceDir) (bool, error) {
 
 	outputFiles, err := executePackageFileTemplate(templateName,
 		templateContents, pd, sourceFiles)
@@ -233,10 +236,11 @@ func generateFilesFromProjectFileTemplate(projectDir, templateName string,
 			splitMessage := strings.SplitN(err.Error(),
 				templateErrorMarker, 2)
 
-			return errors.New(splitMessage[len(splitMessage)-1])
+			return false,
+				errors.New(splitMessage[len(splitMessage)-1])
 		}
 
-		return err
+		return false, err
 	}
 
 	return writeGeneratedFiles(projectDir, outputFiles, templateFileMode)
