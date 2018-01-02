@@ -20,7 +20,7 @@ import (
 
 // bootstrapInDir bootstraps the package if 'configure' does not exist.
 func bootstrapInDir(packageName, packageDir string) error {
-	fmt.Println("Bootstrapping " + packageName + "...")
+	fmt.Println("[bootstrap] " + packageName)
 	bootstrapCmd := exec.Command("./autogen.sh")
 	bootstrapCmd.Dir = packageDir
 	if err := bootstrapCmd.Run(); err != nil {
@@ -169,10 +169,6 @@ func generateAndBootstrapPackages(workspaceDir string,
 		"default_target": flags.defaultMakeTarget,
 	}
 
-	if err = generateWorkspaceFiles(workspaceDir, params); err != nil {
-		return err
-	}
-
 	helpParser := createConfigureHelpParser()
 
 	var packagesToBootstrap []packageAndGenerator
@@ -226,13 +222,17 @@ func generateAndBootstrapPackages(workspaceDir string,
 
 	if conftabCreated || conftabUpdated {
 		if conftabCreated {
-			fmt.Println("conftab created")
+			fmt.Println("A " + conftabPathname)
 		} else {
-			fmt.Println("conftab updated")
+			fmt.Println("U " + conftabPathname)
 		}
 		if err = conftab.writeTo(conftabPathname); err != nil {
 			return err
 		}
+	}
+
+	if err = generateWorkspaceFiles(workspaceDir, params); err != nil {
+		return err
 	}
 
 	return nil
