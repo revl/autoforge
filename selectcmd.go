@@ -23,6 +23,8 @@ func bootstrapInDir(packageName, packageDir string) error {
 	fmt.Println("[bootstrap] " + packageName)
 	bootstrapCmd := exec.Command("./autogen.sh")
 	bootstrapCmd.Dir = packageDir
+	bootstrapCmd.Stdout = os.Stdout
+	bootstrapCmd.Stderr = os.Stderr
 	if err := bootstrapCmd.Run(); err != nil {
 		return errors.New(filepath.Join(packageDir, "autogen.sh") +
 			": " + err.Error())
