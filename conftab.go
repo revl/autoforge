@@ -27,7 +27,7 @@ type optionKey struct {
 }
 
 type conftabSection struct {
-	title      string               // "[library]\n" or "" if global section
+	title      string               // "[package]\n" or "" if global section
 	options    map[optionKey]string // "--opt=value" or "" if commented
 	definition string               // verbatim text including newlines
 }
@@ -277,4 +277,74 @@ func (conftab *conftabStruct) getConfigureArgs(pkgName string) []string {
 	}
 
 	return args
+}
+
+type sectionChange struct {
+	deleted, added string
+}
+
+func (origConftab *conftabStruct) diff(updatedConftab *conftabStruct) (
+	deletedSections []string,
+	changedSections map[string][]sectionChange,
+	addedSections []string) {
+
+	for pkgName, origSection := range origConftab.sectionByPackageName {
+		section := updatedConftab.sectionByPackageName[pkgName]
+		if section == nil {
+			deletedSections = append(deletedSections,
+				origSection.title)
+		}
+	}
+
+	changedSections = make(map[string][]sectionChange)
+
+	for pkgName, section := range updatedConftab.sectionByPackageName {
+		origSection := origConftab.sectionByPackageName[pkgName]
+
+		if origSection == nil {
+			addedSections = append(addedSections, section.title)
+			continue
+		}
+
+		changes := changedSections[section.title]
+
+		for key, val := range origSection.options {
+			if val == "" &&
+				origConftab.globalSection.options[key] == "" {
+				continue
+			}
+
+			newVal, present := section.options[key]
+			if !present ||
+				(newVal == "" && updatedConftab.
+					globalSection.options[key] == "") {
+				changes = append(changes,
+					sectionChange{deleted: val})
+			}
+		}
+
+		for key, val := range section.options {
+			if val == "" {
+				val = updatedConftab.
+					globalSection.options[key]
+			}
+
+			origVal := origSection.options[key]
+			if origVal == "" {
+				origVal = origConftab.
+					globalSection.options[key]
+			}
+
+			if val != origVal {
+				changes = append(changes,
+					sectionChange{origVal, val})
+			}
+		}
+
+		if len(changes) > 0 {
+			changedSections[section.title] = changes
+		}
+	}
+
+	return
 }
