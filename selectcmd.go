@@ -233,11 +233,7 @@ func generateAndBootstrapPackages(workspaceDir string,
 		}
 	}
 
-	if err = generateWorkspaceFiles(workspaceDir, params); err != nil {
-		return err
-	}
-
-	return nil
+	return generateWorkspaceFiles(workspaceDir, params)
 }
 
 // SelectCmd represents the select command
