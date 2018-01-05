@@ -27,13 +27,13 @@ type optionKey struct {
 }
 
 type conftabSection struct {
-	title      string               // "[package]\n" or "" if global section
+	pkgName    string               // "package" or "" if global section
 	options    map[optionKey]string // "--opt=value" or "" if commented
 	definition string               // verbatim text including newlines
 }
 
-func newSection(title, definition string) *conftabSection {
-	return &conftabSection{title,
+func newSection(pkgName, definition string) *conftabSection {
+	return &conftabSection{pkgName,
 		make(map[optionKey]string), definition}
 }
 
@@ -75,9 +75,9 @@ func (classifier *optClassifier) classify(option string) (key optionKey) {
 	return
 }
 
-func (reader *conftabReader) readSection(title string) (*conftabSection,
+func (reader *conftabReader) readSection(pkgName string) (*conftabSection,
 	string, error) {
-	section := newSection(title, "")
+	section := newSection(pkgName, "")
 
 	for reader.scanner.Scan() {
 		reader.lineNumber++
@@ -93,7 +93,8 @@ func (reader *conftabReader) readSection(title string) (*conftabSection,
 				return nil, "", reader.Err(
 					"invalid section title format")
 			}
-			return section, line + "\n", nil
+			line = line[1 : len(line)-1]
+			return section, strings.TrimSpace(line), nil
 		}
 
 		section.definition += line + "\n"
@@ -128,17 +129,19 @@ type conftabStruct struct {
 }
 
 func (conftab *conftabStruct) print(writer *bufio.Writer) (err error) {
-	if _, err = writer.WriteString(
-		conftab.globalSection.definition); err != nil {
+	_, err = writer.WriteString(conftab.globalSection.definition)
+	if err != nil {
 		return
 	}
 
 	for _, section := range conftab.packageSections {
-		if _, err = writer.WriteString(section.title); err != nil {
+		_, err = writer.WriteString("[" + section.pkgName + "]\n")
+		if err != nil {
 			return
 		}
 
-		if _, err = writer.WriteString(section.definition); err != nil {
+		_, err = writer.WriteString(section.definition)
+		if err != nil {
 			return
 		}
 	}
@@ -166,7 +169,7 @@ func readConftab(pathname string) (conftab *conftabStruct, err error) {
 		regexp.MustCompile(`^--([^\s\[=]+)`),
 		createOptClassifier()}
 
-	section, nextSectionCaption, err := reader.readSection("")
+	section, nextPkgName, err := reader.readSection("")
 
 	if err != nil {
 		return
@@ -174,17 +177,15 @@ func readConftab(pathname string) (conftab *conftabStruct, err error) {
 
 	conftab = &conftabStruct{section, nil, make(map[string]*conftabSection)}
 
-	for nextSectionCaption != "" {
-		packageName := strings.TrimSpace(
-			nextSectionCaption[1 : len(nextSectionCaption)-2])
-		section, nextSectionCaption, err =
-			reader.readSection(nextSectionCaption)
+	for nextPkgName != "" {
+		pkgName := nextPkgName
+		section, nextPkgName, err = reader.readSection(pkgName)
 		if err != nil {
 			return
 		}
 		conftab.packageSections = append(conftab.packageSections,
 			section)
-		conftab.sectionByPackageName[packageName] = section
+		conftab.sectionByPackageName[pkgName] = section
 	}
 
 	return
@@ -207,6 +208,7 @@ type optDescription struct {
 }
 
 func (section *conftabSection) addOption(opt *optDescription) {
+	// Novel options are commented out.
 	section.options[opt.key] = ""
 
 	section.definition = "# " + opt.description + "\n#" +
@@ -221,7 +223,7 @@ func (conftab *conftabStruct) addOption(pkgName string,
 			return false
 		}
 	} else {
-		section = newSection("["+pkgName+"]\n", "\n")
+		section = newSection(pkgName, "\n")
 
 		conftab.packageSections = append(conftab.packageSections,
 			section)
@@ -283,41 +285,41 @@ type sectionChange struct {
 	deleted, added string
 }
 
-func (origConftab *conftabStruct) diff(updatedConftab *conftabStruct) (
+func (conftab *conftabStruct) diff(otherConftab *conftabStruct) (
 	deletedSections []string,
 	changedSections map[string][]sectionChange,
 	addedSections []string) {
 
-	for pkgName, origSection := range origConftab.sectionByPackageName {
-		section := updatedConftab.sectionByPackageName[pkgName]
+	for pkgName, origSection := range conftab.sectionByPackageName {
+		section := otherConftab.sectionByPackageName[pkgName]
 		if section == nil {
 			deletedSections = append(deletedSections,
-				origSection.title)
+				origSection.pkgName)
 		}
 	}
 
 	changedSections = make(map[string][]sectionChange)
 
-	for pkgName, section := range updatedConftab.sectionByPackageName {
-		origSection := origConftab.sectionByPackageName[pkgName]
+	for pkgName, section := range otherConftab.sectionByPackageName {
+		origSection := conftab.sectionByPackageName[pkgName]
 
 		if origSection == nil {
-			addedSections = append(addedSections, section.title)
+			addedSections = append(addedSections, section.pkgName)
 			continue
 		}
 
-		changes := changedSections[section.title]
+		changes := changedSections[section.pkgName]
 
 		for key, val := range origSection.options {
-			if val == "" &&
-				origConftab.globalSection.options[key] == "" {
-				continue
+			if val == "" {
+				val = conftab.globalSection.options[key]
+				if val == "" {
+					continue
+				}
 			}
 
-			newVal, present := section.options[key]
-			if !present ||
-				(newVal == "" && updatedConftab.
-					globalSection.options[key] == "") {
+			if section.options[key] == "" && otherConftab.
+				globalSection.options[key] == "" {
 				changes = append(changes,
 					sectionChange{deleted: val})
 			}
@@ -325,14 +327,17 @@ func (origConftab *conftabStruct) diff(updatedConftab *conftabStruct) (
 
 		for key, val := range section.options {
 			if val == "" {
-				val = updatedConftab.
-					globalSection.options[key]
+				val = otherConftab.globalSection.options[key]
+				// Deletions are discovered
+				// in the previous loop.
+				if val == "" {
+					continue
+				}
 			}
 
 			origVal := origSection.options[key]
 			if origVal == "" {
-				origVal = origConftab.
-					globalSection.options[key]
+				origVal = conftab.globalSection.options[key]
 			}
 
 			if val != origVal {
@@ -342,7 +347,7 @@ func (origConftab *conftabStruct) diff(updatedConftab *conftabStruct) (
 		}
 
 		if len(changes) > 0 {
-			changedSections[section.title] = changes
+			changedSections[section.pkgName] = changes
 		}
 	}
 

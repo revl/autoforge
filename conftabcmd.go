@@ -15,92 +15,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func printConftabDiff(origConftab, updatedConftab *conftabStruct) {
-	conftabChanged := false
-
-	var deletedSections []string
-
-	for pkgName, origSection := range origConftab.sectionByPackageName {
-		section := updatedConftab.sectionByPackageName[pkgName]
-		if section == nil {
-			deletedSections = append(deletedSections,
-				origSection.title)
-		}
-	}
-
-	if len(deletedSections) > 0 {
-		//fmt.Println("Deleted sections:")
-
-		for _, title := range deletedSections {
-			fmt.Println("< " + title)
-		}
-
-		//fmt.Println("")
-		conftabChanged = true
-	}
-
-	var addedSections []string
-
-	for pkgName, section := range updatedConftab.sectionByPackageName {
-		origSection := origConftab.sectionByPackageName[pkgName]
-
-		if origSection == nil {
-			addedSections = append(addedSections, section.title)
-			continue
-		}
-
-		for key, val := range origSection.options {
-			if val == "" {
-				val = origConftab.globalSection.options[key]
-			}
-			if val != "" {
-				newVal := section.options[key]
-				if newVal == "" {
-					newVal = updatedConftab.
-						globalSection.options[key]
-				}
-
-				fmt.Println("Deleted value", val)
-				conftabChanged = true
-			}
-		}
-
-		for key, val := range section.options {
-			if val == "" {
-				val = updatedConftab.globalSection.options[key]
-			}
-
-			origVal := origSection.options[key]
-			if origVal == "" {
-				origVal = origConftab.globalSection.options[key]
-			}
-
-			if val != origVal {
-				if origVal != "" {
-					fmt.Println("< " + origVal)
-				}
-				if val != "" {
-					fmt.Println("> " + val)
-				}
-				conftabChanged = true
-			}
-		}
-	}
-
-	if len(addedSections) > 0 {
-		//fmt.Println("Added sections: " + strings.Join(addedSections, ", "))
-		conftabChanged = true
-	}
-
-	for _, title := range addedSections {
-		fmt.Println("> " + title)
-	}
-
-	if !conftabChanged {
-		fmt.Println("No changes made")
-	}
-}
-
 func editConftab(workspaceDir string) error {
 	editor := os.Getenv("VISUAL")
 	if editor == "" {
@@ -137,43 +51,36 @@ func editConftab(workspaceDir string) error {
 	deletedSections, changedSections, addedSections :=
 		origConftab.diff(updatedConftab)
 
-	conftabChanged := false
-
-	if len(deletedSections) > 0 {
-		for _, title := range deletedSections {
-			fmt.Println("< " + title)
-		}
-
-		conftabChanged = true
+	if len(deletedSections) == 0 &&
+		len(changedSections) == 0 &&
+		len(addedSections) == 0 {
+		fmt.Println("No effective changes detected")
+		return nil
 	}
 
-	if len(changedSections) > 0 {
-		for title, changes := range changedSections {
-			fmt.Print("  " + title)
-			for _, chg := range changes {
+	for _, pkgName := range deletedSections {
+		fmt.Println("Deleted section: [" + pkgName + "]")
+	}
+
+	for _, pkgName := range addedSections {
+		fmt.Println("New section: [" + pkgName + "]")
+	}
+
+	for pkgName, changes := range changedSections {
+		fmt.Println("Changes in [" + pkgName + "]:")
+		for _, chg := range changes {
+			if chg.added != "" {
 				if chg.deleted != "" {
-					fmt.Println("< " + chg.deleted)
+					fmt.Println(chg.added +
+						" (changed from " +
+						chg.deleted + ")")
+				} else {
+					fmt.Println(chg.added + " (added)")
 				}
-				if chg.added != "" {
-					fmt.Println("> " + chg.added)
-				}
+			} else if chg.deleted != "" {
+				fmt.Println("# " + chg.deleted + " (deleted)")
 			}
-			fmt.Println()
 		}
-
-		conftabChanged = true
-	}
-
-	if len(addedSections) > 0 {
-		for _, title := range addedSections {
-			fmt.Println("> " + title)
-		}
-
-		conftabChanged = true
-	}
-
-	if !conftabChanged {
-		fmt.Println("No changes made")
 	}
 
 	return nil
