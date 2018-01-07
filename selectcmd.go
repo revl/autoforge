@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strings"
 
@@ -229,6 +230,30 @@ func generateAndBootstrapPackages(workspaceDir string,
 			fmt.Println("U " + conftabPathname)
 		}
 		if err = conftab.writeTo(conftabPathname); err != nil {
+			return err
+		}
+	}
+
+	selectionPathname := filepath.Join(privateDir,
+		packageSelectionFilename)
+
+	var selectionUpdated bool
+
+	prevSelection, err := readPackageSelection(selectionPathname)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return err
+		}
+		fmt.Println("A " + selectionPathname)
+		selectionUpdated = true
+	} else if !reflect.DeepEqual(prevSelection, pkgSelection) {
+		fmt.Println("U " + selectionPathname)
+		selectionUpdated = true
+	}
+
+	if selectionUpdated {
+		err = savePackageSelection(pkgSelection, selectionPathname)
+		if err != nil {
 			return err
 		}
 	}
