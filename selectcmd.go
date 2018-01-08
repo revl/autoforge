@@ -166,11 +166,6 @@ func generateAndBootstrapPackages(workspaceDir string,
 			packageAndGenerator{pd, packageDir, generator})
 	}
 
-	params := templateParams{
-		"makefile":       flags.makefile,
-		"default_target": flags.defaultMakeTarget,
-	}
-
 	helpParser := createConfigureHelpParser()
 
 	var packagesToBootstrap []packageAndGenerator
@@ -236,41 +231,13 @@ func generateAndBootstrapPackages(workspaceDir string,
 		}
 	}
 
-	selectionPathname := filepath.Join(privateDir,
-		packageSelectionFilename)
-
-	var selectionUpdated bool
-
-	prevSelection, err := readPackageSelection(selectionPathname)
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return err
-		}
-		fmt.Println("A " + selectionPathname)
-		selectionUpdated = true
-	} else {
-		if len(prevSelection) != len(pkgSelection) {
-			fmt.Println("U " + selectionPathname)
-			selectionUpdated = true
-		} else {
-			for i, v := range pkgSelection {
-				if prevSelection[i] != v {
-					fmt.Println("U " + selectionPathname)
-					selectionUpdated = true
-					break
-				}
-			}
-		}
+	workspaceParams := templateParams{
+		"makefile":       flags.makefile,
+		"default_target": flags.defaultMakeTarget,
+		"selection":      pkgSelection,
 	}
 
-	if selectionUpdated {
-		err = savePackageSelection(pkgSelection, selectionPathname)
-		if err != nil {
-			return err
-		}
-	}
-
-	return generateWorkspaceFiles(workspaceDir, params)
+	return generateWorkspaceFiles(workspaceDir, workspaceParams)
 }
 
 // SelectCmd represents the select command

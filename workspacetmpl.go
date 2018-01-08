@@ -5,6 +5,9 @@
 package main
 
 var workspaceTemplate = []embeddedTemplateFile{
+	embeddedTemplateFile{privateDirName + "/selected", 0644,
+		[]byte(`{{range .selection}}{{.}}
+{{end}}`)},
 	embeddedTemplateFile{"{makefile}", 0644,
 		[]byte(`.PHONY: default all
 

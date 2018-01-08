@@ -39,29 +39,3 @@ func readPackageSelection(pathname string) (packageSelection, error) {
 
 	return selection, nil
 }
-
-func savePackageSelection(selection packageSelection,
-	pathname string) (err error) {
-	file, err := os.Create(pathname)
-	if err != nil {
-		return
-	}
-
-	defer func() {
-		closeErr := file.Close()
-		if err == nil {
-			err = closeErr
-		}
-	}()
-
-	writer := bufio.NewWriter(file)
-
-	for _, pkgName := range selection {
-		_, err = writer.WriteString(pkgName + "\n")
-		if err != nil {
-			return
-		}
-	}
-
-	return writer.Flush()
-}

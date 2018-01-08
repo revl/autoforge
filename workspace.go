@@ -22,8 +22,10 @@ func getWorkspaceDir() string {
 	return flags.workspaceDir
 }
 
+var privateDirName = "." + appName
+
 func getPrivateDir(workspaceDir string) string {
-	return filepath.Join(workspaceDir, "."+appName)
+	return filepath.Join(workspaceDir, privateDirName)
 }
 
 func getPathToSettings(privateDir string) string {
