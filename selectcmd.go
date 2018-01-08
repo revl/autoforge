@@ -12,7 +12,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"reflect"
 	"regexp"
 	"strings"
 
@@ -249,9 +248,19 @@ func generateAndBootstrapPackages(workspaceDir string,
 		}
 		fmt.Println("A " + selectionPathname)
 		selectionUpdated = true
-	} else if !reflect.DeepEqual(prevSelection, pkgSelection) {
-		fmt.Println("U " + selectionPathname)
-		selectionUpdated = true
+	} else {
+		if len(prevSelection) != len(pkgSelection) {
+			fmt.Println("U " + selectionPathname)
+			selectionUpdated = true
+		} else {
+			for i, v := range pkgSelection {
+				if prevSelection[i] != v {
+					fmt.Println("U " + selectionPathname)
+					selectionUpdated = true
+					break
+				}
+			}
+		}
 	}
 
 	if selectionUpdated {
