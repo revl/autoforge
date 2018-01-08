@@ -182,7 +182,10 @@ func generateAndBootstrapPackages(workspaceDir string,
 		if err != nil {
 			return err
 		}
-		if changed {
+
+		_, err = os.Stat(filepath.Join(pg.packageDir, "configure"))
+
+		if changed || os.IsNotExist(err) {
 			packagesToBootstrap = append(packagesToBootstrap, pg)
 		}
 	}
