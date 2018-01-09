@@ -165,8 +165,6 @@ func generateAndBootstrapPackages(workspaceDir string,
 			packageAndGenerator{pd, packageDir, generator})
 	}
 
-	helpParser := createConfigureHelpParser()
-
 	var packagesToBootstrap []packageAndGenerator
 
 	// Generate autoconf and automake sources for the selected packages.
@@ -191,19 +189,15 @@ func generateAndBootstrapPackages(workspaceDir string,
 		}
 	}
 
-	conftabPathname := filepath.Join(privateDir, "conftab")
-
-	conftabCreated := false
-	conftabUpdated := false
-
-	conftab, err := readConftab(conftabPathname)
+	conftab, err := readConftab(filepath.Join(privateDir, "conftab"))
 	if err != nil {
 		if !os.IsNotExist(err) {
 			return err
 		}
 		conftab = newConftab()
-		conftabCreated = true
 	}
+
+	helpParser := createConfigureHelpParser()
 
 	for _, pg := range packagesAndGenerators {
 		options, err := helpParser.parseOptions(pg.packageDir)
@@ -214,23 +208,11 @@ func generateAndBootstrapPackages(workspaceDir string,
 		for _, opt := range options {
 			if opt.key.optType != optOther &&
 				conftab.addOption(pg.pd.packageName, &opt) {
-				conftabUpdated = true
 			}
 		}
 	}
 
-	if conftabCreated || conftabUpdated {
-		if conftabCreated {
-			fmt.Println("A " + conftabPathname)
-		} else {
-			fmt.Println("U " + conftabPathname)
-		}
-		if err = conftab.writeTo(conftabPathname); err != nil {
-			return err
-		}
-	}
-
-	return generateWorkspaceFiles(workspaceDir, pkgSelection)
+	return generateWorkspaceFiles(workspaceDir, pkgSelection, conftab)
 }
 
 // SelectCmd represents the select command

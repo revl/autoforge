@@ -26,15 +26,24 @@ type optionKey struct {
 	optName string
 }
 
-type conftabSection struct {
-	pkgName    string               // "package" or "" if global section
+// ConftabSection contains a multiline plain text definition
+// of the conftab section for the given package.
+type ConftabSection struct {
+	PkgName    string               // "package" or "" if global section
+	Definition string               // verbatim text including newlines
 	options    map[optionKey]string // "--opt=value" or "" if commented
-	definition string               // verbatim text including newlines
 }
 
-func newSection(pkgName, definition string) *conftabSection {
-	return &conftabSection{pkgName,
-		make(map[optionKey]string), definition}
+// Conftab contains definitions as well as an index of all conftab sections.
+type Conftab struct {
+	GlobalSection        *ConftabSection
+	PackageSections      []*ConftabSection
+	sectionByPackageName map[string]*ConftabSection
+}
+
+func newSection(pkgName, definition string) *ConftabSection {
+	return &ConftabSection{pkgName, definition,
+		make(map[optionKey]string)}
 }
 
 type conftabReader struct {
@@ -75,7 +84,7 @@ func (classifier *optClassifier) classify(option string) (key optionKey) {
 	return
 }
 
-func (reader *conftabReader) readSection(pkgName string) (*conftabSection,
+func (reader *conftabReader) readSection(pkgName string) (*ConftabSection,
 	string, error) {
 	section := newSection(pkgName, "")
 
@@ -84,7 +93,7 @@ func (reader *conftabReader) readSection(pkgName string) (*conftabSection,
 		line := strings.TrimSpace(reader.scanner.Text())
 
 		if line == "" {
-			section.definition += "\n"
+			section.Definition += "\n"
 			continue
 		}
 
@@ -97,7 +106,7 @@ func (reader *conftabReader) readSection(pkgName string) (*conftabSection,
 			return section, strings.TrimSpace(line), nil
 		}
 
-		section.definition += line + "\n"
+		section.Definition += line + "\n"
 
 		var optDefinition string
 
@@ -122,34 +131,7 @@ func (reader *conftabReader) readSection(pkgName string) (*conftabSection,
 	return section, "", nil
 }
 
-type conftabStruct struct {
-	globalSection        *conftabSection
-	packageSections      []*conftabSection
-	sectionByPackageName map[string]*conftabSection
-}
-
-func (conftab *conftabStruct) print(writer *bufio.Writer) (err error) {
-	_, err = writer.WriteString(conftab.globalSection.definition)
-	if err != nil {
-		return
-	}
-
-	for _, section := range conftab.packageSections {
-		_, err = writer.WriteString("[" + section.pkgName + "]\n")
-		if err != nil {
-			return
-		}
-
-		_, err = writer.WriteString(section.definition)
-		if err != nil {
-			return
-		}
-	}
-
-	return
-}
-
-func readConftab(pathname string) (conftab *conftabStruct, err error) {
+func readConftab(pathname string) (conftab *Conftab, err error) {
 	conftabFile, err := os.Open(pathname)
 
 	if err != nil {
@@ -175,7 +157,7 @@ func readConftab(pathname string) (conftab *conftabStruct, err error) {
 		return
 	}
 
-	conftab = &conftabStruct{section, nil, make(map[string]*conftabSection)}
+	conftab = &Conftab{section, nil, make(map[string]*ConftabSection)}
 
 	for nextPkgName != "" {
 		pkgName := nextPkgName
@@ -183,7 +165,7 @@ func readConftab(pathname string) (conftab *conftabStruct, err error) {
 		if err != nil {
 			return
 		}
-		conftab.packageSections = append(conftab.packageSections,
+		conftab.PackageSections = append(conftab.PackageSections,
 			section)
 		conftab.sectionByPackageName[pkgName] = section
 	}
@@ -191,14 +173,14 @@ func readConftab(pathname string) (conftab *conftabStruct, err error) {
 	return
 }
 
-func newConftab() *conftabStruct {
+func newConftab() *Conftab {
 	globalSection := newSection("", "\n")
 
 	globalSection.addOption(&optDescription{optionKey{optFeat, "shared"},
 		"Global defaults go here.", "--disable-shared"})
 
-	return &conftabStruct{globalSection,
-		nil, make(map[string]*conftabSection)}
+	return &Conftab{globalSection,
+		nil, make(map[string]*ConftabSection)}
 }
 
 type optDescription struct {
@@ -207,15 +189,15 @@ type optDescription struct {
 	definition  string
 }
 
-func (section *conftabSection) addOption(opt *optDescription) {
+func (section *ConftabSection) addOption(opt *optDescription) {
 	// Novel options are commented out.
 	section.options[opt.key] = ""
 
-	section.definition = "# " + opt.description + "\n#" +
-		opt.definition + "\n\n" + section.definition
+	section.Definition = "# " + opt.description + "\n#" +
+		opt.definition + "\n\n" + section.Definition
 }
 
-func (conftab *conftabStruct) addOption(pkgName string,
+func (conftab *Conftab) addOption(pkgName string,
 	opt *optDescription) bool {
 	section, found := conftab.sectionByPackageName[pkgName]
 	if found {
@@ -225,7 +207,7 @@ func (conftab *conftabStruct) addOption(pkgName string,
 	} else {
 		section = newSection(pkgName, "\n")
 
-		conftab.packageSections = append(conftab.packageSections,
+		conftab.PackageSections = append(conftab.PackageSections,
 			section)
 		conftab.sectionByPackageName[pkgName] = section
 	}
@@ -235,33 +217,7 @@ func (conftab *conftabStruct) addOption(pkgName string,
 	return true
 }
 
-func (conftab *conftabStruct) writeTo(pathname string) (err error) {
-	conftabFile, err := os.Create(pathname)
-	if err != nil {
-		return
-	}
-
-	defer func() {
-		closeErr := conftabFile.Close()
-		if err == nil {
-			err = closeErr
-		}
-	}()
-
-	writer := bufio.NewWriter(conftabFile)
-
-	if err = conftab.print(writer); err != nil {
-		return
-	}
-
-	if err = writer.Flush(); err != nil {
-		return
-	}
-
-	return
-}
-
-func (conftab *conftabStruct) getConfigureArgs(pkgName string) []string {
+func (conftab *Conftab) getConfigureArgs(pkgName string) []string {
 	var args []string
 
 	section, found := conftab.sectionByPackageName[pkgName]
@@ -273,7 +229,7 @@ func (conftab *conftabStruct) getConfigureArgs(pkgName string) []string {
 	for key, val := range section.options {
 		if val != "" {
 			args = append(args, val)
-		} else if val = conftab.globalSection.options[key]; val != "" {
+		} else if val = conftab.GlobalSection.options[key]; val != "" {
 			args = append(args, val)
 		}
 	}
@@ -285,7 +241,7 @@ type sectionChange struct {
 	deleted, added string
 }
 
-func (conftab *conftabStruct) diff(otherConftab *conftabStruct) (
+func (conftab *Conftab) diff(otherConftab *Conftab) (
 	deletedSections []string,
 	changedSections map[string][]sectionChange,
 	addedSections []string) {
@@ -294,7 +250,7 @@ func (conftab *conftabStruct) diff(otherConftab *conftabStruct) (
 		section := otherConftab.sectionByPackageName[pkgName]
 		if section == nil {
 			deletedSections = append(deletedSections,
-				origSection.pkgName)
+				origSection.PkgName)
 		}
 	}
 
@@ -304,22 +260,22 @@ func (conftab *conftabStruct) diff(otherConftab *conftabStruct) (
 		origSection := conftab.sectionByPackageName[pkgName]
 
 		if origSection == nil {
-			addedSections = append(addedSections, section.pkgName)
+			addedSections = append(addedSections, section.PkgName)
 			continue
 		}
 
-		changes := changedSections[section.pkgName]
+		changes := changedSections[section.PkgName]
 
 		for key, val := range origSection.options {
 			if val == "" {
-				val = conftab.globalSection.options[key]
+				val = conftab.GlobalSection.options[key]
 				if val == "" {
 					continue
 				}
 			}
 
 			if section.options[key] == "" && otherConftab.
-				globalSection.options[key] == "" {
+				GlobalSection.options[key] == "" {
 				changes = append(changes,
 					sectionChange{deleted: val})
 			}
@@ -327,7 +283,7 @@ func (conftab *conftabStruct) diff(otherConftab *conftabStruct) (
 
 		for key, val := range section.options {
 			if val == "" {
-				val = otherConftab.globalSection.options[key]
+				val = otherConftab.GlobalSection.options[key]
 				// Deletions are discovered
 				// in the previous loop.
 				if val == "" {
@@ -337,7 +293,7 @@ func (conftab *conftabStruct) diff(otherConftab *conftabStruct) (
 
 			origVal := origSection.options[key]
 			if origVal == "" {
-				origVal = conftab.globalSection.options[key]
+				origVal = conftab.GlobalSection.options[key]
 			}
 
 			if val != origVal {
@@ -347,7 +303,7 @@ func (conftab *conftabStruct) diff(otherConftab *conftabStruct) (
 		}
 
 		if len(changes) > 0 {
-			changedSections[section.pkgName] = changes
+			changedSections[section.PkgName] = changes
 		}
 	}
 
