@@ -18,7 +18,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// bootstrapInDir bootstraps the package if 'configure' does not exist.
 func bootstrapInDir(packageName, packageDir string) error {
 	fmt.Println("[bootstrap] " + packageName)
 	bootstrapCmd := exec.Command("./autogen.sh")
@@ -231,13 +230,7 @@ func generateAndBootstrapPackages(workspaceDir string,
 		}
 	}
 
-	workspaceParams := templateParams{
-		"makefile":       flags.makefile,
-		"default_target": flags.defaultMakeTarget,
-		"selection":      pkgSelection,
-	}
-
-	return generateWorkspaceFiles(workspaceDir, workspaceParams)
+	return generateWorkspaceFiles(workspaceDir, pkgSelection)
 }
 
 // SelectCmd represents the select command

@@ -45,7 +45,13 @@ all: build
 `)},
 }
 
-func generateWorkspaceFiles(workspaceDir string, params templateParams) error {
+func generateWorkspaceFiles(workspaceDir string, pkgSelection []string) error {
+	params := templateParams{
+		"makefile":       flags.makefile,
+		"default_target": flags.defaultMakeTarget,
+		"selection":      pkgSelection,
+	}
+
 	for _, templateFile := range workspaceTemplate {
 		outputFiles, err := parseAndExecuteTemplate(
 			templateFile.pathname, templateFile.contents,
