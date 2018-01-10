@@ -18,20 +18,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func bootstrapInDir(packageName, packageDir string) error {
-	fmt.Println("[bootstrap] " + packageName)
-	bootstrapCmd := exec.Command("./autogen.sh")
-	bootstrapCmd.Dir = packageDir
-	bootstrapCmd.Stdout = os.Stdout
-	bootstrapCmd.Stderr = os.Stderr
-	if err := bootstrapCmd.Run(); err != nil {
-		return errors.New(filepath.Join(packageDir, "autogen.sh") +
-			": " + err.Error())
-	}
-
-	return nil
-}
-
 type configureHelpParser struct {
 	optRegexp        *regexp.Regexp
 	classifier       optClassifier
@@ -183,9 +169,16 @@ func generateAndBootstrapPackages(workspaceDir string,
 
 	// Bootstrap the selected packages.
 	for _, pg := range packagesToBootstrap {
-		if err = bootstrapInDir(pg.pd.packageName,
-			pg.packageDir); err != nil {
-			return err
+		fmt.Println("[bootstrap] " + pg.pd.packageName)
+
+		bootstrapCmd := exec.Command("./autogen.sh")
+		bootstrapCmd.Dir = pg.packageDir
+		bootstrapCmd.Stdout = os.Stdout
+		bootstrapCmd.Stderr = os.Stderr
+		if err := bootstrapCmd.Run(); err != nil {
+			return errors.New(
+				filepath.Join(pg.packageDir, "autogen.sh") +
+					": " + err.Error())
 		}
 	}
 
