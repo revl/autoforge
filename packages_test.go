@@ -121,7 +121,7 @@ func TestDiamondDependency(t *testing.T) {
 	}
 
 	checkIndirectDependencies := func(pkgName, expectedDeps string) {
-		deps := packageNames(pi.packageByName[pkgName].allReq)
+		deps := packageNames(pi.packageByName[pkgName].allRequired)
 		if deps != expectedDeps {
 			t.Error("Indirect dependencies for " + pkgName +
 				" do not match: expected=" + expectedDeps +

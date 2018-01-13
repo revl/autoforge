@@ -22,9 +22,9 @@ type packageDefinition struct {
 	description string
 	packageType string
 	pathname    string
-	requires    packageDefinitionList
-	allReq      packageDefinitionList
-	requiredBy  packageDefinitionList
+	required    packageDefinitionList
+	allRequired packageDefinitionList
+	dependent   packageDefinitionList
 	params      templateParams
 }
 
@@ -110,9 +110,9 @@ func loadPackageDefinition(pathname string) (*packageDefinition, []string,
 		description,
 		packageType,
 		pathname,
-		/*requires*/ packageDefinitionList{},
-		/*allReq*/ packageDefinitionList{},
-		/*requiredBy*/ packageDefinitionList{},
+		/*required*/ packageDefinitionList{},
+		/*allRequired*/ packageDefinitionList{},
+		/*dependent*/ packageDefinitionList{},
 		params}, requires, nil
 }
 
@@ -207,7 +207,7 @@ const (
 // Cycle returns a string representing the cycle that
 // has been detected in visit()
 func (ts *topologicalSorter) cycle(pd, endp *packageDefinition) string {
-	for _, dep := range pd.requires {
+	for _, dep := range pd.required {
 		if ts.visited[dep] == beingVisited {
 			if dep == endp {
 				return pd.packageName + " -> " +
@@ -225,7 +225,7 @@ func (ts *topologicalSorter) visit(pd *packageDefinition) error {
 	switch ts.visited[pd] {
 	case unvisited:
 		ts.visited[pd] = beingVisited
-		for _, dep := range pd.requires {
+		for _, dep := range pd.required {
 			err := ts.visit(dep)
 			if err != nil {
 				return err
@@ -292,8 +292,8 @@ func buildPackageIndex(packages packageDefinitionList,
 					dep + ", which is not " +
 					"available in the search path")
 			}
-			pd.requires = append(pd.requires, depp)
-			depp.requiredBy = append(depp.requiredBy, pd)
+			pd.required = append(pd.required, depp)
+			depp.dependent = append(depp.dependent, pd)
 		}
 	}
 
@@ -312,7 +312,7 @@ func buildPackageIndex(packages packageDefinitionList,
 
 		addDep := func(dep *packageDefinition) {
 			if !added[dep] {
-				pd.allReq = append(pd.allReq, dep)
+				pd.allRequired = append(pd.allRequired, dep)
 				added[dep] = true
 			}
 		}
@@ -320,8 +320,8 @@ func buildPackageIndex(packages packageDefinitionList,
 		// Recursion is not needed because the packages
 		// are already ordered in such a way that the current
 		// package never depends on those that follow it.
-		for _, required := range pd.requires {
-			for _, dep := range required.allReq {
+		for _, required := range pd.required {
+			for _, dep := range required.allRequired {
 				addDep(dep)
 			}
 			addDep(required)
@@ -346,8 +346,8 @@ func (index *packageIndex) printListOfPackages() {
 		fmt.Println("Name:", pd.packageName)
 		fmt.Println("Description:", pd.description)
 		fmt.Println("Type:", pd.packageType)
-		if len(pd.requires) > 0 {
-			fmt.Println("Requires:", packageNames(pd.requires))
+		if len(pd.required) > 0 {
+			fmt.Println("Requires:", packageNames(pd.required))
 		}
 		fmt.Println()
 	}
