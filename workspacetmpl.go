@@ -5,8 +5,9 @@
 package main
 
 var workspaceTemplate = []embeddedTemplateFile{
-	embeddedTemplateFile{privateDirName + "/selected", 0644,
-		[]byte(`{{range .selection}}{{.}}
+	embeddedTemplateFile{privateDirName + "/" +
+		filenameForSelectedPackages, 0644,
+		[]byte(`{{range .selection}}{{.PackageName}}
 {{end}}`)},
 	embeddedTemplateFile{privateDirName + "/conftab", 0644,
 		[]byte(`{{.conftab.GlobalSection.Definition -}}
@@ -49,8 +50,8 @@ all: build
 `)},
 }
 
-func generateWorkspaceFiles(workspaceDir string, pkgSelection []string,
-	conftab *Conftab) error {
+func generateWorkspaceFiles(workspaceDir string,
+	pkgSelection packageDefinitionList, conftab *Conftab) error {
 	params := templateParams{
 		"makefile":       flags.makefile,
 		"default_target": flags.defaultMakeTarget,

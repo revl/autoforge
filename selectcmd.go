@@ -115,9 +115,13 @@ func (helpParser *configureHelpParser) parseOptions(packageDir string) (
 	return options, nil
 }
 
-func generateAndBootstrapPackages(workspaceDir string,
-	pkgSelection []string) error {
-	packageIndex, err := readPackageDefinitions(workspaceDir)
+func generateAndBootstrapPackages(workspaceDir string, args []string) error {
+	pi, err := readPackageDefinitions(workspaceDir)
+	if err != nil {
+		return err
+	}
+
+	pkgSelection, err := selectPackages(pi, args)
 	if err != nil {
 		return err
 	}
@@ -134,12 +138,7 @@ func generateAndBootstrapPackages(workspaceDir string,
 
 	var packagesAndGenerators []packageAndGenerator
 
-	for _, packageName := range pkgSelection {
-		pd, ok := packageIndex.packageByName[packageName]
-		if !ok {
-			return errors.New("no such package: " + packageName)
-		}
-
+	for _, pd := range pkgSelection {
 		packageDir := filepath.Join(pkgRootDir, pd.PackageName)
 
 		generator, err := pd.getPackageGeneratorFunc(packageDir)
