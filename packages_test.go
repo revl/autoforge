@@ -25,7 +25,7 @@ func TestNoPackages(t *testing.T) {
 
 func dummyPackageDefinition(pkgName string) *packageDefinition {
 	var pd packageDefinition
-	pd.packageName = pkgName
+	pd.PackageName = pkgName
 	pd.pathname = filepath.Join(pkgName, packageDefinitionFilename)
 	return &pd
 }

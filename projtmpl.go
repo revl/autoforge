@@ -204,7 +204,7 @@ func (pd *packageDefinition) getPackageGeneratorFunc(
 		}, nil
 
 	default:
-		return nil, errors.New(pd.packageName +
+		return nil, errors.New(pd.PackageName +
 			": unknown package type '" + pd.packageType + "'")
 	}
 }

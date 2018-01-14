@@ -18,7 +18,7 @@ import (
 var packageDefinitionFilename = appName + ".yaml"
 
 type packageDefinition struct {
-	packageName string
+	PackageName string
 	description string
 	packageType string
 	pathname    string
@@ -210,11 +210,11 @@ func (ts *topologicalSorter) cycle(pd, endp *packageDefinition) string {
 	for _, dep := range pd.required {
 		if ts.visited[dep] == beingVisited {
 			if dep == endp {
-				return pd.packageName + " -> " +
-					endp.packageName
+				return pd.PackageName + " -> " +
+					endp.PackageName
 			}
 			if cycle := ts.cycle(dep, endp); cycle != "" {
-				return pd.packageName + " -> " + cycle
+				return pd.PackageName + " -> " + cycle
 			}
 		}
 	}
@@ -273,12 +273,12 @@ func buildPackageIndex(packages packageDefinitionList,
 	for _, pd := range packages {
 		// Having two different packages with the same name
 		// is not allowed.
-		if dup, ok := pi.packageByName[pd.packageName]; ok {
+		if dup, ok := pi.packageByName[pd.PackageName]; ok {
 			return nil, errors.New("duplicate package name: " +
-				pd.packageName + " (from " + pd.pathname +
+				pd.PackageName + " (from " + pd.pathname +
 				"); previously declared in " + dup.pathname)
 		}
-		pi.packageByName[pd.packageName] = pd
+		pi.packageByName[pd.PackageName] = pd
 	}
 
 	// Resolve dependencies and establish the edges of the
@@ -288,7 +288,7 @@ func buildPackageIndex(packages packageDefinitionList,
 			depp := pi.packageByName[dep]
 			if depp == nil {
 				return nil, errors.New("package " +
-					pd.packageName + " requires " +
+					pd.PackageName + " requires " +
 					dep + ", which is not " +
 					"available in the search path")
 			}
@@ -334,7 +334,7 @@ func buildPackageIndex(packages packageDefinitionList,
 func packageNames(pkgList packageDefinitionList) string {
 	names := []string{}
 	for _, pd := range pkgList {
-		names = append(names, pd.packageName)
+		names = append(names, pd.PackageName)
 	}
 	return strings.Join(names, ", ")
 }
@@ -343,7 +343,7 @@ func (index *packageIndex) printListOfPackages() {
 	fmt.Println("List of packages:")
 
 	for _, pd := range index.orderedPackages {
-		fmt.Println("Name:", pd.packageName)
+		fmt.Println("Name:", pd.PackageName)
 		fmt.Println("Description:", pd.description)
 		fmt.Println("Type:", pd.packageType)
 		if len(pd.required) > 0 {

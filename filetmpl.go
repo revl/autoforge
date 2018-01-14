@@ -154,7 +154,7 @@ func executePackageFileTemplate(templateName string,
 	funcMap := template.FuncMap{
 		"Error": func(errorMessage string) (string, error) {
 			return "", errors.New(templateErrorMarker +
-				pd.packageName + ": " + errorMessage)
+				pd.PackageName + ": " + errorMessage)
 		},
 		"Dir": func(root string) []string {
 			root += string(filepath.Separator)

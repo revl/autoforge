@@ -140,7 +140,7 @@ func generateAndBootstrapPackages(workspaceDir string,
 			return errors.New("no such package: " + packageName)
 		}
 
-		packageDir := filepath.Join(pkgRootDir, pd.packageName)
+		packageDir := filepath.Join(pkgRootDir, pd.PackageName)
 
 		generator, err := pd.getPackageGeneratorFunc(packageDir)
 		if err != nil {
@@ -169,7 +169,7 @@ func generateAndBootstrapPackages(workspaceDir string,
 
 	// Bootstrap the selected packages.
 	for _, pg := range packagesToBootstrap {
-		fmt.Println("[bootstrap] " + pg.pd.packageName)
+		fmt.Println("[bootstrap] " + pg.pd.PackageName)
 
 		bootstrapCmd := exec.Command("./autogen.sh")
 		bootstrapCmd.Dir = pg.packageDir
@@ -200,7 +200,7 @@ func generateAndBootstrapPackages(workspaceDir string,
 
 		for _, opt := range options {
 			if opt.key.optType != optOther &&
-				conftab.addOption(pg.pd.packageName, &opt) {
+				conftab.addOption(pg.pd.PackageName, &opt) {
 			}
 		}
 	}
