@@ -4,6 +4,8 @@
 
 package main
 
+var filenameForSelectedPackages = "selected"
+
 var workspaceTemplate = []embeddedTemplateFile{
 	embeddedTemplateFile{privateDirName + "/" +
 		filenameForSelectedPackages, 0644,

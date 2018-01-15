@@ -5,18 +5,73 @@
 package main
 
 import (
+	"bufio"
+	"errors"
 	"log"
+	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 )
+
+func readPackageSelection(pi *packageIndex, privateDir string) (
+	packageDefinitionList, error) {
+	file, err := os.Open(filepath.Join(privateDir,
+		filenameForSelectedPackages))
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		closeErr := file.Close()
+		if err == nil {
+			err = closeErr
+		}
+	}()
+
+	var selected packageDefinitionList
+
+	scanner := bufio.NewScanner(file)
+
+	for scanner.Scan() {
+		pkgName := scanner.Text()
+
+		pd := pi.packageByName[pkgName]
+		if pd == nil {
+			return nil, errors.New("previously selected package '" +
+				pkgName + "' could not be found")
+		}
+
+		selected = append(selected, pd)
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	return selected, nil
+}
+
+func refreshWorkspace(workspaceDir string) error {
+	pi, err := readPackageDefinitions(workspaceDir)
+	if err != nil {
+		return err
+	}
+
+	selection, err := readPackageSelection(pi, getPrivateDir(workspaceDir))
+	if err != nil {
+		return err
+	}
+
+	return generateAndBootstrapPackages(workspaceDir, selection)
+}
 
 // RefreshCmd represents the refresh command
 var refreshCmd = &cobra.Command{
 	Use:   "refresh",
 	Short: "Regenerate Autotools files in the current workspace",
-	Run: func(_ *cobra.Command, args []string) {
-		if err := generateAndBootstrapPackages(getWorkspaceDir(),
-			[]string{}); err != nil {
+	Args:  cobra.MaximumNArgs(0),
+	Run: func(_ *cobra.Command, _ []string) {
+		if err := refreshWorkspace(getWorkspaceDir()); err != nil {
 			log.Fatal(err)
 		}
 	},

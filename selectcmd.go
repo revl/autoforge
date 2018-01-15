@@ -5,206 +5,139 @@
 package main
 
 import (
-	"bufio"
 	"errors"
-	"fmt"
 	"log"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/spf13/cobra"
 )
 
-type configureHelpParser struct {
-	optRegexp        *regexp.Regexp
-	classifier       optClassifier
-	ignoredFeatOrPkg map[string]struct{}
+func getRequired(pd *packageDefinition) packageDefinitionList {
+	return pd.required
 }
 
-func createConfigureHelpParser() configureHelpParser {
-	return configureHelpParser{
-		regexp.MustCompile(`^--([^\s\[=]+)([^\s]*)\s*(.*)$`),
-		createOptClassifier(),
-		map[string]struct{}{
-			"FEATURE":             struct{}{},
-			"PACKAGE":             struct{}{},
-			"aix-soname":          struct{}{},
-			"dependency-tracking": struct{}{},
-			"fast-install":        struct{}{},
-			"gnu-ld":              struct{}{},
-			"libtool-lock":        struct{}{},
-			"option-checking":     struct{}{},
-			"pkgconfigdir":        struct{}{},
-			"silent-rules":        struct{}{},
-			"sysroot":             struct{}{},
-		}}
+func getDependent(pd *packageDefinition) packageDefinitionList {
+	return pd.dependent
 }
 
-func (helpParser *configureHelpParser) parseOptions(packageDir string) (
-	[]optDescription, error) {
-	configureHelpCmd := exec.Command("./configure", "--help")
-	configureHelpCmd.Dir = packageDir
-	configureHelpStdout, err := configureHelpCmd.StdoutPipe()
-	if err != nil {
-		return nil, err
+func applyToSubtree(action func(*packageDefinition),
+	root *packageDefinition,
+	direction func(*packageDefinition) packageDefinitionList) {
+
+	queue := packageDefinitionList{root}
+
+	for {
+		pd := queue[0]
+		queue = queue[1:]
+
+		action(pd)
+
+		queue = append(queue, direction(pd)...)
+
+		if len(queue) == 0 {
+			break
+		}
 	}
-	if err = configureHelpCmd.Start(); err != nil {
-		return nil, err
+}
+
+func packageRangesToFlatSelection(pi *packageIndex, args []string) (
+	packageDefinitionList, error) {
+	selected := make(map[string]bool)
+	marked := make(map[string]int)
+
+	inclusion := true
+
+	selectPackage := func(pd *packageDefinition) {
+		selected[pd.PackageName] = inclusion
 	}
-	helpScanner := bufio.NewScanner(configureHelpStdout)
 
-	var options []optDescription
-	var currentOption *optDescription
+	mark := 0
 
-	for helpScanner.Scan() {
-		helpLine := strings.TrimRight(helpScanner.Text(), " ")
+	markPackage := func(pd *packageDefinition) {
+		marked[pd.PackageName] = mark
+	}
 
-		if helpLine == "" || !strings.HasPrefix(helpLine, " ") {
-			if currentOption != nil {
-				options = append(options, *currentOption)
-				currentOption = nil
-			}
+	selectIfMarked := func(pd *packageDefinition) {
+		if marked[pd.PackageName] == mark {
+			selected[pd.PackageName] = inclusion
+		}
+	}
+
+	for _, arg := range args {
+		if arg == "+" {
+			inclusion = true
 			continue
 		}
 
-		helpLine = strings.TrimLeft(helpLine, " ")
+		if arg == "-" {
+			inclusion = false
+			continue
+		}
 
-		if strings.HasPrefix(helpLine, "-") {
-			if currentOption != nil {
-				options = append(options, *currentOption)
-				currentOption = nil
-			}
-		} else {
-			if currentOption != nil {
-				if currentOption.description != "" {
-					currentOption.description += " "
+		var pkgRange packageDefinitionList
+
+		emptyRange := true
+
+		for _, pkgName := range strings.SplitN(arg, ":", 2) {
+			var pd *packageDefinition
+			if pkgName != "" {
+				pd = pi.packageByName[pkgName]
+				if pd == nil {
+					return nil, errors.New(
+						"no such package: " + pkgName)
 				}
-				currentOption.description += helpLine
+				emptyRange = false
 			}
+			pkgRange = append(pkgRange, pd)
+		}
+
+		if emptyRange {
 			continue
 		}
 
-		parts := helpParser.optRegexp.FindStringSubmatch(helpLine)
-
-		if len(parts) < 4 {
+		if len(pkgRange) == 1 {
+			selected[arg] = inclusion
 			continue
 		}
-		opt, arg, descr := parts[1], parts[2], parts[3]
 
-		key := helpParser.classifier.classify(opt)
+		from, to := pkgRange[0], pkgRange[1]
 
-		if key.optType != optOther {
-			_, present := helpParser.ignoredFeatOrPkg[key.optName]
-			if present {
-				continue
-			}
+		if from == nil {
+			applyToSubtree(selectPackage, to, getRequired)
+		} else if to == nil {
+			applyToSubtree(selectPackage, from, getDependent)
+		} else {
+			mark++
+
+			applyToSubtree(markPackage, to, getRequired)
+
+			applyToSubtree(selectIfMarked, from, getDependent)
 		}
-
-		currentOption = &optDescription{key, descr, "--" + opt + arg}
-	}
-	if err := helpScanner.Err(); err != nil {
-		return nil, err
-	}
-	if err = configureHelpCmd.Wait(); err != nil {
-		return nil, err
 	}
 
-	return options, nil
+	var selection packageDefinitionList
+
+	for _, pd := range pi.orderedPackages {
+		if selected[pd.PackageName] {
+			selection = append(selection, pd)
+		}
+	}
+
+	return selection, nil
 }
 
-func generateAndBootstrapPackages(workspaceDir string, args []string) error {
+func selectPackages(workspaceDir string, args []string) error {
 	pi, err := readPackageDefinitions(workspaceDir)
 	if err != nil {
 		return err
 	}
 
-	pkgSelection, err := selectPackages(pi, args)
+	selection, err := packageRangesToFlatSelection(pi, args)
 	if err != nil {
 		return err
 	}
 
-	privateDir := getPrivateDir(workspaceDir)
-
-	pkgRootDir := filepath.Join(privateDir, "packages")
-
-	type packageAndGenerator struct {
-		pd         *packageDefinition
-		packageDir string
-		generator  func() (bool, error)
-	}
-
-	var packagesAndGenerators []packageAndGenerator
-
-	for _, pd := range pkgSelection {
-		packageDir := filepath.Join(pkgRootDir, pd.PackageName)
-
-		generator, err := pd.getPackageGeneratorFunc(packageDir)
-		if err != nil {
-			return err
-		}
-
-		packagesAndGenerators = append(packagesAndGenerators,
-			packageAndGenerator{pd, packageDir, generator})
-	}
-
-	var packagesToBootstrap []packageAndGenerator
-
-	// Generate autoconf and automake sources for the selected packages.
-	for _, pg := range packagesAndGenerators {
-		changed, err := pg.generator()
-		if err != nil {
-			return err
-		}
-
-		_, err = os.Stat(filepath.Join(pg.packageDir, "configure"))
-
-		if changed || os.IsNotExist(err) {
-			packagesToBootstrap = append(packagesToBootstrap, pg)
-		}
-	}
-
-	// Bootstrap the selected packages.
-	for _, pg := range packagesToBootstrap {
-		fmt.Println("[bootstrap] " + pg.pd.PackageName)
-
-		bootstrapCmd := exec.Command("./autogen.sh")
-		bootstrapCmd.Dir = pg.packageDir
-		bootstrapCmd.Stdout = os.Stdout
-		bootstrapCmd.Stderr = os.Stderr
-		if err := bootstrapCmd.Run(); err != nil {
-			return errors.New(
-				filepath.Join(pg.packageDir, "autogen.sh") +
-					": " + err.Error())
-		}
-	}
-
-	conftab, err := readConftab(filepath.Join(privateDir, "conftab"))
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return err
-		}
-		conftab = newConftab()
-	}
-
-	helpParser := createConfigureHelpParser()
-
-	for _, pg := range packagesAndGenerators {
-		options, err := helpParser.parseOptions(pg.packageDir)
-		if err != nil {
-			return err
-		}
-
-		for _, opt := range options {
-			if opt.key.optType != optOther &&
-				conftab.addOption(pg.pd.PackageName, &opt) {
-			}
-		}
-	}
-
-	return generateWorkspaceFiles(workspaceDir, pkgSelection, conftab)
+	return generateAndBootstrapPackages(workspaceDir, selection)
 }
 
 // SelectCmd represents the select command
@@ -213,8 +146,7 @@ var selectCmd = &cobra.Command{
 	Short: "Choose one or more packages to work on",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(_ *cobra.Command, args []string) {
-		if err := generateAndBootstrapPackages(getWorkspaceDir(),
-			args); err != nil {
+		if err := selectPackages(getWorkspaceDir(), args); err != nil {
 			log.Fatal(err)
 		}
 	},
