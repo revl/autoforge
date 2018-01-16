@@ -26,7 +26,7 @@ func editConftab(workspaceDir string) error {
 
 	privateDir := getPrivateDir(workspaceDir)
 
-	conftabPathname := filepath.Join(privateDir, "conftab")
+	conftabPathname := filepath.Join(privateDir, conftabFilename)
 
 	origConftab, err := readConftab(conftabPathname)
 	if err != nil {

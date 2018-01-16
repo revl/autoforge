@@ -6,12 +6,15 @@ package main
 
 var filenameForSelectedPackages = "selected"
 
+var conftabFilename = "conftab"
+
 var workspaceTemplate = []embeddedTemplateFile{
 	embeddedTemplateFile{privateDirName + "/" +
 		filenameForSelectedPackages, 0644,
 		[]byte(`{{range .selection}}{{.PackageName}}
 {{end}}`)},
-	embeddedTemplateFile{privateDirName + "/conftab", 0644,
+	embeddedTemplateFile{privateDirName + "/" +
+		conftabFilename, 0644,
 		[]byte(`{{.conftab.GlobalSection.Definition -}}
 {{range .conftab.PackageSections}}[{{.PkgName}}]
 {{.Definition -}}{{end}}`)},
@@ -53,11 +56,11 @@ all: build
 }
 
 func generateWorkspaceFiles(workspaceDir string,
-	pkgSelection packageDefinitionList, conftab *Conftab) error {
+	selection packageDefinitionList, conftab *Conftab) error {
 	params := templateParams{
 		"makefile":       flags.makefile,
 		"default_target": flags.defaultMakeTarget,
-		"selection":      pkgSelection,
+		"selection":      selection,
 		"conftab":        conftab,
 	}
 

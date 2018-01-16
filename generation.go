@@ -113,7 +113,7 @@ func (helpParser *configureHelpParser) parseOptions(packageDir string) (
 }
 
 func generateAndBootstrapPackages(workspaceDir string,
-	pkgSelection packageDefinitionList) error {
+	selection packageDefinitionList, conftab *Conftab) error {
 
 	privateDir := getPrivateDir(workspaceDir)
 
@@ -127,7 +127,7 @@ func generateAndBootstrapPackages(workspaceDir string,
 
 	var packagesAndGenerators []packageAndGenerator
 
-	for _, pd := range pkgSelection {
+	for _, pd := range selection {
 		packageDir := filepath.Join(pkgRootDir, pd.PackageName)
 
 		generator, err := pd.getPackageGeneratorFunc(packageDir)
@@ -170,14 +170,6 @@ func generateAndBootstrapPackages(workspaceDir string,
 		}
 	}
 
-	conftab, err := readConftab(filepath.Join(privateDir, "conftab"))
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return err
-		}
-		conftab = newConftab()
-	}
-
 	helpParser := createConfigureHelpParser()
 
 	for _, pg := range packagesAndGenerators {
@@ -193,5 +185,5 @@ func generateAndBootstrapPackages(workspaceDir string,
 		}
 	}
 
-	return generateWorkspaceFiles(workspaceDir, pkgSelection, conftab)
+	return generateWorkspaceFiles(workspaceDir, selection, conftab)
 }

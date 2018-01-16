@@ -7,6 +7,8 @@ package main
 import (
 	"errors"
 	"log"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -137,7 +139,16 @@ func selectPackages(workspaceDir string, args []string) error {
 		return err
 	}
 
-	return generateAndBootstrapPackages(workspaceDir, selection)
+	conftab, err := readConftab(filepath.Join(getPrivateDir(workspaceDir),
+		conftabFilename))
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return err
+		}
+		conftab = newConftab()
+	}
+
+	return generateAndBootstrapPackages(workspaceDir, selection, conftab)
 }
 
 // SelectCmd represents the select command

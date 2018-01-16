@@ -57,12 +57,19 @@ func refreshWorkspace(workspaceDir string) error {
 		return err
 	}
 
-	selection, err := readPackageSelection(pi, getPrivateDir(workspaceDir))
+	privateDir := getPrivateDir(workspaceDir)
+
+	selection, err := readPackageSelection(pi, privateDir)
 	if err != nil {
 		return err
 	}
 
-	return generateAndBootstrapPackages(workspaceDir, selection)
+	conftab, err := readConftab(filepath.Join(privateDir, conftabFilename))
+	if err != nil {
+		return err
+	}
+
+	return generateAndBootstrapPackages(workspaceDir, selection, conftab)
 }
 
 // RefreshCmd represents the refresh command
