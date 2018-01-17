@@ -52,16 +52,27 @@ help:
 	@echo "Individual package targets:"
 
 all: build
-`)},
+{{range .targets}}{{if .IsPhony}}.PHONY: {{.Name}}
+
+{{end}}{{.Name}}:
+{{.Script}}
+{{end}}`)},
 }
 
 func generateWorkspaceFiles(workspaceDir string,
 	selection packageDefinitionList, conftab *Conftab) error {
+	var globalTargets []target
+
+	globalTargets = []target{
+		createHelpTarget(func() []target { return globalTargets }),
+	}
+
 	params := templateParams{
 		"makefile":       flags.makefile,
 		"default_target": flags.defaultMakeTarget,
 		"selection":      selection,
 		"conftab":        conftab,
+		"targets":        globalTargets,
 	}
 
 	for _, templateFile := range workspaceTemplate {
