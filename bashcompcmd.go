@@ -1,4 +1,4 @@
-// Copyright (C) 2017 Damon Revoe. All rights reserved.
+// Copyright (C) 2017, 2018 Damon Revoe. All rights reserved.
 // Use of this source code is governed by the MIT
 // license, which can be found in the LICENSE file.
 
