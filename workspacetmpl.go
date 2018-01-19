@@ -19,42 +19,14 @@ var workspaceTemplate = []embeddedTemplateFile{
 {{range .conftab.PackageSections}}[{{.PkgName}}]
 {{.Definition -}}{{end}}`)},
 	embeddedTemplateFile{"{makefile}", 0644,
-		[]byte(`.PHONY: default all
+		[]byte(`.PHONY: default all{{range .globalTargets -}}
+{{if .IsPhony}} {{.Name}}{{end}}{{end}}
 
 default: {{.default_target}}
 
-help:
-	@echo "Usage:"
-	@echo "    make [target...]"
-	@echo
-	@echo "Global targets:"
-	@echo "    help"
-	@echo "        Display this help message. Unless overridden by the"
-	@echo "        '--` + maketargetOption + `' option, this ` +
-			`is the default target."
-	@echo
-	@echo "    bootstrap"
-	@echo "        Unconditionally regenerate the 'configure' scripts"
-	@echo "        for the selected packages."
-	@echo
-	@echo "    configure"
-	@echo "        Configure the selected packages using the current"
-	@echo "        options specified in the 'conftab' file."
-	@echo
-	@echo "    build"
-	@echo "        Build (compile and link) the selected packages."
-	@echo "        For the packages that have not been configured, the"
-	@echo "        configuration step will be performed automatically."
-	@echo
-	@echo "    check"
-	@echo "        Build and run unit tests for the selected packages."
-	@echo
-	@echo "Individual package targets:"
-
 all: build
-{{range .targets}}{{if .IsPhony}}.PHONY: {{.Name}}
 
-{{end}}{{.Name}}:
+{{range .globalTargets}}{{.Name}}:
 {{.Script}}
 {{end}}`)},
 }
@@ -65,6 +37,10 @@ func generateWorkspaceFiles(workspaceDir string,
 
 	globalTargets = []target{
 		createHelpTarget(func() []target { return globalTargets }),
+		createBootstrapTarget(),
+		createConfigureTarget(),
+		createBuildTarget(),
+		createCheckTarget(),
 	}
 
 	params := templateParams{
@@ -72,7 +48,7 @@ func generateWorkspaceFiles(workspaceDir string,
 		"default_target": flags.defaultMakeTarget,
 		"selection":      selection,
 		"conftab":        conftab,
-		"targets":        globalTargets,
+		"globalTargets":  globalTargets,
 	}
 
 	for _, templateFile := range workspaceTemplate {
