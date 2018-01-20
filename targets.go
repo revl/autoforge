@@ -6,44 +6,50 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"go/doc"
 	"strings"
 )
 
-type target interface {
-	Name() string
-	IsPhony() bool
-	Dependencies() []string
-	Script() string
+type target struct {
+	Target       string
+	Phony        bool
+	Dependencies []string
+	MakeScript   string
+}
 
+type targetType interface {
+	name() string
 	help() string
+	targets() []target
 }
 
 type helpTarget struct {
-	getGlobalTargets func() []target
+	getTargetTypes func() []targetType
 }
 
-func (*helpTarget) Name() string {
+func createHelpTarget(getTargetTypes func() []targetType) targetType {
+	return &helpTarget{getTargetTypes}
+}
+
+func (*helpTarget) name() string {
 	return "help"
 }
 
-func (*helpTarget) IsPhony() bool {
-	return true
+func (*helpTarget) help() string {
+	return "Display this help message. Unless overridden by the '--" +
+		maketargetOption + "' option, this is the default target."
 }
 
-func (*helpTarget) Dependencies() []string {
-	return nil
-}
-
-func (ht *helpTarget) Script() string {
+func (ht *helpTarget) targets() []target {
 	script := `	@echo "Usage:"
 	@echo "    make [target...]"
 	@echo
 	@echo "Global targets:"
 `
 
-	for _, t := range ht.getGlobalTargets() {
-		script += "\t@echo \"    " + t.Name() + "\"\n"
+	for _, t := range ht.getTargetTypes() {
+		script += "\t@echo \"    " + t.name() + "\"\n"
 
 		var buffer bytes.Buffer
 
@@ -62,35 +68,22 @@ func (ht *helpTarget) Script() string {
 
 	script += `	@echo "Individual package targets:"
 `
-	return script
-}
-
-func (*helpTarget) help() string {
-	return "Display this help message. Unless overridden by the '--" +
-		maketargetOption + "' option, this is the default target."
-}
-
-func createHelpTarget(getGlobalTargets func() []target) target {
-	return &helpTarget{getGlobalTargets}
+	return []target{{
+		Target:     "help",
+		Phony:      true,
+		MakeScript: script}}
 }
 
 type bootstrapTarget struct {
+	selection packageDefinitionList
 }
 
-func (*bootstrapTarget) Name() string {
+func createBootstrapTarget(selection packageDefinitionList) targetType {
+	return &bootstrapTarget{selection}
+}
+
+func (*bootstrapTarget) name() string {
 	return "bootstrap"
-}
-
-func (*bootstrapTarget) IsPhony() bool {
-	return true
-}
-
-func (*bootstrapTarget) Dependencies() []string {
-	return nil
-}
-
-func (*bootstrapTarget) Script() string {
-	return ""
 }
 
 func (*bootstrapTarget) help() string {
@@ -98,27 +91,53 @@ func (*bootstrapTarget) help() string {
 		"scripts for the selected packages."
 }
 
-func createBootstrapTarget() target {
-	return &bootstrapTarget{}
+func (bt *bootstrapTarget) targets() []target {
+	prefix := "bootstrap_"
+
+	var dependencies []string
+
+	for _, pd := range bt.selection {
+		dependencies = append(dependencies, prefix+pd.PackageName)
+	}
+
+	bootstrapTargets := []target{{
+		Target:       "bootstrap",
+		Phony:        true,
+		Dependencies: dependencies,
+	}}
+
+	scriptTemplate := `	@echo "[bootstrap] %[1]s"
+	@cd ` + privateDirName + "/" + pkgDirName + `/%[1]s && ./autogen.sh
+`
+
+	for i, pd := range bt.selection {
+		bootstrapTargets = append(bootstrapTargets,
+			target{
+				Target: dependencies[i],
+				Phony:  true,
+				MakeScript: fmt.Sprintf(scriptTemplate,
+					pd.PackageName),
+			},
+			target{
+				Target: privateDirName + "/" + pkgDirName +
+					"/" + pd.PackageName + "/configure",
+				MakeScript: "	@$(MAKE) -s " +
+					dependencies[i] + "\n",
+			})
+	}
+
+	return bootstrapTargets
 }
 
 type configureTarget struct {
 }
 
-func (*configureTarget) Name() string {
+func createConfigureTarget() targetType {
+	return &configureTarget{}
+}
+
+func (*configureTarget) name() string {
 	return "configure"
-}
-
-func (*configureTarget) IsPhony() bool {
-	return true
-}
-
-func (*configureTarget) Dependencies() []string {
-	return nil
-}
-
-func (*configureTarget) Script() string {
-	return ""
 }
 
 func (*configureTarget) help() string {
@@ -126,27 +145,19 @@ func (*configureTarget) help() string {
 		"current options specified in the 'conftab' file."
 }
 
-func createConfigureTarget() target {
-	return &configureTarget{}
+func (*configureTarget) targets() []target {
+	return nil
 }
 
 type buildTarget struct {
 }
 
-func (*buildTarget) Name() string {
+func createBuildTarget() targetType {
+	return &buildTarget{}
+}
+
+func (*buildTarget) name() string {
 	return "build"
-}
-
-func (*buildTarget) IsPhony() bool {
-	return true
-}
-
-func (*buildTarget) Dependencies() []string {
-	return nil
-}
-
-func (*buildTarget) Script() string {
-	return ""
 }
 
 func (*buildTarget) help() string {
@@ -155,33 +166,25 @@ func (*buildTarget) help() string {
 		"configuration step will be performed automatically."
 }
 
-func createBuildTarget() target {
-	return &buildTarget{}
+func (*buildTarget) targets() []target {
+	return nil
 }
 
 type checkTarget struct {
 }
 
-func (*checkTarget) Name() string {
+func createCheckTarget() targetType {
+	return &checkTarget{}
+}
+
+func (*checkTarget) name() string {
 	return "check"
-}
-
-func (*checkTarget) IsPhony() bool {
-	return true
-}
-
-func (*checkTarget) Dependencies() []string {
-	return nil
-}
-
-func (*checkTarget) Script() string {
-	return ""
 }
 
 func (*checkTarget) help() string {
 	return "Build and run unit tests for the selected packages."
 }
 
-func createCheckTarget() target {
-	return &checkTarget{}
+func (*checkTarget) targets() []target {
+	return nil
 }

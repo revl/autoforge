@@ -17,28 +17,36 @@ var workspaceTemplate = []embeddedTemplateFile{
 {{range .conftab.PackageSections}}[{{.PkgName}}]
 {{.Definition -}}{{end}}`)},
 	{"{makefile}", 0644,
-		[]byte(`.PHONY: default all{{range .globalTargets -}}
-{{if .IsPhony}} {{.Name}}{{end}}{{end}}
+		[]byte(`.PHONY: default all
 
 default: {{.default_target}}
 
 all: build
 
-{{range .globalTargets}}{{.Name}}:
-{{.Script}}
+{{range .targets}}{{if .Phony}}.PHONY: {{.Target}}
+
+{{end}}{{.Target}}:{{range .Dependencies}} \
+	{{.}}{{end}}
+{{.MakeScript}}
 {{end}}`)},
 }
 
 func generateWorkspaceFiles(workspaceDir string,
 	selection packageDefinitionList, conftab *Conftab) error {
-	var globalTargets []target
+	var targetTypes []targetType
 
-	globalTargets = []target{
-		createHelpTarget(func() []target { return globalTargets }),
-		createBootstrapTarget(),
+	targetTypes = []targetType{
+		createHelpTarget(func() []targetType { return targetTypes }),
+		createBootstrapTarget(selection),
 		createConfigureTarget(),
 		createBuildTarget(),
 		createCheckTarget(),
+	}
+
+	var targets []target
+
+	for _, gt := range targetTypes {
+		targets = append(targets, gt.targets()...)
 	}
 
 	params := templateParams{
@@ -46,7 +54,7 @@ func generateWorkspaceFiles(workspaceDir string,
 		"default_target": flags.defaultMakeTarget,
 		"selection":      selection,
 		"conftab":        conftab,
-		"globalTargets":  globalTargets,
+		"targets":        targets,
 	}
 
 	for _, templateFile := range workspaceTemplate {

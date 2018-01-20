@@ -112,12 +112,14 @@ func (helpParser *configureHelpParser) parseOptions(packageDir string) (
 	return options, nil
 }
 
+var pkgDirName = "packages"
+
 func generateAndBootstrapPackages(workspaceDir string,
 	selection packageDefinitionList, conftab *Conftab) error {
 
 	privateDir := getPrivateDir(workspaceDir)
 
-	pkgRootDir := filepath.Join(privateDir, "packages")
+	pkgRootDir := filepath.Join(privateDir, pkgDirName)
 
 	type packageAndGenerator struct {
 		pd         *packageDefinition
