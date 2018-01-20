@@ -5,7 +5,7 @@
 package main
 
 var libTemplate = []embeddedTemplateFile{
-	embeddedTemplateFile{"include/{name}/Makefile.am", 0644,
+	{"include/{name}/Makefile.am", 0644,
 		[]byte(`{{template "FileHeader" . -}}
 pkgincludedir = $(includedir)/{{.name}}
 
@@ -37,11 +37,11 @@ uninstall-local:
 
 CLEANFILES = config.h
 {{template "Snippet" .}}`)},
-	embeddedTemplateFile{"include/Makefile.am", 0644,
+	{"include/Makefile.am", 0644,
 		[]byte(`{{template "FileHeader" . -}}
 SUBDIRS = {{.name}}
 {{template "Snippet" .}}`)},
-	embeddedTemplateFile{"src/Makefile.am", 0644,
+	{"src/Makefile.am", 0644,
 		[]byte(`{{template "FileHeader" . -}}
 lib_LTLIBRARIES = lib{{.name}}.la
 
@@ -58,7 +58,7 @@ _la_SOURCES ={{template "Multiline" Select $allFiles $sourceExt}}
 EXTRA_DIST ={{template "Multiline" $extraFiles}}
 {{end -}}
 {{template "Snippet" .}}`)},
-	embeddedTemplateFile{"tests/Makefile.am", 0644,
+	{"tests/Makefile.am", 0644,
 		[]byte(`{{template "FileHeader" . -}}
 LDADD = ../src/lib$(PACKAGE).la
 
@@ -81,7 +81,7 @@ TESTS = $(check_PROGRAMS)
 EXTRA_DIST ={{template "Multiline" $extraFiles}}
 {{end -}}
 {{template "Snippet" .}}`)},
-	embeddedTemplateFile{"Makefile.am", 0644,
+	{"Makefile.am", 0644,
 		[]byte(`{{template "FileHeader" . -}}
 ACLOCAL_AMFLAGS = -I m4
 
@@ -93,7 +93,7 @@ pkgconfig_DATA = {{.name}}.pc
 
 EXTRA_DIST = autogen.sh
 {{template "Snippet" .}}`)},
-	embeddedTemplateFile{"configure.ac", 0644,
+	{"configure.ac", 0644,
 		[]byte(`{{template "FileHeader" . -}}
 AC_INIT([{{.name}}], [{{.version}}])
 AC_CONFIG_AUX_DIR([config])
@@ -177,7 +177,7 @@ tests/Makefile
 {{.name}}-uninstalled.pc])
 AC_OUTPUT
 `)},
-	embeddedTemplateFile{"{name}-uninstalled.pc.in", 0644,
+	{"{name}-uninstalled.pc.in", 0644,
 		[]byte(`prefix=@UNINST_PREFIX@
 exec_prefix=@UNINST_PREFIX@
 libdir=@UNINST_PREFIX@/src
@@ -190,7 +190,7 @@ Libs: @UNINST_LIBS@
 Libs.private: @PRIVATE_CONFIG_LIBS@
 Cflags: @UNINST_FLAGS@
 `)},
-	embeddedTemplateFile{"{name}.pc.in", 0644,
+	{"{name}.pc.in", 0644,
 		[]byte(`prefix=@prefix@
 exec_prefix=@exec_prefix@
 libdir=@libdir@

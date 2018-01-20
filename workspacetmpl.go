@@ -9,16 +9,14 @@ var filenameForSelectedPackages = "selected"
 var conftabFilename = "conftab"
 
 var workspaceTemplate = []embeddedTemplateFile{
-	embeddedTemplateFile{privateDirName + "/" +
-		filenameForSelectedPackages, 0644,
+	{privateDirName + "/" + filenameForSelectedPackages, 0644,
 		[]byte(`{{range .selection}}{{.PackageName}}
 {{end}}`)},
-	embeddedTemplateFile{privateDirName + "/" +
-		conftabFilename, 0644,
+	{privateDirName + "/" + conftabFilename, 0644,
 		[]byte(`{{.conftab.GlobalSection.Definition -}}
 {{range .conftab.PackageSections}}[{{.PkgName}}]
 {{.Definition -}}{{end}}`)},
-	embeddedTemplateFile{"{makefile}", 0644,
+	{"{makefile}", 0644,
 		[]byte(`.PHONY: default all{{range .globalTargets -}}
 {{if .IsPhony}} {{.Name}}{{end}}{{end}}
 

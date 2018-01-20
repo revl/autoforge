@@ -5,7 +5,7 @@
 package main
 
 var appTemplate = []embeddedTemplateFile{
-	embeddedTemplateFile{"configure.ac", 0644,
+	{"configure.ac", 0644,
 		[]byte(`{{template "FileHeader" . -}}
 AC_INIT([{{.name}}], [{{.version}}])
 AC_CONFIG_AUX_DIR([config])
@@ -68,7 +68,7 @@ AC_CONFIG_FILES([Makefile
 src/Makefile])
 AC_OUTPUT
 `)},
-	embeddedTemplateFile{"Makefile.am", 0644,
+	{"Makefile.am", 0644,
 		[]byte(`{{template "FileHeader" . -}}
 ACLOCAL_AMFLAGS = -I m4
 
@@ -78,7 +78,7 @@ SUBDIRS = . src
 
 EXTRA_DIST = autogen.sh
 `)},
-	embeddedTemplateFile{"src/Makefile.am", 0644,
+	{"src/Makefile.am", 0644,
 		[]byte(`{{template "FileHeader" . -}}
 bin_PROGRAMS = {{.name}}
 
