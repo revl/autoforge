@@ -66,8 +66,6 @@ func (ht *helpTarget) targets() []target {
 		}
 	}
 
-	script += `	@echo "Individual package targets:"
-`
 	return []target{{
 		Target:     "help",
 		Phony:      true,
