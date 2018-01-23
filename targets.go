@@ -72,16 +72,36 @@ func (ht *helpTarget) targets() []target {
 		MakeScript: script}}
 }
 
+type makeTargetData struct {
+	targetName string
+	selection  packageDefinitionList
+}
+
+func (mtd *makeTargetData) name() string {
+	return mtd.targetName
+}
+
+func (mtd *makeTargetData) globalTarget() target {
+	prefix := "bootstrap_"
+
+	var dependencies []string
+
+	for _, pd := range mtd.selection {
+		dependencies = append(dependencies, prefix+pd.PackageName)
+	}
+
+	return target{
+		Target:       "bootstrap",
+		Phony:        true,
+		Dependencies: dependencies}
+}
+
 type bootstrapTarget struct {
-	selection packageDefinitionList
+	makeTargetData
 }
 
 func createBootstrapTarget(selection packageDefinitionList) targetType {
-	return &bootstrapTarget{selection}
-}
-
-func (*bootstrapTarget) name() string {
-	return "bootstrap"
+	return &bootstrapTarget{makeTargetData{"bootstrap", selection}}
 }
 
 func (*bootstrapTarget) help() string {
@@ -90,19 +110,9 @@ func (*bootstrapTarget) help() string {
 }
 
 func (bt *bootstrapTarget) targets() []target {
-	prefix := "bootstrap_"
+	globalTarget := bt.globalTarget()
 
-	var dependencies []string
-
-	for _, pd := range bt.selection {
-		dependencies = append(dependencies, prefix+pd.PackageName)
-	}
-
-	bootstrapTargets := []target{{
-		Target:       "bootstrap",
-		Phony:        true,
-		Dependencies: dependencies,
-	}}
+	bootstrapTargets := []target{globalTarget}
 
 	scriptTemplate := `	@echo "[bootstrap] %[1]s"
 	@cd ` + privateDirName + "/" + pkgDirName + `/%[1]s && ./autogen.sh
@@ -111,7 +121,7 @@ func (bt *bootstrapTarget) targets() []target {
 	for i, pd := range bt.selection {
 		bootstrapTargets = append(bootstrapTargets,
 			target{
-				Target: dependencies[i],
+				Target: globalTarget.Dependencies[i],
 				Phony:  true,
 				MakeScript: fmt.Sprintf(scriptTemplate,
 					pd.PackageName),
@@ -120,7 +130,7 @@ func (bt *bootstrapTarget) targets() []target {
 				Target: privateDirName + "/" + pkgDirName +
 					"/" + pd.PackageName + "/configure",
 				MakeScript: "	@$(MAKE) -s " +
-					dependencies[i] + "\n",
+					globalTarget.Dependencies[i] + "\n",
 			})
 	}
 
