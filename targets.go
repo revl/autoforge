@@ -82,7 +82,7 @@ func (mtd *makeTargetData) name() string {
 }
 
 func (mtd *makeTargetData) globalTarget() target {
-	prefix := "bootstrap_"
+	prefix := mtd.targetName + "_"
 
 	var dependencies []string
 
@@ -91,7 +91,7 @@ func (mtd *makeTargetData) globalTarget() target {
 	}
 
 	return target{
-		Target:       "bootstrap",
+		Target:       mtd.targetName,
 		Phony:        true,
 		Dependencies: dependencies}
 }
@@ -138,14 +138,11 @@ func (bt *bootstrapTarget) targets() []target {
 }
 
 type configureTarget struct {
+	makeTargetData
 }
 
-func createConfigureTarget() targetType {
-	return &configureTarget{}
-}
-
-func (*configureTarget) name() string {
-	return "configure"
+func createConfigureTarget(selection packageDefinitionList) targetType {
+	return &configureTarget{makeTargetData{"configure", selection}}
 }
 
 func (*configureTarget) help() string {
@@ -153,8 +150,37 @@ func (*configureTarget) help() string {
 		"current options specified in the 'conftab' file."
 }
 
-func (*configureTarget) targets() []target {
-	return nil
+func (ct *configureTarget) targets() []target {
+	globalTarget := ct.globalTarget()
+
+	configureTargets := []target{globalTarget}
+
+	buildDir := privateDirName + "/build"
+
+	scriptTemplate := `	@echo "[configure] %[1]s"
+	@mkdir -p ` + buildDir + `/%[1]s
+	@cd ` + buildDir + `/%[1]s && \
+	../../packages/%[1]s/configure \
+		--quiet
+`
+
+	for i, pd := range ct.selection {
+		configureTargets = append(configureTargets,
+			target{
+				Target: globalTarget.Dependencies[i],
+				Phony:  true,
+				MakeScript: fmt.Sprintf(scriptTemplate,
+					pd.PackageName),
+			},
+			target{
+				Target: buildDir +
+					"/" + pd.PackageName + "/Makefile",
+				MakeScript: "	@$(MAKE) -s " +
+					globalTarget.Dependencies[i] + "\n",
+			})
+	}
+
+	return configureTargets
 }
 
 type buildTarget struct {

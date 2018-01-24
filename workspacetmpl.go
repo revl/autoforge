@@ -38,7 +38,7 @@ func generateWorkspaceFiles(workspaceDir string,
 	targetTypes = []targetType{
 		createHelpTarget(func() []targetType { return targetTypes }),
 		createBootstrapTarget(selection),
-		createConfigureTarget(),
+		createConfigureTarget(selection),
 		createBuildTarget(),
 		createCheckTarget(),
 	}
