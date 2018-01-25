@@ -10,9 +10,12 @@ func getGeneratedPkgRootDir(privateDir string) string {
 	return privateDir + "/" + pkgDirName
 }
 
-func getBuildDir(privateDir string) string {
+func getBuildDir(privateDir string, wp *workspaceParams) string {
 	if flags.buildDir != "" {
 		return flags.buildDir
+	}
+	if wp.BuildDir != "" {
+		return wp.BuildDir
 	}
 	return privateDirName + "/build"
 }

@@ -113,7 +113,8 @@ func (helpParser *configureHelpParser) parseOptions(packageDir string) (
 }
 
 func generateAndBootstrapPackages(workspaceDir string,
-	selection packageDefinitionList, conftab *Conftab) error {
+	selection packageDefinitionList, conftab *Conftab,
+	wp *workspaceParams) error {
 
 	privateDir := getPrivateDir(workspaceDir)
 
@@ -185,5 +186,5 @@ func generateAndBootstrapPackages(workspaceDir string,
 		}
 	}
 
-	return generateWorkspaceFiles(workspaceDir, selection, conftab)
+	return generateWorkspaceFiles(workspaceDir, selection, conftab, wp)
 }

@@ -77,6 +77,7 @@ type makeTargetData struct {
 	targetName   string
 	selection    packageDefinitionList
 	workspaceDir string
+	wp           *workspaceParams
 }
 
 func (mtd *makeTargetData) name() string {
@@ -103,9 +104,9 @@ type bootstrapTarget struct {
 }
 
 func createBootstrapTarget(selection packageDefinitionList,
-	workspaceDir string) targetType {
+	workspaceDir string, wp *workspaceParams) targetType {
 	return &bootstrapTarget{makeTargetData{"bootstrap",
-		selection, workspaceDir}}
+		selection, workspaceDir, wp}}
 }
 
 func (*bootstrapTarget) help() string {
@@ -146,9 +147,9 @@ type configureTarget struct {
 }
 
 func createConfigureTarget(selection packageDefinitionList,
-	workspaceDir string) targetType {
+	workspaceDir string, wp *workspaceParams) targetType {
 	return &configureTarget{makeTargetData{"configure",
-		selection, workspaceDir}}
+		selection, workspaceDir, wp}}
 }
 
 func (*configureTarget) help() string {
@@ -163,7 +164,7 @@ func (ct *configureTarget) targets() ([]target, error) {
 
 	privateDir := getPrivateDir(ct.workspaceDir)
 
-	buildDir := getBuildDir(privateDir)
+	buildDir := getBuildDir(privateDir, ct.wp)
 
 	relBuildDir, err := filepath.Rel(ct.workspaceDir, buildDir)
 	if err != nil {

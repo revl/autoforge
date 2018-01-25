@@ -52,7 +52,12 @@ func readPackageSelection(pi *packageIndex, privateDir string) (
 }
 
 func refreshWorkspace(workspaceDir string) error {
-	pi, err := readPackageDefinitions(workspaceDir)
+	wp, err := readWorkspaceParams(workspaceDir)
+	if err != nil {
+		return err
+	}
+
+	pi, err := readPackageDefinitions(workspaceDir, wp)
 	if err != nil {
 		return err
 	}
@@ -69,7 +74,8 @@ func refreshWorkspace(workspaceDir string) error {
 		return err
 	}
 
-	return generateAndBootstrapPackages(workspaceDir, selection, conftab)
+	return generateAndBootstrapPackages(workspaceDir, selection,
+		conftab, wp)
 }
 
 // RefreshCmd represents the refresh command

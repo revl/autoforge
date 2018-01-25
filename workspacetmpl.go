@@ -32,13 +32,14 @@ all: build
 }
 
 func generateWorkspaceFiles(workspaceDir string,
-	selection packageDefinitionList, conftab *Conftab) error {
+	selection packageDefinitionList, conftab *Conftab,
+	wp *workspaceParams) error {
 	var targetTypes []targetType
 
 	targetTypes = []targetType{
 		createHelpTarget(func() []targetType { return targetTypes }),
-		createBootstrapTarget(selection, workspaceDir),
-		createConfigureTarget(selection, workspaceDir),
+		createBootstrapTarget(selection, workspaceDir, wp),
+		createConfigureTarget(selection, workspaceDir, wp),
 		createBuildTarget(),
 		createCheckTarget(),
 	}
