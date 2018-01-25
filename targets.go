@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"fmt"
 	"go/doc"
+	"path/filepath"
 	"strings"
 )
 
@@ -21,7 +22,7 @@ type target struct {
 type targetType interface {
 	name() string
 	help() string
-	targets() []target
+	targets() ([]target, error)
 }
 
 type helpTarget struct {
@@ -41,7 +42,7 @@ func (*helpTarget) help() string {
 		maketargetOption + "' option, this is the default target."
 }
 
-func (ht *helpTarget) targets() []target {
+func (ht *helpTarget) targets() ([]target, error) {
 	script := `	@echo "Usage:"
 	@echo "    make [target...]"
 	@echo
@@ -69,12 +70,13 @@ func (ht *helpTarget) targets() []target {
 	return []target{{
 		Target:     "help",
 		Phony:      true,
-		MakeScript: script}}
+		MakeScript: script}}, nil
 }
 
 type makeTargetData struct {
-	targetName string
-	selection  packageDefinitionList
+	targetName   string
+	selection    packageDefinitionList
+	workspaceDir string
 }
 
 func (mtd *makeTargetData) name() string {
@@ -100,8 +102,10 @@ type bootstrapTarget struct {
 	makeTargetData
 }
 
-func createBootstrapTarget(selection packageDefinitionList) targetType {
-	return &bootstrapTarget{makeTargetData{"bootstrap", selection}}
+func createBootstrapTarget(selection packageDefinitionList,
+	workspaceDir string) targetType {
+	return &bootstrapTarget{makeTargetData{"bootstrap",
+		selection, workspaceDir}}
 }
 
 func (*bootstrapTarget) help() string {
@@ -109,7 +113,7 @@ func (*bootstrapTarget) help() string {
 		"scripts for the selected packages."
 }
 
-func (bt *bootstrapTarget) targets() []target {
+func (bt *bootstrapTarget) targets() ([]target, error) {
 	globalTarget := bt.globalTarget()
 
 	bootstrapTargets := []target{globalTarget}
@@ -134,15 +138,17 @@ func (bt *bootstrapTarget) targets() []target {
 			})
 	}
 
-	return bootstrapTargets
+	return bootstrapTargets, nil
 }
 
 type configureTarget struct {
 	makeTargetData
 }
 
-func createConfigureTarget(selection packageDefinitionList) targetType {
-	return &configureTarget{makeTargetData{"configure", selection}}
+func createConfigureTarget(selection packageDefinitionList,
+	workspaceDir string) targetType {
+	return &configureTarget{makeTargetData{"configure",
+		selection, workspaceDir}}
 }
 
 func (*configureTarget) help() string {
@@ -150,27 +156,43 @@ func (*configureTarget) help() string {
 		"current options specified in the 'conftab' file."
 }
 
-func (ct *configureTarget) targets() []target {
+func (ct *configureTarget) targets() ([]target, error) {
 	globalTarget := ct.globalTarget()
 
 	configureTargets := []target{globalTarget}
 
-	buildDir := privateDirName + "/build"
+	privateDir := getPrivateDir(ct.workspaceDir)
 
-	scriptTemplate := `	@echo "[configure] %[1]s"
-	@mkdir -p ` + buildDir + `/%[1]s
-	@cd ` + buildDir + `/%[1]s && \
-	../../packages/%[1]s/configure \
-		--quiet
-`
+	buildDir := getBuildDir(privateDir)
+
+	relBuildDir, err := filepath.Rel(ct.workspaceDir, buildDir)
+	if err != nil {
+		relBuildDir = buildDir
+	}
+
+	pkgRootDir := getGeneratedPkgRootDir(privateDir)
 
 	for i, pd := range ct.selection {
+		pkgDir := pkgRootDir + "/" + pd.PackageName
+		relPkgBuildDir := relBuildDir + "/" + pd.PackageName
+		relPkgSrcDir, err := filepath.Rel(relPkgBuildDir, pkgDir)
+		if err != nil {
+			relPkgSrcDir, err = filepath.Abs(pkgDir)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		script := "\t@echo \"[configure] " + pd.PackageName +
+			"\"\n\t@mkdir -p '" + relPkgBuildDir +
+			"'\n\t@cd '" + relPkgBuildDir + "' && \\\n\t'" +
+			relPkgSrcDir + "/configure' \\\n\t\t--quiet\n"
+
 		configureTargets = append(configureTargets,
 			target{
-				Target: globalTarget.Dependencies[i],
-				Phony:  true,
-				MakeScript: fmt.Sprintf(scriptTemplate,
-					pd.PackageName),
+				Target:     globalTarget.Dependencies[i],
+				Phony:      true,
+				MakeScript: script,
 			},
 			target{
 				Target: buildDir +
@@ -180,7 +202,7 @@ func (ct *configureTarget) targets() []target {
 			})
 	}
 
-	return configureTargets
+	return configureTargets, nil
 }
 
 type buildTarget struct {
@@ -200,8 +222,8 @@ func (*buildTarget) help() string {
 		"configuration step will be performed automatically."
 }
 
-func (*buildTarget) targets() []target {
-	return nil
+func (*buildTarget) targets() ([]target, error) {
+	return nil, nil
 }
 
 type checkTarget struct {
@@ -219,6 +241,6 @@ func (*checkTarget) help() string {
 	return "Build and run unit tests for the selected packages."
 }
 
-func (*checkTarget) targets() []target {
-	return nil
+func (*checkTarget) targets() ([]target, error) {
+	return nil, nil
 }

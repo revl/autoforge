@@ -14,8 +14,8 @@ var flags = struct {
 	workspaceDir      string
 	makefile          string
 	defaultMakeTarget string
+	buildDir          string
 	installDir        string
-	docDir            string
 }{}
 
 func addQuietFlag(c *cobra.Command) {
@@ -45,12 +45,12 @@ func addDefaultMakeTargetFlag(c *cobra.Command) {
 		"default make target")
 }
 
+func addBuildDirFlag(c *cobra.Command) {
+	c.Flags().StringVar(&flags.buildDir, "builddir", "",
+		"directory for building the packages")
+}
+
 func addInstallDirFlag(c *cobra.Command) {
 	c.Flags().StringVar(&flags.installDir, "installdir", "",
 		"target directory for 'make install'")
-}
-
-func addDocDirFlag(c *cobra.Command) {
-	c.Flags().StringVar(&flags.docDir, "docdir", "",
-		"installation directory for documentation")
 }

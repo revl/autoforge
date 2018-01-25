@@ -33,5 +33,6 @@ func init() {
 	addQuietFlag(initCmd)
 	addPkgPathFlag(initCmd)
 	addWorkspaceDirFlag(initCmd)
+	addBuildDirFlag(initCmd)
 	addInstallDirFlag(initCmd)
 }

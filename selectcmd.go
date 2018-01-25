@@ -172,4 +172,5 @@ func init() {
 	addWorkspaceDirFlag(selectCmd)
 	addMakefileFlag(selectCmd)
 	addDefaultMakeTargetFlag(selectCmd)
+	addBuildDirFlag(selectCmd)
 }

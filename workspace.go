@@ -15,6 +15,7 @@ import (
 
 type workspaceParams struct {
 	PkgPath    string `yaml:"pkgpath"`
+	BuildDir   string `yaml:"builddir,omitempty"`
 	InstallDir string `yaml:"installdir,omitempty"`
 }
 
@@ -45,7 +46,7 @@ func createWorkspace(workspaceDir string) (*workspaceParams, error) {
 		return nil, err
 	}
 
-	wp := workspaceParams{pkgpath, flags.installDir}
+	wp := workspaceParams{pkgpath, flags.buildDir, flags.installDir}
 
 	out, err := yaml.Marshal(&wp)
 	if err != nil {

@@ -37,8 +37,8 @@ func generateWorkspaceFiles(workspaceDir string,
 
 	targetTypes = []targetType{
 		createHelpTarget(func() []targetType { return targetTypes }),
-		createBootstrapTarget(selection),
-		createConfigureTarget(selection),
+		createBootstrapTarget(selection, workspaceDir),
+		createConfigureTarget(selection, workspaceDir),
 		createBuildTarget(),
 		createCheckTarget(),
 	}
@@ -46,7 +46,11 @@ func generateWorkspaceFiles(workspaceDir string,
 	var targets []target
 
 	for _, gt := range targetTypes {
-		targets = append(targets, gt.targets()...)
+		moreTargets, err := gt.targets()
+		if err != nil {
+			return err
+		}
+		targets = append(targets, moreTargets...)
 	}
 
 	params := templateParams{
