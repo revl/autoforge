@@ -9,7 +9,9 @@ var appTemplate = []embeddedTemplateFile{
 		[]byte(`{{template "FileHeader" . -}}
 AC_INIT([{{.name}}], [{{.version}}])
 AC_CONFIG_AUX_DIR([config])
+{{if gt (len (Dir "m4")) 0 -}}
 AC_CONFIG_MACRO_DIRS([m4])
+{{end -}}
 {{$sources := Dir "src" -}}
 {{if eq (len $sources) 0}}
 {{Error "'app' template requires at least one source file in src/"}}
@@ -70,8 +72,10 @@ AC_OUTPUT
 `)},
 	{"Makefile.am", 0644,
 		[]byte(`{{template "FileHeader" . -}}
+{{if gt (len (Dir "m4")) 0 -}}
 ACLOCAL_AMFLAGS = -I m4
 
+{{end -}}
 AUTOMAKE_OPTIONS = foreign
 
 SUBDIRS = . src
