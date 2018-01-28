@@ -42,7 +42,7 @@ const maketargetOption = "maketarget"
 
 func addDefaultMakeTargetFlag(c *cobra.Command) {
 	c.Flags().StringVar(&flags.defaultMakeTarget, maketargetOption, "help",
-		"default make target")
+		"first target in the makefile")
 }
 
 func addBuildDirFlag(c *cobra.Command) {
