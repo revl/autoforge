@@ -97,4 +97,5 @@ func init() {
 	addQuietFlag(refreshCmd)
 	addWorkspaceDirFlag(refreshCmd)
 	addBuildDirFlag(refreshCmd)
+	addNoBootstrapFlag(refreshCmd)
 }

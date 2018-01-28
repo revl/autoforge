@@ -156,32 +156,34 @@ func generateAndBootstrapPackages(workspaceDir string,
 		}
 	}
 
-	// Bootstrap the selected packages.
-	for _, pg := range packagesToBootstrap {
-		fmt.Println("[bootstrap] " + pg.pd.PackageName)
+	if !flags.noBootstrap {
+		// Bootstrap the selected packages.
+		for _, pg := range packagesToBootstrap {
+			fmt.Println("[bootstrap] " + pg.pd.PackageName)
 
-		bootstrapCmd := exec.Command("./autogen.sh")
-		bootstrapCmd.Dir = pg.packageDir
-		bootstrapCmd.Stdout = os.Stdout
-		bootstrapCmd.Stderr = os.Stderr
-		if err := bootstrapCmd.Run(); err != nil {
-			return errors.New(
-				filepath.Join(pg.packageDir, "autogen.sh") +
-					": " + err.Error())
-		}
-	}
-
-	helpParser := createConfigureHelpParser()
-
-	for _, pg := range packagesAndGenerators {
-		options, err := helpParser.parseOptions(pg.packageDir)
-		if err != nil {
-			return err
+			bootstrapCmd := exec.Command("./autogen.sh")
+			bootstrapCmd.Dir = pg.packageDir
+			bootstrapCmd.Stdout = os.Stdout
+			bootstrapCmd.Stderr = os.Stderr
+			if err := bootstrapCmd.Run(); err != nil {
+				return errors.New(filepath.Join(pg.packageDir,
+					"autogen.sh") + ": " + err.Error())
+			}
 		}
 
-		for _, opt := range options {
-			if opt.key.optType != optOther &&
-				conftab.addOption(pg.pd.PackageName, &opt) {
+		helpParser := createConfigureHelpParser()
+
+		for _, pg := range packagesAndGenerators {
+			options, err := helpParser.parseOptions(pg.packageDir)
+			if err != nil {
+				return err
+			}
+
+			for _, opt := range options {
+				if opt.key.optType != optOther {
+					conftab.addOption(
+						pg.pd.PackageName, &opt)
+				}
 			}
 		}
 	}

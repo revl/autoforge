@@ -179,4 +179,5 @@ func init() {
 	addMakefileFlag(selectCmd)
 	addDefaultMakeTargetFlag(selectCmd)
 	addBuildDirFlag(selectCmd)
+	addNoBootstrapFlag(selectCmd)
 }

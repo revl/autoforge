@@ -16,6 +16,7 @@ var flags = struct {
 	defaultMakeTarget string
 	buildDir          string
 	installDir        string
+	noBootstrap       bool
 }{}
 
 func addQuietFlag(c *cobra.Command) {
@@ -53,4 +54,10 @@ func addBuildDirFlag(c *cobra.Command) {
 func addInstallDirFlag(c *cobra.Command) {
 	c.Flags().StringVar(&flags.installDir, "installdir", "",
 		"target directory for 'make install'")
+}
+
+func addNoBootstrapFlag(c *cobra.Command) {
+	c.Flags().BoolVarP(&flags.noBootstrap, "nobootstrap", "", false,
+		"do not bootstrap packages ("+conftabFilename+
+			" will not be updated)")
 }
