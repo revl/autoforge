@@ -5,7 +5,6 @@
 package main
 
 import (
-	"errors"
 	"log"
 	"os"
 	"path/filepath"
@@ -83,10 +82,10 @@ func packageRangesToFlatSelection(pi *packageIndex, args []string) (
 		for _, pkgName := range strings.SplitN(arg, ":", 2) {
 			var pd *packageDefinition
 			if pkgName != "" {
-				pd = pi.packageByName[pkgName]
-				if pd == nil {
-					return nil, errors.New(
-						"no such package: " + pkgName)
+				var err error
+				pd, err = pi.getPackageByName(pkgName)
+				if err != nil {
+					return nil, err
 				}
 				emptyRange = false
 			}

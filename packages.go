@@ -123,6 +123,14 @@ type packageIndex struct {
 	orderedPackages packageDefinitionList
 }
 
+func (pi *packageIndex) getPackageByName(pkgName string) (
+	*packageDefinition, error) {
+	if pd := pi.packageByName[pkgName]; pd != nil {
+		return pd, nil
+	}
+	return nil, errors.New("no such package: " + pkgName)
+}
+
 func getPackagePathFromEnvironment() (string, error) {
 	if pkgpath := flags.pkgPath; pkgpath != "" {
 		return pkgpath, nil
@@ -331,10 +339,10 @@ func packageNames(pkgList packageDefinitionList) string {
 	return strings.Join(names, ", ")
 }
 
-func (index *packageIndex) printListOfPackages() {
+func (pi *packageIndex) printListOfPackages() {
 	fmt.Println("List of packages:")
 
-	for _, pd := range index.orderedPackages {
+	for _, pd := range pi.orderedPackages {
 		fmt.Println("Name:", pd.PackageName)
 		fmt.Println("Description:", pd.description)
 		fmt.Println("Type:", pd.packageType)
