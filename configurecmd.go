@@ -71,5 +71,4 @@ func init() {
 	configureCmd.Flags().SortFlags = false
 	addQuietFlag(configureCmd)
 	addWorkspaceDirFlag(configureCmd)
-	addBuildDirFlag(configureCmd)
 }

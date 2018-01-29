@@ -96,6 +96,5 @@ func init() {
 	refreshCmd.Flags().SortFlags = false
 	addQuietFlag(refreshCmd)
 	addWorkspaceDirFlag(refreshCmd)
-	addBuildDirFlag(refreshCmd)
 	addNoBootstrapFlag(refreshCmd)
 }
