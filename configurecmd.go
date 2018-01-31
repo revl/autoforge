@@ -27,26 +27,25 @@ func configurePackages(workspaceDir string, pkgNames []string) error {
 		return err
 	}
 
-	if len(pkgNames) == 0 {
-		privateDir := getPrivateDir(workspaceDir)
-
-		selection, err := readPackageSelection(pi, privateDir)
-		if err != nil {
-			return err
-		}
-
-		for _, pd := range selection {
-			configurePackage(workspaceDir, pd)
-			if err != nil {
-				return err
-			}
-		}
-	} else {
+	if len(pkgNames) > 0 {
 		pd, err := pi.getPackageByName(pkgNames[0])
 		if err != nil {
 			return err
 		}
-		configurePackage(workspaceDir, pd)
+		return configurePackage(workspaceDir, pd)
+	}
+
+	privateDir := getPrivateDir(workspaceDir)
+
+	selection, err := readPackageSelection(pi, privateDir)
+	if err != nil {
+		return err
+	}
+
+	for _, pd := range selection {
+		if err = configurePackage(workspaceDir, pd); err != nil {
+			return err
+		}
 	}
 
 	return nil
