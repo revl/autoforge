@@ -5,18 +5,57 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
+	"os"
+	"os/exec"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 )
 
-func configurePackage(_ string, pd *packageDefinition) error {
+func configurePackage(workspaceDir string, wp *workspaceParams,
+	pd *packageDefinition) error {
 	fmt.Println("[configure] " + pd.PackageName)
+
+	privateDir := getPrivateDir(workspaceDir)
+
+	pkgRootDir := getGeneratedPkgRootDir(privateDir)
+	pkgDir := pkgRootDir + "/" + pd.PackageName
+
+	buildDir := getBuildDir(privateDir, wp)
+	pkgBuildDir := buildDir + "/" + pd.PackageName
+
+	relPkgSrcDir, err := filepath.Rel(pkgBuildDir, pkgDir)
+	if err != nil {
+		relPkgSrcDir, err = filepath.Abs(pkgDir)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = os.MkdirAll(pkgBuildDir, os.FileMode(0775))
+	if err != nil {
+		return nil
+	}
+
+	configurePathname := relPkgSrcDir + "/configure"
+
+	configureCmd := exec.Command(configurePathname, "--quiet")
+	configureCmd.Dir = pkgBuildDir
+	configureCmd.Stdout = os.Stdout
+	configureCmd.Stderr = os.Stderr
+	if err := configureCmd.Run(); err != nil {
+		return errors.New(configurePathname + ": " + err.Error())
+	}
+
 	return nil
 }
 
-func configurePackages(workspaceDir string, pkgNames []string) error {
+func configurePackages(pkgNames []string) error {
+	workspaceDir := getWorkspaceDir()
+
 	wp, err := readWorkspaceParams(workspaceDir)
 	if err != nil {
 		return err
@@ -32,7 +71,7 @@ func configurePackages(workspaceDir string, pkgNames []string) error {
 		if err != nil {
 			return err
 		}
-		return configurePackage(workspaceDir, pd)
+		return configurePackage(workspaceDir, wp, pd)
 	}
 
 	privateDir := getPrivateDir(workspaceDir)
@@ -43,7 +82,7 @@ func configurePackages(workspaceDir string, pkgNames []string) error {
 	}
 
 	for _, pd := range selection {
-		if err = configurePackage(workspaceDir, pd); err != nil {
+		if err = configurePackage(workspaceDir, wp, pd); err != nil {
 			return err
 		}
 	}
@@ -57,7 +96,7 @@ var configureCmd = &cobra.Command{
 	Short: "Configure all selected packages or the specified package",
 	Args:  cobra.MaximumNArgs(1),
 	Run: func(_ *cobra.Command, args []string) {
-		err := configurePackages(getWorkspaceDir(), args)
+		err := configurePackages(args)
 		if err != nil {
 			log.Fatal(err)
 		}
