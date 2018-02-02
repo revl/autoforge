@@ -7,19 +7,21 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
 
-func configurePackage(workspaceDir string, wp *workspaceParams,
-	pd *packageDefinition) error {
+func configurePackage(privateDir string, wp *workspaceParams,
+	pd *packageDefinition, env []string) error {
 	fmt.Println("[configure] " + pd.PackageName)
 
-	privateDir := getPrivateDir(workspaceDir)
+	conftab, err := readConftab(privateDir + "/" + conftabFilename)
 
 	pkgRootDir := getGeneratedPkgRootDir(privateDir)
 	pkgDir := pkgRootDir + "/" + pd.PackageName
@@ -42,15 +44,63 @@ func configurePackage(workspaceDir string, wp *workspaceParams,
 
 	configurePathname := relPkgSrcDir + "/configure"
 
-	configureCmd := exec.Command(configurePathname, "--quiet")
+	configureArgs := conftab.getConfigureArgs(pd.PackageName)
+	configureArgs = append(configureArgs, "--quiet")
+
+	configureCmd := exec.Command(configurePathname, configureArgs...)
 	configureCmd.Dir = pkgBuildDir
 	configureCmd.Stdout = os.Stdout
 	configureCmd.Stderr = os.Stderr
+	configureCmd.Env = env
 	if err := configureCmd.Run(); err != nil {
 		return errors.New(configurePathname + ": " + err.Error())
 	}
 
 	return nil
+}
+
+func updateEnviron(buildDir string) ([]string, error) {
+	env := os.Environ()
+
+	absBuildDir, err := filepath.Abs(buildDir)
+	if err != nil {
+		return nil, err
+	}
+
+	configuredPackageDirs, err := ioutil.ReadDir(absBuildDir)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(configuredPackageDirs) == 0 {
+		return env, nil
+	}
+
+	var configuredPackagePathames []string
+
+	for _, d := range configuredPackageDirs {
+		configuredPackagePathames = append(
+			configuredPackagePathames, absBuildDir+"/"+d.Name())
+	}
+
+	uninstalledConfigPath := strings.Join(configuredPackagePathames, ":")
+
+	const pkgConfigPathVarName = "PKG_CONFIG_PATH"
+
+	for i, v := range env {
+		if strings.HasPrefix(v, pkgConfigPathVarName+"=") {
+			split := strings.SplitAfterN(v, "=", 2)
+			newValue := split[0] + uninstalledConfigPath
+			if len(split[1]) > 0 {
+				newValue += ":"
+				newValue += split[1]
+			}
+			env[i] = newValue
+			return env, nil
+		}
+	}
+
+	return append(env, pkgConfigPathVarName+"="+uninstalledConfigPath), nil
 }
 
 func configurePackages(pkgNames []string) error {
@@ -66,15 +116,22 @@ func configurePackages(pkgNames []string) error {
 		return err
 	}
 
+	privateDir := getPrivateDir(workspaceDir)
+
+	buildDir := getBuildDir(privateDir, wp)
+
+	env, err := updateEnviron(buildDir)
+	if err != nil {
+		return err
+	}
+
 	if len(pkgNames) > 0 {
 		pd, err := pi.getPackageByName(pkgNames[0])
 		if err != nil {
 			return err
 		}
-		return configurePackage(workspaceDir, wp, pd)
+		return configurePackage(privateDir, wp, pd, env)
 	}
-
-	privateDir := getPrivateDir(workspaceDir)
 
 	selection, err := readPackageSelection(pi, privateDir)
 	if err != nil {
@@ -82,7 +139,8 @@ func configurePackages(pkgNames []string) error {
 	}
 
 	for _, pd := range selection {
-		if err = configurePackage(workspaceDir, wp, pd); err != nil {
+		err = configurePackage(privateDir, wp, pd, env)
+		if err != nil {
 			return err
 		}
 	}
