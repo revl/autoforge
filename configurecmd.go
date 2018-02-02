@@ -133,9 +133,21 @@ func configurePackage(privateDir string, wp *workspaceParams,
 	return nil
 }
 
-func configurePackages(pkgNames []string) error {
-	workspaceDir := getWorkspaceDir()
+func configurePackageSelection(wp *workspaceParams, privateDir string,
+	selection packageDefinitionList) error {
+	cfgEnv := prepareConfigureEnv()
 
+	for _, pd := range selection {
+		err := configurePackage(privateDir, wp, pd, cfgEnv)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func configurePackages(workspaceDir string, args []string) error {
 	wp, err := readWorkspaceParams(workspaceDir)
 	if err != nil {
 		return err
@@ -148,38 +160,31 @@ func configurePackages(pkgNames []string) error {
 
 	privateDir := getPrivateDir(workspaceDir)
 
-	cfgEnv := prepareConfigureEnv()
-
-	if len(pkgNames) > 0 {
-		pd, err := pi.getPackageByName(pkgNames[0])
-		if err != nil {
-			return err
-		}
-		return configurePackage(privateDir, wp, pd, cfgEnv)
-	}
-
 	selection, err := readPackageSelection(pi, privateDir)
 	if err != nil {
 		return err
 	}
 
-	for _, pd := range selection {
-		err = configurePackage(privateDir, wp, pd, cfgEnv)
+	if len(args) > 0 {
+		selectionFromArgs, err := packageRangesToFlatSelection(pi, args)
 		if err != nil {
 			return err
 		}
+
+		return configurePackageSelection(wp, privateDir,
+			selectionFromArgs)
 	}
 
-	return nil
+	return configurePackageSelection(wp, privateDir, selection)
 }
 
 // configureCmd represents the configure command
 var configureCmd = &cobra.Command{
-	Use:   "configure",
-	Short: "Configure all selected packages or the specified package",
-	Args:  cobra.MaximumNArgs(1),
+	Use: "configure package_range...",
+	Short: "Configure all selected packages " +
+		"or the specified package range",
 	Run: func(_ *cobra.Command, args []string) {
-		err := configurePackages(args)
+		err := configurePackages(getWorkspaceDir(), args)
 		if err != nil {
 			log.Fatal(err)
 		}
