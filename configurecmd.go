@@ -22,6 +22,8 @@ import (
 type configureEnv struct {
 	envSansPkgConfigPath []string
 	origPkgConfigPath    string // original value of PKG_CONFIG_PATH
+	absBuildDir          string
+	pkgAbsBuildDir       map[string]string
 }
 
 const pkgConfigPathVarName = "PKG_CONFIG_PATH"
@@ -33,8 +35,12 @@ func dropEnvVar(env []string, i int) []string {
 	return env[:len(env)-1]
 }
 
-func prepareConfigureEnv() *configureEnv {
-	ce := &configureEnv{envSansPkgConfigPath: os.Environ()}
+func prepareConfigureEnv(absBuildDir string) *configureEnv {
+	ce := &configureEnv{
+		os.Environ(),
+		"",
+		absBuildDir,
+		map[string]string{}}
 
 	for i, v := range ce.envSansPkgConfigPath {
 		if strings.HasPrefix(v, pkgConfigPathVarName+"=") {
@@ -48,29 +54,26 @@ func prepareConfigureEnv() *configureEnv {
 	return ce
 }
 
-func (ce *configureEnv) makeEnv(buildDir string) ([]string, error) {
-	absBuildDir, err := filepath.Abs(buildDir)
-	if err != nil {
-		return nil, err
-	}
+func (ce *configureEnv) addPackageBuildDir(pkgName string) {
+	ce.pkgAbsBuildDir[pkgName] = ce.absBuildDir + "/" + pkgName
+}
 
-	configuredPackageDirs, err := ioutil.ReadDir(absBuildDir)
-	if err != nil {
-		return nil, err
-	}
-
+func (ce *configureEnv) makeEnv(pd *packageDefinition) []string {
 	var configuredPackagePathames []string
 
-	for _, d := range configuredPackageDirs {
-		configuredPackagePathames = append(
-			configuredPackagePathames, absBuildDir+"/"+d.Name())
+	for _, dep := range pd.allRequired {
+		depBuildDir, found := ce.pkgAbsBuildDir[dep.PackageName]
+		if found {
+			configuredPackagePathames = append(
+				configuredPackagePathames, depBuildDir)
+		}
 	}
 
 	pkgConfigPath := strings.Join(configuredPackagePathames, ":")
 
 	if len(pkgConfigPath) == 0 {
 		if len(ce.origPkgConfigPath) == 0 {
-			return ce.envSansPkgConfigPath, nil
+			return ce.envSansPkgConfigPath
 		}
 		pkgConfigPath = ce.origPkgConfigPath
 	} else if len(ce.origPkgConfigPath) > 0 {
@@ -79,29 +82,20 @@ func (ce *configureEnv) makeEnv(buildDir string) ([]string, error) {
 	}
 
 	return append(ce.envSansPkgConfigPath,
-		pkgConfigPathVarName+"="+pkgConfigPath), nil
+		pkgConfigPathVarName+"="+pkgConfigPath)
 }
 
-func configurePackage(privateDir string, wp *workspaceParams,
-	pd *packageDefinition, cfgEnv *configureEnv) error {
+func configurePackage(privateDir string,
+	pd *packageDefinition, cfgEnv *configureEnv,
+	conftab *Conftab) error {
 	fmt.Println("[configure] " + pd.PackageName)
-
-	conftab, err := readConftab(privateDir + "/" + conftabFilename)
-	if err != nil {
-		return err
-	}
 
 	pkgRootDir := getGeneratedPkgRootDir(privateDir)
 	pkgDir := pkgRootDir + "/" + pd.PackageName
 
-	buildDir := getBuildDir(privateDir, wp)
+	env := cfgEnv.makeEnv(pd)
 
-	env, err := cfgEnv.makeEnv(buildDir)
-	if err != nil {
-		return err
-	}
-
-	pkgBuildDir := buildDir + "/" + pd.PackageName
+	pkgBuildDir := cfgEnv.absBuildDir + "/" + pd.PackageName
 
 	relPkgSrcDir, err := filepath.Rel(pkgBuildDir, pkgDir)
 	if err != nil {
@@ -133,20 +127,6 @@ func configurePackage(privateDir string, wp *workspaceParams,
 	return nil
 }
 
-func configurePackageSelection(wp *workspaceParams, privateDir string,
-	selection packageDefinitionList) error {
-	cfgEnv := prepareConfigureEnv()
-
-	for _, pd := range selection {
-		err := configurePackage(privateDir, wp, pd, cfgEnv)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func configurePackages(workspaceDir string, args []string) error {
 	wp, err := readWorkspaceParams(workspaceDir)
 	if err != nil {
@@ -160,22 +140,53 @@ func configurePackages(workspaceDir string, args []string) error {
 
 	privateDir := getPrivateDir(workspaceDir)
 
-	selection, err := readPackageSelection(pi, privateDir)
+	buildDir := getBuildDir(privateDir, wp)
+
+	absBuildDir, err := filepath.Abs(buildDir)
 	if err != nil {
 		return err
 	}
 
+	configuredPackageDirs, err := ioutil.ReadDir(absBuildDir)
+	if err != nil {
+		return err
+	}
+
+	cfgEnv := prepareConfigureEnv(absBuildDir)
+
+	// Register packages that already exist in the build directory.
+	for _, dir := range configuredPackageDirs {
+		cfgEnv.addPackageBuildDir(dir.Name())
+	}
+
+	var selection packageDefinitionList
+
 	if len(args) > 0 {
-		selectionFromArgs, err := packageRangesToFlatSelection(pi, args)
+		selection, err = packageRangesToFlatSelection(pi, args)
+	} else {
+		selection, err = readPackageSelection(pi, privateDir)
+	}
+	if err != nil {
+		return err
+	}
+
+	for _, pd := range selection {
+		cfgEnv.addPackageBuildDir(pd.PackageName)
+	}
+
+	conftab, err := readConftab(privateDir + "/" + conftabFilename)
+	if err != nil {
+		return err
+	}
+
+	for _, pd := range selection {
+		err := configurePackage(privateDir, pd, cfgEnv, conftab)
 		if err != nil {
 			return err
 		}
-
-		return configurePackageSelection(wp, privateDir,
-			selectionFromArgs)
 	}
 
-	return configurePackageSelection(wp, privateDir, selection)
+	return nil
 }
 
 // configureCmd represents the configure command
