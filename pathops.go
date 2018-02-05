@@ -4,6 +4,11 @@
 
 package main
 
+import (
+	"os"
+	"path/filepath"
+)
+
 var pkgDirName = "packages"
 
 func getGeneratedPkgRootDir(privateDir string) string {
@@ -11,11 +16,16 @@ func getGeneratedPkgRootDir(privateDir string) string {
 }
 
 func getBuildDir(privateDir string, wp *workspaceParams) string {
-	if flags.buildDir != "" {
-		return flags.buildDir
-	}
 	if wp.BuildDir != "" {
 		return wp.BuildDir
 	}
 	return privateDirName + "/build"
+}
+
+func relativeToCwd(absPath string) (string, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Rel(cwd, absPath)
 }

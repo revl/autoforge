@@ -22,8 +22,8 @@ import (
 type configureEnv struct {
 	envSansPkgConfigPath []string
 	origPkgConfigPath    string // original value of PKG_CONFIG_PATH
-	absBuildDir          string
-	pkgAbsBuildDir       map[string]string
+	buildDir             string
+	pkgBuildDir          map[string]string
 }
 
 const pkgConfigPathVarName = "PKG_CONFIG_PATH"
@@ -35,11 +35,11 @@ func dropEnvVar(env []string, i int) []string {
 	return env[:len(env)-1]
 }
 
-func prepareConfigureEnv(absBuildDir string) *configureEnv {
+func prepareConfigureEnv(buildDir string) *configureEnv {
 	ce := &configureEnv{
 		os.Environ(),
 		"",
-		absBuildDir,
+		buildDir,
 		map[string]string{}}
 
 	for i, v := range ce.envSansPkgConfigPath {
@@ -55,14 +55,14 @@ func prepareConfigureEnv(absBuildDir string) *configureEnv {
 }
 
 func (ce *configureEnv) addPackageBuildDir(pkgName string) {
-	ce.pkgAbsBuildDir[pkgName] = ce.absBuildDir + "/" + pkgName
+	ce.pkgBuildDir[pkgName] = ce.buildDir + "/" + pkgName
 }
 
 func (ce *configureEnv) makeEnv(pd *packageDefinition) []string {
 	var configuredPackagePathames []string
 
 	for _, dep := range pd.allRequired {
-		depBuildDir, found := ce.pkgAbsBuildDir[dep.PackageName]
+		depBuildDir, found := ce.pkgBuildDir[dep.PackageName]
 		if found {
 			configuredPackagePathames = append(
 				configuredPackagePathames, depBuildDir)
@@ -89,10 +89,10 @@ func configurePackage(pkgRootDir string, pd *packageDefinition,
 	cfgEnv *configureEnv, conftab *Conftab) error {
 	fmt.Println("[configure] " + pd.PackageName)
 
-	pkgBuildDir := cfgEnv.absBuildDir + "/" + pd.PackageName
+	pkgBuildDir := cfgEnv.buildDir + "/" + pd.PackageName
 
-	relPkgSrcDir, err := filepath.Rel(pkgBuildDir,
-		pkgRootDir+"/"+pd.PackageName)
+	configurePathname, err := filepath.Rel(pkgBuildDir,
+		pkgRootDir+"/"+pd.PackageName+"/configure")
 	if err != nil {
 		return err
 	}
@@ -101,8 +101,6 @@ func configurePackage(pkgRootDir string, pd *packageDefinition,
 	if err != nil {
 		return nil
 	}
-
-	configurePathname := relPkgSrcDir + "/configure"
 
 	configureArgs := conftab.getConfigureArgs(pd.PackageName)
 	configureArgs = append(configureArgs, "--quiet")
@@ -119,7 +117,12 @@ func configurePackage(pkgRootDir string, pd *packageDefinition,
 	return nil
 }
 
-func configurePackages(workspaceDir string, args []string) error {
+func configurePackages(args []string) error {
+	workspaceDir, err := getWorkspaceDir()
+	if err != nil {
+		return err
+	}
+
 	wp, err := readWorkspaceParams(workspaceDir)
 	if err != nil {
 		return err
@@ -134,17 +137,12 @@ func configurePackages(workspaceDir string, args []string) error {
 
 	buildDir := getBuildDir(privateDir, wp)
 
-	absBuildDir, err := filepath.Abs(buildDir)
+	configuredPackageDirs, err := ioutil.ReadDir(buildDir)
 	if err != nil {
 		return err
 	}
 
-	configuredPackageDirs, err := ioutil.ReadDir(absBuildDir)
-	if err != nil {
-		return err
-	}
-
-	cfgEnv := prepareConfigureEnv(absBuildDir)
+	cfgEnv := prepareConfigureEnv(buildDir)
 
 	// Register packages that already exist in the build directory.
 	for _, dir := range configuredPackageDirs {
@@ -171,10 +169,7 @@ func configurePackages(workspaceDir string, args []string) error {
 		return err
 	}
 
-	pkgRootDir, err := filepath.Abs(getGeneratedPkgRootDir(privateDir))
-	if err != nil {
-		return err
-	}
+	pkgRootDir := getGeneratedPkgRootDir(privateDir)
 
 	for _, pd := range selection {
 		err := configurePackage(pkgRootDir, pd,
@@ -193,8 +188,7 @@ var configureCmd = &cobra.Command{
 	Short: "Configure all selected packages " +
 		"or the specified package range",
 	Run: func(_ *cobra.Command, args []string) {
-		err := configurePackages(getWorkspaceDir(), args)
-		if err != nil {
+		if err := configurePackages(args); err != nil {
 			log.Fatal(err)
 		}
 	},

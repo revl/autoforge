@@ -19,8 +19,8 @@ type workspaceParams struct {
 	InstallDir string `yaml:"installdir,omitempty"`
 }
 
-func getWorkspaceDir() string {
-	return flags.workspaceDir
+func getWorkspaceDir() (string, error) {
+	return filepath.Abs(flags.workspaceDir)
 }
 
 var privateDirName = "." + appName
@@ -33,20 +33,32 @@ func getPathToSettings(privateDir string) string {
 	return filepath.Join(privateDir, "settings.yaml")
 }
 
-func createWorkspace(workspaceDir string) (*workspaceParams, error) {
-	privateDir := getPrivateDir(workspaceDir)
-
-	if _, err := os.Stat(privateDir); err == nil {
-		return nil, errors.New("workspace already initialized")
-	}
-
-	pkgpath, err := getPackagePathFromEnvironment()
-
+func createWorkspace() (*workspaceParams, error) {
+	workspaceDir, err := getWorkspaceDir()
 	if err != nil {
 		return nil, err
 	}
 
-	wp := workspaceParams{pkgpath, flags.buildDir, flags.installDir}
+	privateDir := getPrivateDir(workspaceDir)
+
+	if _, err = os.Stat(privateDir); err == nil {
+		return nil, errors.New("workspace already initialized")
+	}
+
+	pkgpath, err := getPackagePathFromEnvironment()
+	if err != nil {
+		return nil, err
+	}
+
+	buildDir := flags.buildDir
+	if buildDir != "" {
+		buildDir, err = filepath.Abs(buildDir)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	wp := workspaceParams{pkgpath, buildDir, flags.installDir}
 
 	out, err := yaml.Marshal(&wp)
 	if err != nil {

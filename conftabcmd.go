@@ -15,7 +15,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func editConftab(workspaceDir string) error {
+func editConftab() error {
+	workspaceDir, err := getWorkspaceDir()
+	if err != nil {
+		return err
+	}
+
 	editor := os.Getenv("VISUAL")
 	if editor == "" {
 		editor = os.Getenv("EDITOR")
@@ -93,7 +98,7 @@ var conftabCmd = &cobra.Command{
 	Short: "Edit the conftab file",
 	Args:  cobra.MaximumNArgs(0),
 	Run: func(_ *cobra.Command, _ []string) {
-		if err := editConftab(getWorkspaceDir()); err != nil {
+		if err := editConftab(); err != nil {
 			log.Fatal(err)
 		}
 	},

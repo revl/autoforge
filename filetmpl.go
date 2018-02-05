@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -179,11 +180,16 @@ func executePackageFileTemplate(templateName string,
 
 func writeGeneratedFiles(targetDir string, outputFiles []filenameAndContents,
 	templateFileMode os.FileMode) (bool, error) {
+	targetDir, err := relativeToCwd(targetDir)
+	if err != nil {
+		return false, err
+	}
+
 	changesMade := false
 	for _, outputFile := range outputFiles {
 		mode := "R"
 
-		projectFile := filepath.Join(targetDir, outputFile.filename)
+		projectFile := path.Join(targetDir, outputFile.filename)
 
 		existingFileInfo, err := os.Lstat(projectFile)
 		if err != nil {

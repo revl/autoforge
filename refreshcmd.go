@@ -51,7 +51,12 @@ func readPackageSelection(pi *packageIndex, privateDir string) (
 	return selected, nil
 }
 
-func refreshWorkspace(workspaceDir string) error {
+func refreshWorkspace() error {
+	workspaceDir, err := getWorkspaceDir()
+	if err != nil {
+		return err
+	}
+
 	wp, err := readWorkspaceParams(workspaceDir)
 	if err != nil {
 		return err
@@ -84,7 +89,7 @@ var refreshCmd = &cobra.Command{
 	Short: "Regenerate Autotools files in the current workspace",
 	Args:  cobra.MaximumNArgs(0),
 	Run: func(_ *cobra.Command, _ []string) {
-		if err := refreshWorkspace(getWorkspaceDir()); err != nil {
+		if err := refreshWorkspace(); err != nil {
 			log.Fatal(err)
 		}
 	},

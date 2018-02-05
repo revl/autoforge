@@ -127,7 +127,12 @@ func packageRangesToFlatSelection(pi *packageIndex, args []string) (
 	return selection, nil
 }
 
-func selectPackages(workspaceDir string, args []string) error {
+func selectPackages(args []string) error {
+	workspaceDir, err := getWorkspaceDir()
+	if err != nil {
+		return err
+	}
+
 	wp, err := readWorkspaceParams(workspaceDir)
 	if err != nil {
 		return err
@@ -162,7 +167,7 @@ var selectCmd = &cobra.Command{
 	Short: "Choose one or more packages to work on",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(_ *cobra.Command, args []string) {
-		if err := selectPackages(getWorkspaceDir(), args); err != nil {
+		if err := selectPackages(args); err != nil {
 			log.Fatal(err)
 		}
 	},

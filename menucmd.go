@@ -16,7 +16,10 @@ var menuCmd = &cobra.Command{
 	Short: "Print the list of packages found in $" + pkgPathEnvVar,
 	Args:  cobra.MaximumNArgs(0),
 	Run: func(_ *cobra.Command, _ []string) {
-		workspaceDir := getWorkspaceDir()
+		workspaceDir, err := getWorkspaceDir()
+		if err != nil {
+			log.Fatal(err)
+		}
 
 		wp, err := readWorkspaceParams(workspaceDir)
 		if err != nil {
