@@ -85,24 +85,16 @@ func (ce *configureEnv) makeEnv(pd *packageDefinition) []string {
 		pkgConfigPathVarName+"="+pkgConfigPath)
 }
 
-func configurePackage(privateDir string,
-	pd *packageDefinition, cfgEnv *configureEnv,
-	conftab *Conftab) error {
+func configurePackage(pkgRootDir string, pd *packageDefinition,
+	cfgEnv *configureEnv, conftab *Conftab) error {
 	fmt.Println("[configure] " + pd.PackageName)
-
-	pkgRootDir := getGeneratedPkgRootDir(privateDir)
-	pkgDir := pkgRootDir + "/" + pd.PackageName
-
-	env := cfgEnv.makeEnv(pd)
 
 	pkgBuildDir := cfgEnv.absBuildDir + "/" + pd.PackageName
 
-	relPkgSrcDir, err := filepath.Rel(pkgBuildDir, pkgDir)
+	relPkgSrcDir, err := filepath.Rel(pkgBuildDir,
+		pkgRootDir+"/"+pd.PackageName)
 	if err != nil {
-		relPkgSrcDir, err = filepath.Abs(pkgDir)
-		if err != nil {
-			return err
-		}
+		return err
 	}
 
 	err = os.MkdirAll(pkgBuildDir, os.FileMode(0775))
@@ -119,7 +111,7 @@ func configurePackage(privateDir string,
 	configureCmd.Dir = pkgBuildDir
 	configureCmd.Stdout = os.Stdout
 	configureCmd.Stderr = os.Stderr
-	configureCmd.Env = env
+	configureCmd.Env = cfgEnv.makeEnv(pd)
 	if err := configureCmd.Run(); err != nil {
 		return errors.New(configurePathname + ": " + err.Error())
 	}
@@ -179,8 +171,14 @@ func configurePackages(workspaceDir string, args []string) error {
 		return err
 	}
 
+	pkgRootDir, err := filepath.Abs(getGeneratedPkgRootDir(privateDir))
+	if err != nil {
+		return err
+	}
+
 	for _, pd := range selection {
-		err := configurePackage(privateDir, pd, cfgEnv, conftab)
+		err := configurePackage(pkgRootDir, pd,
+			cfgEnv, conftab)
 		if err != nil {
 			return err
 		}
