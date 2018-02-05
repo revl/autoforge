@@ -11,6 +11,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -55,7 +56,7 @@ func prepareConfigureEnv(buildDir string) *configureEnv {
 }
 
 func (ce *configureEnv) addPackageBuildDir(pkgName string) {
-	ce.pkgBuildDir[pkgName] = ce.buildDir + "/" + pkgName
+	ce.pkgBuildDir[pkgName] = path.Join(ce.buildDir, pkgName)
 }
 
 func (ce *configureEnv) makeEnv(pd *packageDefinition) []string {
@@ -89,10 +90,10 @@ func configurePackage(pkgRootDir string, pd *packageDefinition,
 	cfgEnv *configureEnv, conftab *Conftab) error {
 	fmt.Println("[configure] " + pd.PackageName)
 
-	pkgBuildDir := cfgEnv.buildDir + "/" + pd.PackageName
+	pkgBuildDir := path.Join(cfgEnv.buildDir, pd.PackageName)
 
 	configurePathname, err := filepath.Rel(pkgBuildDir,
-		pkgRootDir+"/"+pd.PackageName+"/configure")
+		path.Join(pkgRootDir, pd.PackageName, "configure"))
 	if err != nil {
 		return err
 	}
@@ -164,7 +165,7 @@ func configurePackages(args []string) error {
 		cfgEnv.addPackageBuildDir(pd.PackageName)
 	}
 
-	conftab, err := readConftab(privateDir + "/" + conftabFilename)
+	conftab, err := readConftab(path.Join(privateDir, conftabFilename))
 	if err != nil {
 		return err
 	}

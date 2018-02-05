@@ -6,20 +6,21 @@ package main
 
 import (
 	"os"
+	"path"
 	"path/filepath"
 )
 
 var pkgDirName = "packages"
 
 func getGeneratedPkgRootDir(privateDir string) string {
-	return privateDir + "/" + pkgDirName
+	return path.Join(privateDir, pkgDirName)
 }
 
 func getBuildDir(privateDir string, wp *workspaceParams) string {
 	if wp.BuildDir != "" {
 		return wp.BuildDir
 	}
-	return privateDirName + "/build"
+	return path.Join(privateDirName, "build")
 }
 
 func relativeToCwd(absPath string) (string, error) {

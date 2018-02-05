@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"fmt"
 	"go/doc"
+	"path"
 	"path/filepath"
 	"strings"
 )
@@ -120,8 +121,8 @@ func (bt *bootstrapTarget) targets() ([]target, error) {
 	bootstrapTargets := []target{globalTarget}
 
 	scriptTemplate := `	@echo "[bootstrap] %[1]s"
-	@cd ` + privateDirName + "/" + pkgDirName + `/%[1]s && ./autogen.sh
-`
+	@cd ` + path.Join(privateDirName, pkgDirName, "%[1]s") +
+		" && ./autogen.sh\n"
 
 	for i, pd := range bt.selection {
 		bootstrapTargets = append(bootstrapTargets,
@@ -132,8 +133,8 @@ func (bt *bootstrapTarget) targets() ([]target, error) {
 					pd.PackageName),
 			},
 			target{
-				Target: privateDirName + "/" + pkgDirName +
-					"/" + pd.PackageName + "/configure",
+				Target: path.Join(privateDirName, pkgDirName,
+					pd.PackageName, "configure"),
 				MakeScript: "	@$(MAKE) -s " +
 					globalTarget.Dependencies[i] + "\n",
 			})
@@ -174,8 +175,8 @@ func (ct *configureTarget) targets() ([]target, error) {
 	pkgRootDir := getGeneratedPkgRootDir(privateDir)
 
 	for i, pd := range ct.selection {
-		pkgDir := pkgRootDir + "/" + pd.PackageName
-		relPkgBuildDir := relBuildDir + "/" + pd.PackageName
+		pkgDir := path.Join(pkgRootDir, pd.PackageName)
+		relPkgBuildDir := path.Join(relBuildDir, pd.PackageName)
 		relPkgSrcDir, err := filepath.Rel(relPkgBuildDir, pkgDir)
 		if err != nil {
 			relPkgSrcDir, err = filepath.Abs(pkgDir)
@@ -196,8 +197,8 @@ func (ct *configureTarget) targets() ([]target, error) {
 				MakeScript: script,
 			},
 			target{
-				Target: buildDir +
-					"/" + pd.PackageName + "/Makefile",
+				Target: path.Join(buildDir,
+					pd.PackageName, "Makefile"),
 				MakeScript: "	@$(MAKE) -s " +
 					globalTarget.Dependencies[i] + "\n",
 			})
