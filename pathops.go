@@ -30,3 +30,10 @@ func relativeToCwd(absPath string) (string, error) {
 	}
 	return filepath.Rel(cwd, absPath)
 }
+
+func absIfNotEmpty(pathname string) (string, error) {
+	if pathname == "" {
+		return "", nil
+	}
+	return filepath.Abs(pathname)
+}

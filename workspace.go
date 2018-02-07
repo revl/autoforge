@@ -50,15 +50,17 @@ func createWorkspace() (*workspaceParams, error) {
 		return nil, err
 	}
 
-	buildDir := flags.buildDir
-	if buildDir != "" {
-		buildDir, err = filepath.Abs(buildDir)
-		if err != nil {
-			return nil, err
-		}
+	buildDir, err := absIfNotEmpty(flags.buildDir)
+	if err != nil {
+		return nil, err
 	}
 
-	wp := workspaceParams{pkgpath, buildDir, flags.installDir}
+	installDir, err := absIfNotEmpty(flags.installDir)
+	if err != nil {
+		return nil, err
+	}
+
+	wp := workspaceParams{pkgpath, buildDir, installDir}
 
 	out, err := yaml.Marshal(&wp)
 	if err != nil {
