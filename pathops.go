@@ -20,7 +20,7 @@ func getBuildDir(privateDir string, wp *workspaceParams) string {
 	if wp.BuildDir != "" {
 		return wp.BuildDir
 	}
-	return path.Join(privateDirName, "build")
+	return path.Join(privateDir, "build")
 }
 
 func relativeToCwd(absPath string) (string, error) {
