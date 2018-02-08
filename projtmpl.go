@@ -16,7 +16,7 @@ import (
 type fileProcessor func(sourcePathname, relativePathname string,
 	info os.FileInfo) error
 
-// ProcessAllFiles calls the processFile() function for every file in
+// processAllFiles calls the processFile() function for every file in
 // sourceDir. All hidden files and all files in hidden subdirectories
 // as well as package definition files are skipped.
 func processAllFiles(sourceDir, targetDir string,
@@ -110,8 +110,9 @@ func linkFilesFromSourceDir(pd *packageDefinition,
 	return sourceFiles, changesMade, err
 }
 
-// For each source file in 'templateDir', generateBuildFilesFromProjectTemplate
-// generates an output file with the same relative pathname inside 'projectDir'.
+// generateBuildFilesFromProjectTemplate generates an output file inside
+// 'projectDir' with the same relative pathname as the respective source
+// file in 'templateDir'.
 func generateBuildFilesFromProjectTemplate(templateDir,
 	projectDir string, pd *packageDefinition) (bool, error) {
 
@@ -151,7 +152,7 @@ func generateBuildFilesFromProjectTemplate(templateDir,
 	return changesMade, err
 }
 
-// EmbeddedTemplateFile defines the file mode and the contents
+// embeddedTemplateFile defines the file mode and the contents
 // of a single file that is a part of an embedded project template.
 type embeddedTemplateFile struct {
 	pathname string
@@ -159,7 +160,7 @@ type embeddedTemplateFile struct {
 	contents []byte
 }
 
-// GenerateBuildFilesFromEmbeddedTemplate generates project build
+// generateBuildFilesFromEmbeddedTemplate generates project build
 // files from a built-in template pointed to by the 't' parameter.
 func generateBuildFilesFromEmbeddedTemplate(t []embeddedTemplateFile,
 	projectDir string, pd *packageDefinition) (bool, error) {

@@ -26,7 +26,7 @@ type pathnameTemplateText struct {
 	next *pathnameTemplateMultiplier
 }
 
-// Subst updates the 'pathnameTemplateText' receiver by replacing all
+// subst updates the 'pathnameTemplateText' receiver by replacing all
 // instances of 'name' surrounded by braces with 'value', which can be
 // either a string or a slice of strings.  In the latter case, the text
 // in the receiver structure gets truncated by the substitution and the
@@ -49,7 +49,7 @@ func (t *pathnameTemplateText) subst(name string, value interface{}) int {
 	return 1
 }
 
-// ExpandPathnameTemplate takes a pathname template and substitutes
+// expandPathnameTemplate takes a pathname template and substitutes
 // template parameter names with their values. Parameter values can be
 // either strings or slices of strings. Each template value that is a
 // slice of strings multiplies the number of output strings by the number

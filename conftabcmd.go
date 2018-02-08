@@ -105,7 +105,7 @@ var conftabCmd = &cobra.Command{
 }
 
 func init() {
-	RootCmd.AddCommand(conftabCmd)
+	rootCmd.AddCommand(conftabCmd)
 
 	conftabCmd.Flags().SortFlags = false
 	addWorkspaceDirFlag(conftabCmd)

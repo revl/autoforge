@@ -204,7 +204,7 @@ const (
 	visited
 )
 
-// Cycle returns a string representing the cycle that
+// cycle returns a string representing the cycle that
 // has been detected in visit()
 func (ts *topologicalSorter) cycle(pd, endp *packageDefinition) string {
 	for _, dep := range pd.required {
@@ -240,9 +240,9 @@ func (ts *topologicalSorter) visit(pd *packageDefinition) error {
 	return nil
 }
 
-// TopologicalSort sorts the given package list using an algorithm based
+// topologicalSort sorts the given package list using an algorithm based
 // on depth-first search. Packages in the returned list are ordered so that
-// all dependent packages come after packages they depend on.
+// all dependent packages come after the packages they depend on.
 func topologicalSort(packages packageDefinitionList) (packageDefinitionList,
 	error) {
 	ts := topologicalSorter{make(map[*packageDefinition]int),
@@ -259,7 +259,7 @@ func topologicalSort(packages packageDefinitionList) (packageDefinitionList,
 	return ts.orderedPackages, nil
 }
 
-// BuildPackageIndex creates two types of structures for the
+// buildPackageIndex creates two types of structures for the
 // input list of packages:
 // 1. A map from package names to their definitions, and
 // 2. A list of packages that contains a topological ordering

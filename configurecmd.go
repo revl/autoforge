@@ -202,7 +202,7 @@ var configureCmd = &cobra.Command{
 }
 
 func init() {
-	RootCmd.AddCommand(configureCmd)
+	rootCmd.AddCommand(configureCmd)
 
 	configureCmd.Flags().SortFlags = false
 	addQuietFlag(configureCmd)

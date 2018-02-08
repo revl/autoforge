@@ -83,7 +83,7 @@ func refreshWorkspace() error {
 		conftab, wp)
 }
 
-// RefreshCmd represents the refresh command
+// refreshCmd represents the refresh command
 var refreshCmd = &cobra.Command{
 	Use:   "refresh",
 	Short: "Regenerate Autotools files in the current workspace",
@@ -96,7 +96,7 @@ var refreshCmd = &cobra.Command{
 }
 
 func init() {
-	RootCmd.AddCommand(refreshCmd)
+	rootCmd.AddCommand(refreshCmd)
 
 	refreshCmd.Flags().SortFlags = false
 	addQuietFlag(refreshCmd)

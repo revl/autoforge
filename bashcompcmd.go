@@ -11,7 +11,7 @@ import (
 )
 
 func init() {
-	RootCmd.AddCommand(&cobra.Command{
+	rootCmd.AddCommand(&cobra.Command{
 		Use:   "bashcomp",
 		Short: "Print Bash completion script for " + appName,
 		Long: wrapText("This command prints a Bash snippet, " +
@@ -19,7 +19,7 @@ func init() {
 			"enables command completion for " + appName + "."),
 		Args: cobra.MaximumNArgs(0),
 		Run: func(_ *cobra.Command, _ []string) {
-			RootCmd.GenBashCompletion(os.Stdout)
+			rootCmd.GenBashCompletion(os.Stdout)
 		},
 	})
 }

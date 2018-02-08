@@ -161,7 +161,7 @@ func selectPackages(args []string) error {
 		conftab, wp)
 }
 
-// SelectCmd represents the select command
+// selectCmd represents the select command
 var selectCmd = &cobra.Command{
 	Use:   "select package_range...",
 	Short: "Choose one or more packages to work on",
@@ -174,7 +174,7 @@ var selectCmd = &cobra.Command{
 }
 
 func init() {
-	RootCmd.AddCommand(selectCmd)
+	rootCmd.AddCommand(selectCmd)
 
 	selectCmd.Flags().SortFlags = false
 	addQuietFlag(selectCmd)

@@ -27,8 +27,8 @@ func wrapText(text string) string {
 	return buffer.String()
 }
 
-// RootCmd represents the base command when called without any subcommands
-var RootCmd = &cobra.Command{
+// rootCmd represents the base command when called without any subcommands
+var rootCmd = &cobra.Command{
 	Use:   appName,
 	Short: "Project generator for GNU Autotools",
 }
@@ -48,7 +48,7 @@ func main() {
 	}()
 
 	// Parse and process command line arguments.
-	if RootCmd.Execute() != nil {
+	if rootCmd.Execute() != nil {
 		os.Exit(1)
 	}
 }

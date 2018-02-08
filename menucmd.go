@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// MenuCmd represents the menu command
+// menuCmd represents the menu command
 var menuCmd = &cobra.Command{
 	Use:   "menu",
 	Short: "Print the list of packages found in $" + pkgPathEnvVar,
@@ -36,7 +36,7 @@ var menuCmd = &cobra.Command{
 }
 
 func init() {
-	RootCmd.AddCommand(menuCmd)
+	rootCmd.AddCommand(menuCmd)
 
 	menuCmd.Flags().SortFlags = false
 	addPkgPathFlag(menuCmd)
