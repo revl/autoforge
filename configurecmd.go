@@ -191,7 +191,7 @@ func configurePackages(args []string) error {
 
 // configureCmd represents the configure command
 var configureCmd = &cobra.Command{
-	Use: "configure package_range...",
+	Use: "configure [package_range...]",
 	Short: "Configure all selected packages " +
 		"or the specified package range",
 	Run: func(_ *cobra.Command, args []string) {
