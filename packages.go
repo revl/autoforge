@@ -339,10 +339,10 @@ func packageNames(pkgList packageDefinitionList) string {
 	return strings.Join(names, ", ")
 }
 
-func (pi *packageIndex) printListOfPackages() {
+func printListOfPackages(pkgList packageDefinitionList) {
 	fmt.Println("List of packages:")
 
-	for _, pd := range pi.orderedPackages {
+	for _, pd := range pkgList {
 		fmt.Println("Name:", pd.PackageName)
 		fmt.Println("Description:", pd.description)
 		fmt.Println("Type:", pd.packageType)
