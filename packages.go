@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,15 +19,18 @@ import (
 var packageDefinitionFilename = appName + ".yaml"
 
 type packageDefinition struct {
-	PackageName string
-	description string
-	packageType string
-	pathname    string
-	required    packageDefinitionList
-	allRequired packageDefinitionList
-	dependent   packageDefinitionList
-	params      templateParams
+	PackageName  string
+	description  string
+	packageType  string
+	pathname     string
+	required     packageDefinitionList // Explicitly required packages
+	allRequired  packageDefinitionList // Required + indirectly required
+	uniqRequired packageDefinitionList // 'required' sans indirect reqs
+	dependent    packageDefinitionList // Packages that depend on this one
+	params       templateParams
 }
+
+type packageDefinitionList []*packageDefinition
 
 func getRequiredField(pathname string, params templateParams,
 	fieldName string) (interface{}, error) {
@@ -112,11 +116,10 @@ func loadPackageDefinition(pathname string) (*packageDefinition, []string,
 		pathname,
 		/*required*/ packageDefinitionList{},
 		/*allRequired*/ packageDefinitionList{},
+		/*uniqRequired*/ packageDefinitionList{},
 		/*dependent*/ packageDefinitionList{},
 		params}, requires, nil
 }
-
-type packageDefinitionList []*packageDefinition
 
 type packageIndex struct {
 	packageByName   map[string]*packageDefinition
@@ -306,25 +309,43 @@ func buildPackageIndex(packages packageDefinitionList,
 	}
 
 	// For each package, find all of its dependencies,
-	// including indirect ones.
+	// including indirect ones. This computes the transitive
+	// closure of the dependency DAG. Additionally, the second
+	// nested loop also computes the transitive reduction
+	// of the DAG
 	for _, pd := range pi.orderedPackages {
-		added := make(map[*packageDefinition]bool)
-
-		addDep := func(dep *packageDefinition) {
-			if !added[dep] {
-				pd.allRequired = append(pd.allRequired, dep)
-				added[dep] = true
-			}
-		}
+		allRequired := make(map[*packageDefinition]bool)
 
 		// Recursion is not needed because the packages
 		// are already ordered in such a way that the current
 		// package never depends on those that follow it.
 		for _, required := range pd.required {
 			for _, dep := range required.allRequired {
-				addDep(dep)
+				if !allRequired[dep] {
+					pd.allRequired = append(
+						pd.allRequired, dep)
+					allRequired[dep] = true
+				}
 			}
-			addDep(required)
+		}
+
+		// This loop cannot be merged with the previous one.
+		// All indirect dependencies must be collected before
+		// checking direct dependencies for redundancy.
+		for _, required := range pd.required {
+			if !allRequired[required] {
+				pd.allRequired = append(
+					pd.allRequired, required)
+				allRequired[required] = true
+
+				// Update the list of dependencies
+				// exclusive to the current package.
+				pd.uniqRequired = append(
+					pd.uniqRequired, required)
+			} else if !flags.quiet {
+				log.Printf("%s: redundant dependency on %s\n",
+					pd.PackageName, required.PackageName)
+			}
 		}
 	}
 
