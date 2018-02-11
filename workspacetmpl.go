@@ -54,9 +54,23 @@ func generateWorkspaceFiles(workspaceDir string,
 		targets = append(targets, moreTargets...)
 	}
 
+	makefile := wp.Makefile
+	if flags.makefile != "" {
+		makefile = flags.makefile
+	} else if makefile == "" {
+		makefile = "Makefile"
+	}
+
+	defaultTarget := wp.DefaultMakeTarget
+	if flags.defaultMakeTarget != "" {
+		defaultTarget = flags.defaultMakeTarget
+	} else if defaultTarget == "" {
+		defaultTarget = "help"
+	}
+
 	params := templateParams{
-		"makefile":       flags.makefile,
-		"default_target": flags.defaultMakeTarget,
+		"makefile":       makefile,
+		"default_target": defaultTarget,
 		"selection":      selection,
 		"conftab":        conftab,
 		"targets":        targets,

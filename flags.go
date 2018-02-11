@@ -35,15 +35,15 @@ func addWorkspaceDirFlag(c *cobra.Command) {
 }
 
 func addMakefileFlag(c *cobra.Command) {
-	c.Flags().StringVar(&flags.makefile, "makefile", "Makefile",
-		"filename of the generated makefile")
+	c.Flags().StringVar(&flags.makefile, "makefile", "",
+		"filename of the generated makefile (default \"Makefile\")")
 }
 
 const maketargetOption = "maketarget"
 
 func addDefaultMakeTargetFlag(c *cobra.Command) {
-	c.Flags().StringVar(&flags.defaultMakeTarget, maketargetOption, "help",
-		"first target in the makefile")
+	c.Flags().StringVar(&flags.defaultMakeTarget, maketargetOption, "",
+		"first target in the makefile (default \"help\")")
 }
 
 func addBuildDirFlag(c *cobra.Command) {

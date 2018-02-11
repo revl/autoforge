@@ -180,7 +180,5 @@ func init() {
 	addQuietFlag(selectCmd)
 	addPkgPathFlag(selectCmd)
 	addWorkspaceDirFlag(selectCmd)
-	addMakefileFlag(selectCmd)
-	addDefaultMakeTargetFlag(selectCmd)
 	addNoBootstrapFlag(selectCmd)
 }

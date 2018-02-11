@@ -14,9 +14,11 @@ import (
 )
 
 type workspaceParams struct {
-	PkgPath    string `yaml:"pkgpath"`
-	BuildDir   string `yaml:"builddir,omitempty"`
-	InstallDir string `yaml:"installdir,omitempty"`
+	PkgPath           string `yaml:"pkgpath"`
+	Makefile          string `yaml:"makefile,omitempty"`
+	DefaultMakeTarget string `yaml:"default-target,omitempty"`
+	BuildDir          string `yaml:"builddir,omitempty"`
+	InstallDir        string `yaml:"installdir,omitempty"`
 }
 
 func getWorkspaceDir() (string, error) {
@@ -60,7 +62,8 @@ func createWorkspace() (*workspaceParams, error) {
 		return nil, err
 	}
 
-	wp := workspaceParams{pkgpath, buildDir, installDir}
+	wp := workspaceParams{pkgpath, flags.makefile, flags.defaultMakeTarget,
+		buildDir, installDir}
 
 	out, err := yaml.Marshal(&wp)
 	if err != nil {
