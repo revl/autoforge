@@ -193,7 +193,7 @@ func readPackageDefinitions(workspaceDir string, wp *workspaceParams) (
 		}
 	}
 
-	return buildPackageIndex(packages, dependencies)
+	return buildPackageIndex(wp.Quiet, packages, dependencies)
 }
 
 type topologicalSorter struct {
@@ -267,7 +267,7 @@ func topologicalSort(packages packageDefinitionList) (packageDefinitionList,
 // 1. A map from package names to their definitions, and
 // 2. A list of packages that contains a topological ordering
 //    of the package dependency DAG.
-func buildPackageIndex(packages packageDefinitionList,
+func buildPackageIndex(quiet bool, packages packageDefinitionList,
 	dependencies [][]string) (*packageIndex, error) {
 	pi := &packageIndex{make(map[string]*packageDefinition),
 		packageDefinitionList{}}
@@ -342,7 +342,7 @@ func buildPackageIndex(packages packageDefinitionList,
 				// exclusive to the current package.
 				pd.uniqRequired = append(
 					pd.uniqRequired, required)
-			} else if !flags.quiet {
+			} else if !quiet {
 				log.Printf("%s: redundant dependency on %s\n",
 					pd.PackageName, required.PackageName)
 			}

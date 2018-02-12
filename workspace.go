@@ -14,6 +14,7 @@ import (
 )
 
 type workspaceParams struct {
+	Quiet             bool   `yaml:"quiet"`
 	PkgPath           string `yaml:"pkgpath"`
 	Makefile          string `yaml:"makefile,omitempty"`
 	DefaultMakeTarget string `yaml:"default-target,omitempty"`
@@ -62,7 +63,8 @@ func createWorkspace() (*workspaceParams, error) {
 		return nil, err
 	}
 
-	wp := workspaceParams{pkgpath, flags.makefile, flags.defaultMakeTarget,
+	wp := workspaceParams{flags.quiet, pkgpath,
+		flags.makefile, flags.defaultMakeTarget,
 		buildDir, installDir}
 
 	out, err := yaml.Marshal(&wp)
