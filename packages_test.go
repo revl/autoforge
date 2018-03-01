@@ -136,3 +136,40 @@ func TestDiamondDependency(t *testing.T) {
 	checkIndirectDependencies("c", "a")
 	checkIndirectDependencies("d", "a, b, c")
 }
+
+func TestSelectionGraph(t *testing.T) {
+	a := dummyPackageDefinition("a")
+	b := dummyPackageDefinition("b")
+	c := dummyPackageDefinition("c")
+	d := dummyPackageDefinition("d")
+
+	pi, err := buildPackageIndex(true,
+		packageDefinitionList{
+			d,
+			b,
+			c,
+			a},
+		[][]string{
+			[]string{"a", "b", "c"},
+			[]string{"a"},
+			[]string{"a"},
+			[]string{}},
+	)
+
+	if err != nil {
+		t.Error("Unexpected error")
+	}
+
+	selection := packageDefinitionList{a, d}
+
+	selectionGraph := establishDependenciesInSelection(selection, pi)
+
+	if len(selectionGraph) != len(selection) {
+		t.Error("Unexpected number of selected vertices")
+	}
+
+	if len(selectionGraph[a]) != 0 || len(selectionGraph[d]) != 1 ||
+		selectionGraph[d][0] != a {
+		t.Error("Unexpected selection graph topology")
+	}
+}

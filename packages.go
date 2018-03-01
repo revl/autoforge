@@ -284,7 +284,7 @@ func buildPackageIndex(quiet bool, packages packageDefinitionList,
 		pi.packageByName[pd.PackageName] = pd
 	}
 
-	// Resolve dependencies and establish the edges of the
+	// Resolve dependencies and compute the edges of the
 	// reverse dependency DAG.
 	for i, pd := range packages {
 		for _, dep := range dependencies[i] {
@@ -312,7 +312,7 @@ func buildPackageIndex(quiet bool, packages packageDefinitionList,
 	// including indirect ones. This computes the transitive
 	// closure of the dependency DAG. Additionally, the second
 	// nested loop also computes the transitive reduction
-	// of the DAG
+	// of the DAG.
 	for _, pd := range pi.orderedPackages {
 		allRequired := make(map[*packageDefinition]bool)
 
@@ -350,6 +350,71 @@ func buildPackageIndex(quiet bool, packages packageDefinitionList,
 	}
 
 	return pi, nil
+}
+
+func establishDependenciesInSelection(selection packageDefinitionList,
+	pi *packageIndex) map[*packageDefinition]packageDefinitionList {
+	isSelected := make(map[*packageDefinition]bool)
+	for _, pd := range selection {
+		isSelected[pd] = true
+	}
+
+	// Build a graph of dependencies where the vertices are all
+	// packages in the package index and the edges represent
+	// dependencies of packages on *selected* packages.
+	selectedPkgGraph := make(map[*packageDefinition]packageDefinitionList)
+
+	for _, pd := range pi.orderedPackages {
+		var selectedDeps packageDefinitionList
+
+		added := make(map[*packageDefinition]bool)
+
+		addDepIfNotAdded := func(dep *packageDefinition) {
+			if !added[dep] {
+				selectedDeps = append(selectedDeps, dep)
+				added[dep] = true
+			}
+		}
+
+		for _, dep := range pd.uniqRequired {
+			if isSelected[dep] {
+				addDepIfNotAdded(dep)
+				continue
+			}
+			for _, indirectDep := range selectedPkgGraph[dep] {
+				addDepIfNotAdded(indirectDep)
+			}
+		}
+
+		selectedPkgGraph[pd] = selectedDeps
+	}
+
+	// Keep only selected vertices in the graph constructed above
+	// and compute its transitive reduction.
+	for _, pd := range pi.orderedPackages {
+		if !isSelected[pd] {
+			delete(selectedPkgGraph, pd)
+			continue
+		}
+
+		indirectDeps := make(map[*packageDefinition]bool)
+
+		for _, dep := range selectedPkgGraph[pd] {
+			for _, indirectDep := range selectedPkgGraph[dep] {
+				indirectDeps[indirectDep] = true
+			}
+		}
+
+		var uniqueDeps packageDefinitionList
+		for _, dep := range selectedPkgGraph[pd] {
+			if !indirectDeps[dep] {
+				uniqueDeps = append(uniqueDeps, dep)
+			}
+		}
+		selectedPkgGraph[pd] = uniqueDeps
+	}
+
+	return selectedPkgGraph
 }
 
 func packageNames(pkgList packageDefinitionList) string {
