@@ -11,7 +11,8 @@ import (
 )
 
 func TestNoPackages(t *testing.T) {
-	pi, err := buildPackageIndex(packageDefinitionList{}, [][]string{})
+	pi, err := buildPackageIndex(false,
+		packageDefinitionList{}, [][]string{})
 
 	if err != nil {
 		t.Error("Building index for an empty list returned an error")
@@ -36,7 +37,7 @@ func TestDuplicateDefinition(t *testing.T) {
 		dummyPackageDefinition("client"),
 		dummyPackageDefinition("base")}
 
-	pi, err := buildPackageIndex(pkgList, [][]string{
+	pi, err := buildPackageIndex(false, pkgList, [][]string{
 		[]string{},
 		[]string{},
 		[]string{}})
@@ -51,7 +52,7 @@ func checkForCircularDependency(t *testing.T,
 	pkgList packageDefinitionList,
 	dependencies [][]string,
 	cycle string) {
-	_, err := buildPackageIndex(pkgList, dependencies)
+	_, err := buildPackageIndex(false, pkgList, dependencies)
 
 	if err == nil {
 		t.Error("Circular dependency was not detected")
@@ -95,11 +96,12 @@ func TestCircularDependency(t *testing.T) {
 }
 
 func TestDiamondDependency(t *testing.T) {
-	pi, err := buildPackageIndex(packageDefinitionList{
-		dummyPackageDefinition("d"),
-		dummyPackageDefinition("b"),
-		dummyPackageDefinition("c"),
-		dummyPackageDefinition("a")},
+	pi, err := buildPackageIndex(false,
+		packageDefinitionList{
+			dummyPackageDefinition("d"),
+			dummyPackageDefinition("b"),
+			dummyPackageDefinition("c"),
+			dummyPackageDefinition("a")},
 		[][]string{
 			[]string{"b", "c"},
 			[]string{"a"},
