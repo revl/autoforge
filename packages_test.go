@@ -57,7 +57,7 @@ func TestDuplicateDefinition(t *testing.T) {
 	}
 }
 
-func checkForCircularDependency(t *testing.T, err error, cycle string) {
+func confirmCircularDependencyError(t *testing.T, err error, cycle string) {
 	if err == nil {
 		t.Error("Circular dependency was not detected")
 	} else if !strings.Contains(err.Error(),
@@ -71,17 +71,17 @@ func TestCircularDependency(t *testing.T) {
 	_, err := makePackageIndexForTesting([]string{
 		"a:b", "b:c", "c:a"}, false)
 
-	checkForCircularDependency(t, err, "a -> b -> c -> a")
+	confirmCircularDependencyError(t, err, "a -> b -> c -> a")
 
 	_, err = makePackageIndexForTesting([]string{
 		"a:b", "b:c", "c:b,d", "d"}, false)
 
-	checkForCircularDependency(t, err, "b -> c -> b")
+	confirmCircularDependencyError(t, err, "b -> c -> b")
 
 	_, err = makePackageIndexForTesting([]string{
 		"a:b,a", "b"}, false)
 
-	checkForCircularDependency(t, err, "a -> a")
+	confirmCircularDependencyError(t, err, "a -> a")
 }
 
 func TestDiamondDependency(t *testing.T) {
