@@ -31,16 +31,27 @@ func dummyPackageDefinition(pkgName string) *packageDefinition {
 	return &pd
 }
 
-func TestDuplicateDefinition(t *testing.T) {
-	pkgList := packageDefinitionList{
-		dummyPackageDefinition("base"),
-		dummyPackageDefinition("client"),
-		dummyPackageDefinition("base")}
+func makePackageIndexForTesting(packagesAndDependencies []string, quiet bool) (
+	*packageIndex, error) {
+	var packages packageDefinitionList
+	var deps [][]string
 
-	pi, err := buildPackageIndex(false, pkgList, [][]string{
-		[]string{},
-		[]string{},
-		[]string{}})
+	for _, packageLine := range packagesAndDependencies {
+		split := strings.SplitN(packageLine, ":", 2)
+		packages = append(packages, dummyPackageDefinition(split[0]))
+		if len(split) > 1 {
+			deps = append(deps, strings.Split(split[1], ","))
+		} else {
+			deps = append(deps, []string{})
+		}
+	}
+
+	return buildPackageIndex(quiet, packages, deps)
+}
+
+func TestDuplicateDefinition(t *testing.T) {
+	pi, err := makePackageIndexForTesting([]string{
+		"base", "client", "base"}, false)
 
 	if pi != nil || err == nil || !strings.Contains(err.Error(),
 		"duplicate package name: base") {
@@ -48,12 +59,7 @@ func TestDuplicateDefinition(t *testing.T) {
 	}
 }
 
-func checkForCircularDependency(t *testing.T,
-	pkgList packageDefinitionList,
-	dependencies [][]string,
-	cycle string) {
-	_, err := buildPackageIndex(false, pkgList, dependencies)
-
+func checkForCircularDependency(t *testing.T, err error, cycle string) {
 	if err == nil {
 		t.Error("Circular dependency was not detected")
 	} else if !strings.Contains(err.Error(),
@@ -64,50 +70,25 @@ func checkForCircularDependency(t *testing.T,
 }
 
 func TestCircularDependency(t *testing.T) {
-	checkForCircularDependency(t, packageDefinitionList{
-		dummyPackageDefinition("a"),
-		dummyPackageDefinition("b"),
-		dummyPackageDefinition("c")},
-		[][]string{
-			[]string{"b"},
-			[]string{"c"},
-			[]string{"a"}},
-		"a -> b -> c -> a")
+	_, err := makePackageIndexForTesting([]string{
+		"a:b", "b:c", "c:a"}, false)
 
-	checkForCircularDependency(t, packageDefinitionList{
-		dummyPackageDefinition("a"),
-		dummyPackageDefinition("b"),
-		dummyPackageDefinition("c"),
-		dummyPackageDefinition("d")},
-		[][]string{
-			[]string{"b"},
-			[]string{"c"},
-			[]string{"b", "d"},
-			[]string{}},
-		"b -> c -> b")
+	checkForCircularDependency(t, err, "a -> b -> c -> a")
 
-	checkForCircularDependency(t, packageDefinitionList{
-		dummyPackageDefinition("a"),
-		dummyPackageDefinition("b")},
-		[][]string{
-			[]string{"b", "a"},
-			[]string{}},
-		"a -> a")
+	_, err = makePackageIndexForTesting([]string{
+		"a:b", "b:c", "c:b,d", "d"}, false)
+
+	checkForCircularDependency(t, err, "b -> c -> b")
+
+	_, err = makePackageIndexForTesting([]string{
+		"a:b,a", "b"}, false)
+
+	checkForCircularDependency(t, err, "a -> a")
 }
 
 func TestDiamondDependency(t *testing.T) {
-	pi, err := buildPackageIndex(false,
-		packageDefinitionList{
-			dummyPackageDefinition("d"),
-			dummyPackageDefinition("b"),
-			dummyPackageDefinition("c"),
-			dummyPackageDefinition("a")},
-		[][]string{
-			[]string{"b", "c"},
-			[]string{"a"},
-			[]string{"a"},
-			[]string{}},
-	)
+	pi, err := makePackageIndexForTesting([]string{
+		"d:b,c", "b:a", "c:a", "a"}, false)
 
 	if err != nil {
 		t.Error("Unexpected error")
