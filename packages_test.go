@@ -24,13 +24,6 @@ func TestNoPackages(t *testing.T) {
 	}
 }
 
-func dummyPackageDefinition(pkgName string) *packageDefinition {
-	var pd packageDefinition
-	pd.PackageName = pkgName
-	pd.pathname = filepath.Join(pkgName, packageDefinitionFilename)
-	return &pd
-}
-
 func makePackageIndexForTesting(packagesAndDependencies []string, quiet bool) (
 	*packageIndex, error) {
 	var packages packageDefinitionList
@@ -38,7 +31,12 @@ func makePackageIndexForTesting(packagesAndDependencies []string, quiet bool) (
 
 	for _, packageLine := range packagesAndDependencies {
 		split := strings.SplitN(packageLine, ":", 2)
-		packages = append(packages, dummyPackageDefinition(split[0]))
+
+		packages = append(packages, &packageDefinition{
+			PackageName: split[0],
+			pathname: filepath.Join(split[0],
+				packageDefinitionFilename)})
+
 		if len(split) > 1 {
 			deps = append(deps, strings.Split(split[1], ","))
 		} else {
@@ -119,27 +117,15 @@ func TestDiamondDependency(t *testing.T) {
 }
 
 func TestSelectionGraph(t *testing.T) {
-	a := dummyPackageDefinition("a")
-	b := dummyPackageDefinition("b")
-	c := dummyPackageDefinition("c")
-	d := dummyPackageDefinition("d")
-
-	pi, err := buildPackageIndex(true,
-		packageDefinitionList{
-			d,
-			b,
-			c,
-			a},
-		[][]string{
-			[]string{"a", "b", "c"},
-			[]string{"a"},
-			[]string{"a"},
-			[]string{}},
-	)
+	pi, err := makePackageIndexForTesting([]string{
+		"d:a,b,c", "b:a", "c:a", "a"}, true)
 
 	if err != nil {
 		t.Error("Unexpected error")
 	}
+
+	a := pi.packageByName["a"]
+	d := pi.packageByName["d"]
 
 	selection := packageDefinitionList{a, d}
 
