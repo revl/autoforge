@@ -117,11 +117,29 @@ func TestDiamondDependency(t *testing.T) {
 }
 
 func checkSelectionGraph(t *testing.T,
-	selectionGraph map[*packageDefinition]packageDefinitionList,
+	packagesAndDependencies []string,
 	expected map[string]string) {
+	pi, err := makePackageIndexForTesting(packagesAndDependencies, true)
+
+	if err != nil {
+		t.Error("Unexpected error")
+	}
+
+	var selection packageDefinitionList
+	for name := range expected {
+		pd, found := pi.packageByName[name]
+		if !found {
+			t.Error("Invalid test case inputs")
+		}
+		selection = append(selection, pd)
+	}
+
+	selectionGraph := establishDependenciesInSelection(selection, pi)
+
 	if len(selectionGraph) != len(expected) {
 		t.Error("Unexpected number of selected vertices")
 	}
+
 	for pd, deps := range selectionGraph {
 		name := pd.PackageName
 		expectedDepNames, match := expected[name]
@@ -145,21 +163,7 @@ func checkSelectionGraph(t *testing.T,
 }
 
 func TestSelectionGraph(t *testing.T) {
-	pi, err := makePackageIndexForTesting([]string{
-		"d:a,b,c", "b:a", "c:a", "a"}, true)
-
-	if err != nil {
-		t.Error("Unexpected error")
-	}
-
-	a := pi.packageByName["a"]
-	d := pi.packageByName["d"]
-
-	selection := packageDefinitionList{a, d}
-
-	selectionGraph := establishDependenciesInSelection(selection, pi)
-
-	checkSelectionGraph(t, selectionGraph, map[string]string{
-		"a": "",
-		"d": "a"})
+	checkSelectionGraph(t,
+		[]string{"d:a,b,c", "b:a", "c:a", "a"},
+		map[string]string{"a": "", "d": "a"})
 }
