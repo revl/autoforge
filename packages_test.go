@@ -166,4 +166,25 @@ func TestSelectionGraph(t *testing.T) {
 	checkSelectionGraph(t,
 		[]string{"d:a,b,c", "b:a", "c:a", "a"},
 		map[string]string{"a": "", "d": "a"})
+
+	checkSelectionGraph(t,
+		[]string{
+			"a",
+			"b:a",
+			"c:b",
+			"d:b",
+			"e:c",
+			"f:b",
+			"g:e,f,d",
+			"h:g",
+			"i:f,h",
+			"j:i,h",
+		},
+		map[string]string{
+			"b": "",
+			"c": "b",
+			"d": "b",
+			"g": "c, d",
+			"i": "g",
+		})
 }
