@@ -116,6 +116,34 @@ func TestDiamondDependency(t *testing.T) {
 	checkIndirectDependencies("d", "a, b, c")
 }
 
+func checkSelectionGraph(t *testing.T,
+	selectionGraph map[*packageDefinition]packageDefinitionList,
+	expected map[string]string) {
+	if len(selectionGraph) != len(expected) {
+		t.Error("Unexpected number of selected vertices")
+	}
+	for pd, deps := range selectionGraph {
+		name := pd.PackageName
+		expectedDepNames, match := expected[name]
+		if !match {
+			t.Error("Unexpected package returned: " + name)
+		}
+
+		var depNames string
+		for _, dep := range deps {
+			if depNames != "" {
+				depNames += ", "
+			}
+			depNames += dep.PackageName
+		}
+
+		if depNames != expectedDepNames {
+			t.Error("Unexpected dependencies for " + name + ": " +
+				depNames + "; expected: " + expectedDepNames)
+		}
+	}
+}
+
 func TestSelectionGraph(t *testing.T) {
 	pi, err := makePackageIndexForTesting([]string{
 		"d:a,b,c", "b:a", "c:a", "a"}, true)
@@ -131,12 +159,7 @@ func TestSelectionGraph(t *testing.T) {
 
 	selectionGraph := establishDependenciesInSelection(selection, pi)
 
-	if len(selectionGraph) != len(selection) {
-		t.Error("Unexpected number of selected vertices")
-	}
-
-	if len(selectionGraph[a]) != 0 || len(selectionGraph[d]) != 1 ||
-		selectionGraph[d][0] != a {
-		t.Error("Unexpected selection graph topology")
-	}
+	checkSelectionGraph(t, selectionGraph, map[string]string{
+		"a": "",
+		"d": "a"})
 }
