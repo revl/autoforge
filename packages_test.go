@@ -167,24 +167,41 @@ func TestSelectionGraph(t *testing.T) {
 		[]string{"d:a,b,c", "b:a", "c:a", "a"},
 		map[string]string{"a": "", "d": "a"})
 
+	packageDependencies := []string{
+		"a",
+		"b:a",
+		"c:b",
+		"d:b",
+		"e:c",
+		"f:b",
+		"g:e,f,d",
+		"h:g",
+		"i:f,h",
+		"j:i,h",
+	}
+
 	checkSelectionGraph(t,
-		[]string{
-			"a",
-			"b:a",
-			"c:b",
-			"d:b",
-			"e:c",
-			"f:b",
-			"g:e,f,d",
-			"h:g",
-			"i:f,h",
-			"j:i,h",
-		},
+		packageDependencies,
 		map[string]string{
 			"b": "",
 			"c": "b",
 			"d": "b",
 			"g": "c, d",
 			"i": "g",
+		})
+
+	checkSelectionGraph(t,
+		packageDependencies,
+		map[string]string{
+			"a": "",
+			"b": "a",
+			"c": "b",
+			"d": "b",
+			"e": "c",
+			"f": "b",
+			"g": "e, f, d",
+			"h": "g",
+			"i": "h",
+			"j": "i",
 		})
 }
