@@ -175,14 +175,12 @@ func (ct *configureTarget) targets() ([]target, error) {
 	pkgRootDir := getGeneratedPkgRootDir(privateDir)
 
 	for i, pd := range ct.selection {
-		pkgDir := path.Join(pkgRootDir, pd.PackageName)
 		relPkgBuildDir := path.Join(relBuildDir, pd.PackageName)
-		relPkgSrcDir, err := filepath.Rel(relPkgBuildDir, pkgDir)
+		relPkgSrcDir, err :=
+			filepath.Rel(path.Join(buildDir, pd.PackageName),
+				path.Join(pkgRootDir, pd.PackageName))
 		if err != nil {
-			relPkgSrcDir, err = filepath.Abs(pkgDir)
-			if err != nil {
-				return nil, err
-			}
+			return nil, err
 		}
 
 		script := "\t@echo \"[configure] " + pd.PackageName +
