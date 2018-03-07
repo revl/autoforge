@@ -195,7 +195,7 @@ func (ct *configureTarget) targets() ([]target, error) {
 				MakeScript: script,
 			},
 			target{
-				Target: path.Join(buildDir,
+				Target: path.Join(relBuildDir,
 					pd.PackageName, "Makefile"),
 				MakeScript: "	@$(MAKE) -s " +
 					globalTarget.Dependencies[i] + "\n",
