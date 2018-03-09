@@ -122,7 +122,7 @@ func (bt *bootstrapTarget) targets() ([]target, error) {
 
 	scriptTemplate := `	@echo "[bootstrap] %[1]s"
 	@cd ` + path.Join(privateDirName, pkgDirName, "%[1]s") +
-		" && ./autogen.sh\n"
+		" && \\\n\t./autogen.sh\n"
 
 	for i, pd := range bt.selection {
 		bootstrapTargets = append(bootstrapTargets,
