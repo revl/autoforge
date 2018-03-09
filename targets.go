@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"fmt"
 	"go/doc"
+	"os"
 	"path"
 	"path/filepath"
 	"strings"
@@ -172,21 +173,13 @@ func (ct *configureTarget) targets() ([]target, error) {
 		relBuildDir = buildDir
 	}
 
-	pkgRootDir := getGeneratedPkgRootDir(privateDir)
+	prog, err := os.Executable()
+	if err != nil {
+		return nil, err
+	}
 
 	for i, pd := range ct.selection {
-		relPkgBuildDir := path.Join(relBuildDir, pd.PackageName)
-		relPkgSrcDir, err :=
-			filepath.Rel(path.Join(buildDir, pd.PackageName),
-				path.Join(pkgRootDir, pd.PackageName))
-		if err != nil {
-			return nil, err
-		}
-
-		script := "\t@echo \"[configure] " + pd.PackageName +
-			"\"\n\t@mkdir -p '" + relPkgBuildDir +
-			"'\n\t@cd '" + relPkgBuildDir + "' && \\\n\t'" +
-			relPkgSrcDir + "/configure' \\\n\t\t--quiet\n"
+		script := "\t@" + prog + " configure " + pd.PackageName + "\n"
 
 		configureTargets = append(configureTargets,
 			target{
