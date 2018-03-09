@@ -39,3 +39,15 @@ func absIfNotEmpty(pathname string) (string, error) {
 	}
 	return filepath.Abs(pathname)
 }
+
+// relativeIfShorter returns a pathname relative between the first
+// and the second pathname arguments under condition that both
+// arguments are absolute pathnames and the resulting relative
+// pathname is shorter than the second argument.
+func relativeIfShorter(basePath, targetPath string) string {
+	relPath, err := filepath.Rel(basePath, targetPath)
+	if err == nil && len(relPath) < len(targetPath) {
+		return relPath
+	}
+	return targetPath
+}

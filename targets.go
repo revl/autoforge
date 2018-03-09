@@ -173,26 +173,25 @@ func (ct *configureTarget) targets() ([]target, error) {
 		relBuildDir = buildDir
 	}
 
-	prog, err := os.Executable()
+	cmd, err := os.Executable()
 	if err != nil {
 		return nil, err
 	}
+	cmd = relativeIfShorter(ct.workspaceDir, cmd)
+	cmd = "\t@" + cmd + " configure "
 
 	for i, pd := range ct.selection {
-		script := "\t@" + prog + " configure " + pd.PackageName + "\n"
+		script := cmd + pd.PackageName + "\n"
 
 		configureTargets = append(configureTargets,
 			target{
 				Target:     globalTarget.Dependencies[i],
 				Phony:      true,
-				MakeScript: script,
-			},
+				MakeScript: script},
 			target{
 				Target: path.Join(relBuildDir,
 					pd.PackageName, "Makefile"),
-				MakeScript: "	@$(MAKE) -s " +
-					globalTarget.Dependencies[i] + "\n",
-			})
+				MakeScript: script})
 	}
 
 	return configureTargets, nil
