@@ -19,7 +19,7 @@ var initCmd = &cobra.Command{
 		" as a workspace directory."),
 	Args: cobra.MaximumNArgs(0),
 	Run: func(_ *cobra.Command, _ []string) {
-		if _, err := createWorkspace(); err != nil {
+		if err := initWorkspace(); err != nil {
 			log.Fatal(err)
 		}
 	},
