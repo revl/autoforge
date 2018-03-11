@@ -5,10 +5,64 @@
 package main
 
 import (
+	"errors"
+	"io/ioutil"
 	"log"
+	"os"
 
 	"github.com/spf13/cobra"
+	yaml "gopkg.in/yaml.v2"
 )
+
+func initWorkspace() error {
+	workspaceDir, err := getWorkspaceDir()
+	if err != nil {
+		return err
+	}
+
+	privateDir := getPrivateDir(workspaceDir)
+
+	if _, err = os.Stat(privateDir); err == nil {
+		return errors.New("workspace already initialized")
+	}
+
+	pkgpath, err := getPackagePathFromEnvironment()
+	if err != nil {
+		return err
+	}
+
+	buildDir, err := absIfNotEmpty(flags.buildDir)
+	if err != nil {
+		return err
+	}
+
+	installDir, err := absIfNotEmpty(flags.installDir)
+	if err != nil {
+		return err
+	}
+
+	wp := workspaceParams{flags.quiet, pkgpath,
+		flags.makefile, flags.defaultMakeTarget,
+		buildDir, installDir}
+
+	out, err := yaml.Marshal(&wp)
+	if err != nil {
+		return err
+	}
+
+	err = os.Mkdir(privateDir, os.FileMode(0775))
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(getPathToSettings(privateDir),
+		out, os.FileMode(0664))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
 
 // initCmd represents the init command
 var initCmd = &cobra.Command{

@@ -5,9 +5,7 @@
 package main
 
 import (
-	"errors"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 
 	"gopkg.in/yaml.v2"
@@ -34,56 +32,6 @@ func getPrivateDir(workspaceDir string) string {
 
 func getPathToSettings(privateDir string) string {
 	return filepath.Join(privateDir, "settings.yaml")
-}
-
-func initWorkspace() error {
-	workspaceDir, err := getWorkspaceDir()
-	if err != nil {
-		return err
-	}
-
-	privateDir := getPrivateDir(workspaceDir)
-
-	if _, err = os.Stat(privateDir); err == nil {
-		return errors.New("workspace already initialized")
-	}
-
-	pkgpath, err := getPackagePathFromEnvironment()
-	if err != nil {
-		return err
-	}
-
-	buildDir, err := absIfNotEmpty(flags.buildDir)
-	if err != nil {
-		return err
-	}
-
-	installDir, err := absIfNotEmpty(flags.installDir)
-	if err != nil {
-		return err
-	}
-
-	wp := workspaceParams{flags.quiet, pkgpath,
-		flags.makefile, flags.defaultMakeTarget,
-		buildDir, installDir}
-
-	out, err := yaml.Marshal(&wp)
-	if err != nil {
-		return err
-	}
-
-	err = os.Mkdir(privateDir, os.FileMode(0775))
-	if err != nil {
-		return err
-	}
-
-	err = ioutil.WriteFile(getPathToSettings(privateDir),
-		out, os.FileMode(0664))
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func readWorkspaceParams(workspaceDir string) (*workspaceParams, error) {
