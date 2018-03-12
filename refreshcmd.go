@@ -52,35 +52,28 @@ func readPackageSelection(pi *packageIndex, privateDir string) (
 }
 
 func refreshWorkspace() error {
-	workspaceDir, err := getWorkspaceDir()
+	ws, err := loadWorkspace()
 	if err != nil {
 		return err
 	}
 
-	wp, err := readWorkspaceParams(workspaceDir)
+	pi, err := readPackageDefinitions(ws.wp)
 	if err != nil {
 		return err
 	}
 
-	pi, err := readPackageDefinitions(workspaceDir, wp)
+	selection, err := readPackageSelection(pi, ws.absPrivateDir)
 	if err != nil {
 		return err
 	}
 
-	privateDir := getPrivateDir(workspaceDir)
-
-	selection, err := readPackageSelection(pi, privateDir)
+	conftab, err := readConftab(filepath.Join(ws.absPrivateDir,
+		conftabFilename))
 	if err != nil {
 		return err
 	}
 
-	conftab, err := readConftab(filepath.Join(privateDir, conftabFilename))
-	if err != nil {
-		return err
-	}
-
-	return generateAndBootstrapPackages(workspaceDir, selection,
-		conftab, wp)
+	return generateAndBootstrapPackages(ws, selection, conftab)
 }
 
 // refreshCmd represents the refresh command

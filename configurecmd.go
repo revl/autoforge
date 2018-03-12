@@ -125,24 +125,17 @@ func configurePackage(workspaceDir, pkgRootDir string, pd *packageDefinition,
 }
 
 func configurePackages(args []string) error {
-	workspaceDir, err := getWorkspaceDir()
+	ws, err := loadWorkspace()
 	if err != nil {
 		return err
 	}
 
-	wp, err := readWorkspaceParams(workspaceDir)
+	pi, err := readPackageDefinitions(ws.wp)
 	if err != nil {
 		return err
 	}
 
-	pi, err := readPackageDefinitions(workspaceDir, wp)
-	if err != nil {
-		return err
-	}
-
-	privateDir := getPrivateDir(workspaceDir)
-
-	buildDir := getBuildDir(privateDir, wp)
+	buildDir := ws.buildDir()
 
 	configuredPackageDirs, err := ioutil.ReadDir(buildDir)
 	if err != nil {
@@ -161,7 +154,7 @@ func configurePackages(args []string) error {
 	if len(args) > 0 {
 		selection, err = packageRangesToFlatSelection(pi, args)
 	} else {
-		selection, err = readPackageSelection(pi, privateDir)
+		selection, err = readPackageSelection(pi, ws.absPrivateDir)
 	}
 	if err != nil {
 		return err
@@ -171,15 +164,15 @@ func configurePackages(args []string) error {
 		cfgEnv.addPackageBuildDir(pd.PackageName)
 	}
 
-	conftab, err := readConftab(path.Join(privateDir, conftabFilename))
+	conftab, err := readConftab(path.Join(ws.absPrivateDir, conftabFilename))
 	if err != nil {
 		return err
 	}
 
-	pkgRootDir := getGeneratedPkgRootDir(privateDir)
+	pkgRootDir := ws.generatedPkgRootDir()
 
 	for _, pd := range selection {
-		err := configurePackage(workspaceDir, pkgRootDir, pd,
+		err := configurePackage(ws.absDir, pkgRootDir, pd,
 			cfgEnv, conftab)
 		if err != nil {
 			return err

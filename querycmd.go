@@ -11,17 +11,12 @@ import (
 )
 
 func queryPackages(args []string) error {
-	workspaceDir, err := getWorkspaceDir()
+	ws, err := loadWorkspace()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	wp, err := readWorkspaceParams(workspaceDir)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	pi, err := readPackageDefinitions(workspaceDir, wp)
+	pi, err := readPackageDefinitions(ws.wp)
 	if err != nil {
 		log.Fatal(err)
 	}

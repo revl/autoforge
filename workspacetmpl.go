@@ -31,15 +31,14 @@ all: build
 {{end}}`)},
 }
 
-func generateWorkspaceFiles(workspaceDir string,
-	selection packageDefinitionList, conftab *Conftab,
-	wp *workspaceParams) error {
+func generateWorkspaceFiles(ws *workspace,
+	selection packageDefinitionList, conftab *Conftab) error {
 	var targetTypes []targetType
 
 	targetTypes = []targetType{
 		createHelpTarget(func() []targetType { return targetTypes }),
-		createBootstrapTarget(selection, workspaceDir, wp),
-		createConfigureTarget(selection, workspaceDir, wp),
+		createBootstrapTarget(selection, ws),
+		createConfigureTarget(selection, ws),
 		createBuildTarget(),
 		createCheckTarget(),
 	}
@@ -54,14 +53,14 @@ func generateWorkspaceFiles(workspaceDir string,
 		targets = append(targets, moreTargets...)
 	}
 
-	makefile := wp.Makefile
+	makefile := ws.wp.Makefile
 	if flags.makefile != "" {
 		makefile = flags.makefile
 	} else if makefile == "" {
 		makefile = "Makefile"
 	}
 
-	defaultTarget := wp.DefaultMakeTarget
+	defaultTarget := ws.wp.DefaultMakeTarget
 	if flags.defaultMakeTarget != "" {
 		defaultTarget = flags.defaultMakeTarget
 	} else if defaultTarget == "" {
@@ -83,7 +82,7 @@ func generateWorkspaceFiles(workspaceDir string,
 		if err != nil {
 			return err
 		}
-		_, err = writeGeneratedFiles(workspaceDir, outputFiles,
+		_, err = writeGeneratedFiles(ws.absDir, outputFiles,
 			templateFile.mode)
 		if err != nil {
 			return err

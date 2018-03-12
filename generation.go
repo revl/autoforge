@@ -112,13 +112,9 @@ func (helpParser *configureHelpParser) parseOptions(packageDir string) (
 	return options, nil
 }
 
-func generateAndBootstrapPackages(workspaceDir string,
-	selection packageDefinitionList, conftab *Conftab,
-	wp *workspaceParams) error {
-
-	privateDir := getPrivateDir(workspaceDir)
-
-	pkgRootDir := getGeneratedPkgRootDir(privateDir)
+func generateAndBootstrapPackages(ws *workspace,
+	selection packageDefinitionList, conftab *Conftab) error {
+	pkgRootDir := ws.generatedPkgRootDir()
 
 	type packageAndGenerator struct {
 		pd         *packageDefinition
@@ -188,5 +184,5 @@ func generateAndBootstrapPackages(workspaceDir string,
 		}
 	}
 
-	return generateWorkspaceFiles(workspaceDir, selection, conftab, wp)
+	return generateWorkspaceFiles(ws, selection, conftab)
 }

@@ -76,10 +76,9 @@ func (ht *helpTarget) targets() ([]target, error) {
 }
 
 type makeTargetData struct {
-	targetName   string
-	selection    packageDefinitionList
-	workspaceDir string
-	wp           *workspaceParams
+	targetName string
+	selection  packageDefinitionList
+	ws         *workspace
 }
 
 func (mtd *makeTargetData) name() string {
@@ -106,9 +105,8 @@ type bootstrapTarget struct {
 }
 
 func createBootstrapTarget(selection packageDefinitionList,
-	workspaceDir string, wp *workspaceParams) targetType {
-	return &bootstrapTarget{makeTargetData{"bootstrap",
-		selection, workspaceDir, wp}}
+	ws *workspace) targetType {
+	return &bootstrapTarget{makeTargetData{"bootstrap", selection, ws}}
 }
 
 func (*bootstrapTarget) help() string {
@@ -149,9 +147,8 @@ type configureTarget struct {
 }
 
 func createConfigureTarget(selection packageDefinitionList,
-	workspaceDir string, wp *workspaceParams) targetType {
-	return &configureTarget{makeTargetData{"configure",
-		selection, workspaceDir, wp}}
+	ws *workspace) targetType {
+	return &configureTarget{makeTargetData{"configure", selection, ws}}
 }
 
 func (*configureTarget) help() string {
@@ -164,11 +161,9 @@ func (ct *configureTarget) targets() ([]target, error) {
 
 	configureTargets := []target{globalTarget}
 
-	privateDir := getPrivateDir(ct.workspaceDir)
+	buildDir := ct.ws.buildDir()
 
-	buildDir := getBuildDir(privateDir, ct.wp)
-
-	relBuildDir, err := filepath.Rel(ct.workspaceDir, buildDir)
+	relBuildDir, err := filepath.Rel(ct.ws.absDir, buildDir)
 	if err != nil {
 		relBuildDir = buildDir
 	}
@@ -177,7 +172,7 @@ func (ct *configureTarget) targets() ([]target, error) {
 	if err != nil {
 		return nil, err
 	}
-	cmd = relativeIfShorter(ct.workspaceDir, cmd)
+	cmd = relativeIfShorter(ct.ws.absDir, cmd)
 	cmd = "\t@" + cmd + " configure "
 
 	for i, pd := range ct.selection {

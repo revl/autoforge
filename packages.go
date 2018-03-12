@@ -157,8 +157,7 @@ func getPackagePathFromWorkspaceOrEnvironment(
 	return getPackagePathFromEnvironment()
 }
 
-func readPackageDefinitions(workspaceDir string, wp *workspaceParams) (
-	*packageIndex, error) {
+func readPackageDefinitions(wp *workspaceParams) (*packageIndex, error) {
 	var packages packageDefinitionList
 	dependencies := [][]string{}
 

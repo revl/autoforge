@@ -128,17 +128,12 @@ func packageRangesToFlatSelection(pi *packageIndex, args []string) (
 }
 
 func selectPackages(args []string) error {
-	workspaceDir, err := getWorkspaceDir()
+	ws, err := loadWorkspace()
 	if err != nil {
 		return err
 	}
 
-	wp, err := readWorkspaceParams(workspaceDir)
-	if err != nil {
-		return err
-	}
-
-	pi, err := readPackageDefinitions(workspaceDir, wp)
+	pi, err := readPackageDefinitions(ws.wp)
 	if err != nil {
 		return err
 	}
@@ -148,7 +143,7 @@ func selectPackages(args []string) error {
 		return err
 	}
 
-	conftab, err := readConftab(filepath.Join(getPrivateDir(workspaceDir),
+	conftab, err := readConftab(filepath.Join(ws.absPrivateDir,
 		conftabFilename))
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -157,8 +152,7 @@ func selectPackages(args []string) error {
 		conftab = newConftab()
 	}
 
-	return generateAndBootstrapPackages(workspaceDir, selection,
-		conftab, wp)
+	return generateAndBootstrapPackages(ws, selection, conftab)
 }
 
 // selectCmd represents the select command

@@ -6,6 +6,7 @@ package main
 
 import (
 	"io/ioutil"
+	"path"
 	"path/filepath"
 
 	"gopkg.in/yaml.v2"
@@ -18,6 +19,12 @@ type workspaceParams struct {
 	DefaultMakeTarget string `yaml:"default-target,omitempty"`
 	BuildDir          string `yaml:"builddir,omitempty"`
 	InstallDir        string `yaml:"installdir,omitempty"`
+}
+
+type workspace struct {
+	absDir        string
+	absPrivateDir string
+	wp            *workspaceParams
 }
 
 func getWorkspaceDir() (string, error) {
@@ -34,9 +41,15 @@ func getPathToSettings(privateDir string) string {
 	return filepath.Join(privateDir, "settings.yaml")
 }
 
-func readWorkspaceParams(workspaceDir string) (*workspaceParams, error) {
-	in, err := ioutil.ReadFile(
-		getPathToSettings(getPrivateDir(workspaceDir)))
+func loadWorkspace() (*workspace, error) {
+	workspaceDir, err := getWorkspaceDir()
+	if err != nil {
+		return nil, err
+	}
+
+	privateDir := getPrivateDir(workspaceDir)
+
+	in, err := ioutil.ReadFile(getPathToSettings(privateDir))
 	if err != nil {
 		return nil, err
 	}
@@ -44,5 +57,22 @@ func readWorkspaceParams(workspaceDir string) (*workspaceParams, error) {
 	var wp workspaceParams
 	err = yaml.Unmarshal(in, &wp)
 
-	return &wp, err
+	return &workspace{workspaceDir, privateDir, &wp}, err
+}
+
+var pkgDirName = "packages"
+
+// generatedPkgRootDir returns an absolute pathname to the
+// directory where source files for Autotools are generated.
+func (ws *workspace) generatedPkgRootDir() string {
+	return path.Join(ws.absPrivateDir, pkgDirName)
+}
+
+// buildDir returns an absolute pathname to the directory
+// where the packages are configured and built.
+func (ws *workspace) buildDir() string {
+	if ws.wp.BuildDir != "" {
+		return ws.wp.BuildDir
+	}
+	return path.Join(ws.absPrivateDir, "build")
 }

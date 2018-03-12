@@ -6,24 +6,8 @@ package main
 
 import (
 	"os"
-	"path"
 	"path/filepath"
 )
-
-var pkgDirName = "packages"
-
-// getGeneratedPkgRootDir returns an absolute pathname.
-func getGeneratedPkgRootDir(privateDir string) string {
-	return path.Join(privateDir, pkgDirName)
-}
-
-// getBuildDir returns an absolute pathname.
-func getBuildDir(privateDir string, wp *workspaceParams) string {
-	if wp.BuildDir != "" {
-		return wp.BuildDir
-	}
-	return path.Join(privateDir, "build")
-}
 
 func relativeToCwd(absPath string) (string, error) {
 	cwd, err := os.Getwd()
