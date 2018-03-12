@@ -34,11 +34,11 @@ func getWorkspaceDir() (string, error) {
 var privateDirName = "." + appName
 
 func getPrivateDir(workspaceDir string) string {
-	return filepath.Join(workspaceDir, privateDirName)
+	return path.Join(workspaceDir, privateDirName)
 }
 
 func getPathToSettings(privateDir string) string {
-	return filepath.Join(privateDir, "settings.yaml")
+	return path.Join(privateDir, "settings.yaml")
 }
 
 func loadWorkspace() (*workspace, error) {

@@ -34,7 +34,7 @@ func makePackageIndexForTesting(packagesAndDependencies []string, quiet bool) (
 
 		packages = append(packages, &packageDefinition{
 			PackageName: split[0],
-			pathname: filepath.Join(split[0],
+			pathname: path.Join(split[0],
 				packageDefinitionFilename)})
 
 		if len(split) > 1 {

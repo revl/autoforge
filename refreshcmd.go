@@ -9,14 +9,14 @@ import (
 	"errors"
 	"log"
 	"os"
-	"path/filepath"
+	"path"
 
 	"github.com/spf13/cobra"
 )
 
 func readPackageSelection(pi *packageIndex, privateDir string) (
 	packageDefinitionList, error) {
-	file, err := os.Open(filepath.Join(privateDir,
+	file, err := os.Open(path.Join(privateDir,
 		filenameForSelectedPackages))
 	if err != nil {
 		return nil, err
@@ -67,7 +67,7 @@ func refreshWorkspace() error {
 		return err
 	}
 
-	conftab, err := readConftab(filepath.Join(ws.absPrivateDir,
+	conftab, err := readConftab(path.Join(ws.absPrivateDir,
 		conftabFilename))
 	if err != nil {
 		return err

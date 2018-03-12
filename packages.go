@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -167,13 +168,13 @@ func readPackageDefinitions(wp *workspaceParams) (*packageIndex, error) {
 	}
 
 	pkgpathDirs := append(strings.Split(pkgpath, ":"),
-		filepath.Join(filepath.Dir(os.Args[0]), "templates"))
+		path.Join(filepath.Dir(os.Args[0]), "templates"))
 
 	for _, pkgpathDir := range pkgpathDirs {
 		dirEntries, _ := ioutil.ReadDir(pkgpathDir)
 
 		for _, dirEntry := range dirEntries {
-			dirEntryPathname := filepath.Join(pkgpathDir,
+			dirEntryPathname := path.Join(pkgpathDir,
 				dirEntry.Name(), packageDefinitionFilename)
 
 			fileInfo, err := os.Stat(dirEntryPathname)

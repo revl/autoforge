@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
+	"path"
 	"regexp"
 	"strings"
 )
@@ -125,7 +125,7 @@ func generateAndBootstrapPackages(ws *workspace,
 	var packagesAndGenerators []packageAndGenerator
 
 	for _, pd := range selection {
-		packageDir := filepath.Join(pkgRootDir, pd.PackageName)
+		packageDir := path.Join(pkgRootDir, pd.PackageName)
 
 		generator, err := pd.getPackageGeneratorFunc(packageDir)
 		if err != nil {
@@ -145,7 +145,7 @@ func generateAndBootstrapPackages(ws *workspace,
 			return err
 		}
 
-		_, err = os.Stat(filepath.Join(pg.packageDir, "configure"))
+		_, err = os.Stat(path.Join(pg.packageDir, "configure"))
 
 		if changed || os.IsNotExist(err) {
 			packagesToBootstrap = append(packagesToBootstrap, pg)
@@ -162,7 +162,7 @@ func generateAndBootstrapPackages(ws *workspace,
 			bootstrapCmd.Stdout = os.Stdout
 			bootstrapCmd.Stderr = os.Stderr
 			if err := bootstrapCmd.Run(); err != nil {
-				return errors.New(filepath.Join(pg.packageDir,
+				return errors.New(path.Join(pg.packageDir,
 					"autogen.sh") + ": " + err.Error())
 			}
 		}

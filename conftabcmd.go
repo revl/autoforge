@@ -10,7 +10,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"path/filepath"
+	"path"
 
 	"github.com/spf13/cobra"
 )
@@ -31,7 +31,7 @@ func editConftab() error {
 
 	privateDir := getPrivateDir(workspaceDir)
 
-	conftabPathname := filepath.Join(privateDir, conftabFilename)
+	conftabPathname := path.Join(privateDir, conftabFilename)
 
 	origConftab, err := readConftab(conftabPathname)
 	if err != nil {

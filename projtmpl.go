@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 )
@@ -73,7 +74,7 @@ func linkFilesFromSourceDir(pd *packageDefinition,
 	linkFile := func(sourcePathname, relativePathname string,
 		sourceFileInfo os.FileInfo) error {
 		sourceFiles[relativePathname] = struct{}{}
-		targetPathname := filepath.Join(projectDir, relativePathname)
+		targetPathname := path.Join(projectDir, relativePathname)
 		targetFileInfo, err := os.Lstat(targetPathname)
 		if err == nil {
 			if (targetFileInfo.Mode() & os.ModeSymlink) != 0 {

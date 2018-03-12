@@ -7,7 +7,7 @@ package main
 import (
 	"log"
 	"os"
-	"path/filepath"
+	"path"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -143,7 +143,7 @@ func selectPackages(args []string) error {
 		return err
 	}
 
-	conftab, err := readConftab(filepath.Join(ws.absPrivateDir,
+	conftab, err := readConftab(path.Join(ws.absPrivateDir,
 		conftabFilename))
 	if err != nil {
 		if !os.IsNotExist(err) {
