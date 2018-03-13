@@ -77,15 +77,14 @@ func (ws *workspace) buildDir() string {
 	return path.Join(ws.absPrivateDir, "build")
 }
 
+// relativeToWorkspace returns an equivalent of 'absPath'
+// that is relative to the workspace directory.
+func (ws *workspace) relativeToWorkspace(absPath string) string {
+	return relativeIfShorter(ws.absDir, absPath)
+}
+
 // buildDirRelativeToWorkspace returns the pathname of the
 // build directory relative to the workspace directory.
 func (ws *workspace) buildDirRelativeToWorkspace() string {
-	buildDir := ws.buildDir()
-
-	relBuildDir, err := filepath.Rel(ws.absDir, buildDir)
-	if err != nil {
-		return buildDir
-	}
-
-	return relBuildDir
+	return ws.relativeToWorkspace(ws.buildDir())
 }

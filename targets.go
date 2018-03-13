@@ -166,8 +166,8 @@ func (ct *configureTarget) targets() ([]target, error) {
 	if err != nil {
 		return nil, err
 	}
-	cmd = relativeIfShorter(ct.ws.absDir, cmd)
-	cmd = "\t@" + cmd + " configure "
+
+	cmd = "\t@" + ct.ws.relativeToWorkspace(cmd) + " configure "
 
 	for i, pd := range ct.selection {
 		script := cmd + pd.PackageName + "\n"
