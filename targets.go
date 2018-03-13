@@ -10,7 +10,6 @@ import (
 	"go/doc"
 	"os"
 	"path"
-	"path/filepath"
 	"strings"
 )
 
@@ -161,12 +160,7 @@ func (ct *configureTarget) targets() ([]target, error) {
 
 	configureTargets := []target{globalTarget}
 
-	buildDir := ct.ws.buildDir()
-
-	relBuildDir, err := filepath.Rel(ct.ws.absDir, buildDir)
-	if err != nil {
-		relBuildDir = buildDir
-	}
+	relBuildDir := ct.ws.buildDirRelativeToWorkspace()
 
 	cmd, err := os.Executable()
 	if err != nil {
