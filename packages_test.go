@@ -5,7 +5,7 @@
 package main
 
 import (
-	"path/filepath"
+	"path"
 	"strings"
 	"testing"
 )
