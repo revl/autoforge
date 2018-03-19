@@ -6,8 +6,6 @@ package main
 
 import (
 	"bufio"
-	"errors"
-	"fmt"
 	"os"
 	"os/exec"
 	"path"
@@ -155,15 +153,9 @@ func generateAndBootstrapPackages(ws *workspace,
 	if !flags.noBootstrap {
 		// Bootstrap the selected packages.
 		for _, pg := range packagesToBootstrap {
-			fmt.Println("[bootstrap] " + pg.pd.PackageName)
-
-			bootstrapCmd := exec.Command("./autogen.sh")
-			bootstrapCmd.Dir = pg.packageDir
-			bootstrapCmd.Stdout = os.Stdout
-			bootstrapCmd.Stderr = os.Stderr
-			if err := bootstrapCmd.Run(); err != nil {
-				return errors.New(path.Join(pg.packageDir,
-					"autogen.sh") + ": " + err.Error())
+			err := bootstrapPackage(pg.packageDir, pg.pd)
+			if err != nil {
+				return err
 			}
 		}
 
