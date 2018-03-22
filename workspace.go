@@ -83,6 +83,13 @@ func (ws *workspace) relativeToWorkspace(absPath string) string {
 	return relativeIfShorter(ws.absDir, absPath)
 }
 
+// pkgRootDirRelativeToWorkspace returns the pathname of the
+// directory with generated pacakge sources relative to the
+// workspace directory.
+func (ws *workspace) pkgRootDirRelativeToWorkspace() string {
+	return ws.relativeToWorkspace(ws.generatedPkgRootDir())
+}
+
 // buildDirRelativeToWorkspace returns the pathname of the
 // build directory relative to the workspace directory.
 func (ws *workspace) buildDirRelativeToWorkspace() string {

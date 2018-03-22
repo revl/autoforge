@@ -126,20 +126,27 @@ func (bt *bootstrapTarget) targets() ([]target, error) {
 
 	bootstrapTargets := []target{globalTarget}
 
+	pkgRootDir := bt.ws.pkgRootDirRelativeToWorkspace()
+
 	cmd := "\t@" + selfPathnameRelativeToWorkspace(bt.ws) + " bootstrap "
 
 	for i, pd := range bt.selection {
 		script := cmd + pd.PackageName + "\n"
 
+		configurePathname := path.Join(pkgRootDir,
+			pd.PackageName, "configure")
+		dependencies := []string{configurePathname + ".ac"}
+
 		bootstrapTargets = append(bootstrapTargets,
 			target{
-				Target:     globalTarget.Dependencies[i],
-				Phony:      true,
-				MakeScript: script},
+				Target:       globalTarget.Dependencies[i],
+				Phony:        true,
+				Dependencies: dependencies,
+				MakeScript:   script},
 			target{
-				Target: path.Join(privateDirName, pkgDirName,
-					pd.PackageName, "configure"),
-				MakeScript: script})
+				Target:       configurePathname,
+				Dependencies: dependencies,
+				MakeScript:   script})
 	}
 
 	return bootstrapTargets, nil
