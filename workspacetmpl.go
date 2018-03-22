@@ -31,14 +31,16 @@ all: build
 {{end}}`)},
 }
 
-func generateWorkspaceFiles(ws *workspace,
+func generateWorkspaceFiles(ws *workspace, pi *packageIndex,
 	selection packageDefinitionList, conftab *Conftab) error {
 	var targetTypes []targetType
+
+	selectedDeps := establishDependenciesInSelection(selection, pi)
 
 	targetTypes = []targetType{
 		createHelpTarget(func() []targetType { return targetTypes }),
 		createBootstrapTarget(selection, ws),
-		createConfigureTarget(selection, ws),
+		createConfigureTarget(selection, ws, selectedDeps),
 		createBuildTarget(),
 		createCheckTarget(),
 	}

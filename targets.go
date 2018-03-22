@@ -154,11 +154,14 @@ func (bt *bootstrapTarget) targets() ([]target, error) {
 
 type configureTarget struct {
 	makeTargetData
+	selectedDeps map[*packageDefinition]packageDefinitionList
 }
 
-func createConfigureTarget(selection packageDefinitionList,
-	ws *workspace) targetType {
-	return &configureTarget{makeTargetData{"configure", selection, ws}}
+func createConfigureTarget(selection packageDefinitionList, ws *workspace,
+	selectedDeps map[*packageDefinition]packageDefinitionList) targetType {
+	return &configureTarget{
+		makeTargetData{"configure", selection, ws},
+		selectedDeps}
 }
 
 func (*configureTarget) help() string {
@@ -172,21 +175,32 @@ func (ct *configureTarget) targets() ([]target, error) {
 	configureTargets := []target{globalTarget}
 
 	relBuildDir := ct.ws.buildDirRelativeToWorkspace()
+	pkgRootDir := ct.ws.pkgRootDirRelativeToWorkspace()
 
 	cmd := "\t@" + selfPathnameRelativeToWorkspace(ct.ws) + " configure "
 
 	for i, pd := range ct.selection {
+		dependencies := []string{path.Join(pkgRootDir,
+			pd.PackageName, "configure")}
+
+		for _, dep := range ct.selectedDeps[pd] {
+			dependencies = append(dependencies, path.Join(
+				relBuildDir, dep.PackageName, "Makefile"))
+		}
+
 		script := cmd + pd.PackageName + "\n"
 
 		configureTargets = append(configureTargets,
 			target{
-				Target:     globalTarget.Dependencies[i],
-				Phony:      true,
-				MakeScript: script},
+				Target:       globalTarget.Dependencies[i],
+				Phony:        true,
+				Dependencies: dependencies,
+				MakeScript:   script},
 			target{
 				Target: path.Join(relBuildDir,
 					pd.PackageName, "Makefile"),
-				MakeScript: script})
+				Dependencies: dependencies,
+				MakeScript:   script})
 	}
 
 	return configureTargets, nil

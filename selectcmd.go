@@ -152,7 +152,7 @@ func selectPackages(args []string) error {
 		conftab = newConftab()
 	}
 
-	return generateAndBootstrapPackages(ws, selection, conftab)
+	return generateAndBootstrapPackages(ws, pi, selection, conftab)
 }
 
 // selectCmd represents the select command

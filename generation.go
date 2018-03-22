@@ -110,7 +110,7 @@ func (helpParser *configureHelpParser) parseOptions(packageDir string) (
 	return options, nil
 }
 
-func generateAndBootstrapPackages(ws *workspace,
+func generateAndBootstrapPackages(ws *workspace, pi *packageIndex,
 	selection packageDefinitionList, conftab *Conftab) error {
 	pkgRootDir := ws.generatedPkgRootDir()
 
@@ -176,5 +176,5 @@ func generateAndBootstrapPackages(ws *workspace,
 		}
 	}
 
-	return generateWorkspaceFiles(ws, selection, conftab)
+	return generateWorkspaceFiles(ws, pi, selection, conftab)
 }

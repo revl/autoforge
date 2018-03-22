@@ -73,7 +73,7 @@ func refreshWorkspace() error {
 		return err
 	}
 
-	return generateAndBootstrapPackages(ws, selection, conftab)
+	return generateAndBootstrapPackages(ws, pi, selection, conftab)
 }
 
 // refreshCmd represents the refresh command
