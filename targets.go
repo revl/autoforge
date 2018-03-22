@@ -6,7 +6,6 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"go/doc"
 	"os"
 	"path"
@@ -99,6 +98,15 @@ func (mtd *makeTargetData) globalTarget() target {
 		Dependencies: dependencies}
 }
 
+func selfPathnameRelativeToWorkspace(ws *workspace) string {
+	executable, err := os.Executable()
+	if err != nil {
+		return appName
+	}
+
+	return ws.relativeToWorkspace(executable)
+}
+
 type bootstrapTarget struct {
 	makeTargetData
 }
@@ -118,24 +126,20 @@ func (bt *bootstrapTarget) targets() ([]target, error) {
 
 	bootstrapTargets := []target{globalTarget}
 
-	scriptTemplate := `	@echo "[bootstrap] %[1]s"
-	@cd ` + path.Join(privateDirName, pkgDirName, "%[1]s") +
-		" && \\\n\t./autogen.sh\n"
+	cmd := "\t@" + selfPathnameRelativeToWorkspace(bt.ws) + " bootstrap "
 
 	for i, pd := range bt.selection {
+		script := cmd + pd.PackageName + "\n"
+
 		bootstrapTargets = append(bootstrapTargets,
 			target{
-				Target: globalTarget.Dependencies[i],
-				Phony:  true,
-				MakeScript: fmt.Sprintf(scriptTemplate,
-					pd.PackageName),
-			},
+				Target:     globalTarget.Dependencies[i],
+				Phony:      true,
+				MakeScript: script},
 			target{
 				Target: path.Join(privateDirName, pkgDirName,
 					pd.PackageName, "configure"),
-				MakeScript: "	@$(MAKE) -s " +
-					globalTarget.Dependencies[i] + "\n",
-			})
+				MakeScript: script})
 	}
 
 	return bootstrapTargets, nil
@@ -162,12 +166,7 @@ func (ct *configureTarget) targets() ([]target, error) {
 
 	relBuildDir := ct.ws.buildDirRelativeToWorkspace()
 
-	cmd, err := os.Executable()
-	if err != nil {
-		return nil, err
-	}
-
-	cmd = "\t@" + ct.ws.relativeToWorkspace(cmd) + " configure "
+	cmd := "\t@" + selfPathnameRelativeToWorkspace(ct.ws) + " configure "
 
 	for i, pd := range ct.selection {
 		script := cmd + pd.PackageName + "\n"
