@@ -26,7 +26,7 @@ all: build
 {{range .targets}}{{if .Phony}}.PHONY: {{.Target}}
 
 {{end}}{{.Target}}:{{range .Dependencies}} \
-{{.}}{{end}}
+	{{.}}{{end}}
 {{.MakeScript}}
 {{end}}`)},
 }

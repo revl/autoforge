@@ -166,14 +166,16 @@ func (*configureTarget) help() string {
 func (ct *configureTarget) targets() ([]target, error) {
 	var configureTargets []target
 
+	relativeConftabPathname := path.Join(privateDirName, conftabFilename)
+
 	relBuildDir := ct.ws.buildDirRelativeToWorkspace()
 	pkgRootDir := ct.ws.pkgRootDirRelativeToWorkspace()
 
 	cmd := "\t@" + selfPathnameRelativeToWorkspace(ct.ws) + " configure "
 
 	for _, pd := range ct.selection {
-		dependencies := []string{path.Join(pkgRootDir,
-			pd.PackageName, "configure")}
+		dependencies := []string{relativeConftabPathname,
+			path.Join(pkgRootDir, pd.PackageName, "configure")}
 
 		for _, dep := range ct.selectedDeps[pd] {
 			dependencies = append(dependencies, path.Join(
