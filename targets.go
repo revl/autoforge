@@ -29,7 +29,7 @@ type helpTarget struct {
 	getTargetTypes func() []targetType
 }
 
-func createHelpTarget(getTargetTypes func() []targetType) targetType {
+func createHelpTargetType(getTargetTypes func() []targetType) targetType {
 	return &helpTarget{getTargetTypes}
 }
 
@@ -50,11 +50,17 @@ func (ht *helpTarget) targets() ([]target, error) {
 `
 
 	for _, t := range ht.getTargetTypes() {
+		helpText := t.help()
+
+		if helpText == "" {
+			continue
+		}
+
 		script += "\t@echo \"    " + t.name() + "\"\n"
 
 		var buffer bytes.Buffer
 
-		doc.ToText(&buffer, t.help(), "", "    ", 52)
+		doc.ToText(&buffer, helpText, "", "    ", 52)
 
 		help := buffer.String()
 
@@ -111,42 +117,31 @@ type bootstrapTarget struct {
 	makeTargetData
 }
 
-func createBootstrapTarget(selection packageDefinitionList,
+func createBootstrapTargetType(selection packageDefinitionList,
 	ws *workspace) targetType {
 	return &bootstrapTarget{makeTargetData{"bootstrap", selection, ws}}
 }
 
 func (*bootstrapTarget) help() string {
-	return "Unconditionally regenerate the 'configure' " +
-		"scripts for the selected packages."
+	return ""
 }
 
 func (bt *bootstrapTarget) targets() ([]target, error) {
-	globalTarget := bt.globalTarget()
-
-	bootstrapTargets := []target{globalTarget}
+	var bootstrapTargets []target
 
 	pkgRootDir := bt.ws.pkgRootDirRelativeToWorkspace()
 
 	cmd := "\t@" + selfPathnameRelativeToWorkspace(bt.ws) + " bootstrap "
 
-	for i, pd := range bt.selection {
-		script := cmd + pd.PackageName + "\n"
-
+	for _, pd := range bt.selection {
 		configurePathname := path.Join(pkgRootDir,
 			pd.PackageName, "configure")
 		dependencies := []string{configurePathname + ".ac"}
 
-		bootstrapTargets = append(bootstrapTargets,
-			target{
-				Target:       globalTarget.Dependencies[i],
-				Phony:        true,
-				Dependencies: dependencies,
-				MakeScript:   script},
-			target{
-				Target:       configurePathname,
-				Dependencies: dependencies,
-				MakeScript:   script})
+		bootstrapTargets = append(bootstrapTargets, target{
+			Target:       configurePathname,
+			Dependencies: dependencies,
+			MakeScript:   cmd + pd.PackageName + "\n"})
 	}
 
 	return bootstrapTargets, nil
@@ -157,7 +152,7 @@ type configureTarget struct {
 	selectedDeps map[*packageDefinition]packageDefinitionList
 }
 
-func createConfigureTarget(selection packageDefinitionList, ws *workspace,
+func createConfigureTargetType(selection packageDefinitionList, ws *workspace,
 	selectedDeps map[*packageDefinition]packageDefinitionList) targetType {
 	return &configureTarget{
 		makeTargetData{"configure", selection, ws},
@@ -165,21 +160,18 @@ func createConfigureTarget(selection packageDefinitionList, ws *workspace,
 }
 
 func (*configureTarget) help() string {
-	return "Configure the selected packages using the " +
-		"current options specified in the 'conftab' file."
+	return ""
 }
 
 func (ct *configureTarget) targets() ([]target, error) {
-	globalTarget := ct.globalTarget()
-
-	configureTargets := []target{globalTarget}
+	var configureTargets []target
 
 	relBuildDir := ct.ws.buildDirRelativeToWorkspace()
 	pkgRootDir := ct.ws.pkgRootDirRelativeToWorkspace()
 
 	cmd := "\t@" + selfPathnameRelativeToWorkspace(ct.ws) + " configure "
 
-	for i, pd := range ct.selection {
+	for _, pd := range ct.selection {
 		dependencies := []string{path.Join(pkgRootDir,
 			pd.PackageName, "configure")}
 
@@ -188,19 +180,11 @@ func (ct *configureTarget) targets() ([]target, error) {
 				relBuildDir, dep.PackageName, "Makefile"))
 		}
 
-		script := cmd + pd.PackageName + "\n"
-
-		configureTargets = append(configureTargets,
-			target{
-				Target:       globalTarget.Dependencies[i],
-				Phony:        true,
-				Dependencies: dependencies,
-				MakeScript:   script},
-			target{
-				Target: path.Join(relBuildDir,
-					pd.PackageName, "Makefile"),
-				Dependencies: dependencies,
-				MakeScript:   script})
+		configureTargets = append(configureTargets, target{
+			Target: path.Join(relBuildDir,
+				pd.PackageName, "Makefile"),
+			Dependencies: dependencies,
+			MakeScript:   cmd + pd.PackageName + "\n"})
 	}
 
 	return configureTargets, nil
@@ -209,7 +193,7 @@ func (ct *configureTarget) targets() ([]target, error) {
 type buildTarget struct {
 }
 
-func createBuildTarget() targetType {
+func createBuildTargetType() targetType {
 	return &buildTarget{}
 }
 
@@ -230,7 +214,7 @@ func (*buildTarget) targets() ([]target, error) {
 type checkTarget struct {
 }
 
-func createCheckTarget() targetType {
+func createCheckTargetType() targetType {
 	return &checkTarget{}
 }
 
