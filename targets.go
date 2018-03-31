@@ -6,6 +6,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"go/doc"
 	"os"
 	"path"
@@ -193,10 +194,15 @@ func (ct *configureTarget) targets() ([]target, error) {
 }
 
 type buildTarget struct {
+	makeTargetData
+	selectedDeps, dependentOnSelected map[*packageDefinition]packageDefinitionList
 }
 
-func createBuildTargetType() targetType {
-	return &buildTarget{}
+func createBuildTargetType(selection packageDefinitionList, ws *workspace,
+	selectedDeps,
+	dependentOnSelected map[*packageDefinition]packageDefinitionList) targetType {
+	return &buildTarget{makeTargetData{"build", selection, ws},
+		selectedDeps, dependentOnSelected}
 }
 
 func (*buildTarget) name() string {
@@ -209,8 +215,48 @@ func (*buildTarget) help() string {
 		"configuration step will be performed automatically."
 }
 
-func (*buildTarget) targets() ([]target, error) {
-	return nil, nil
+func (bt *buildTarget) targets() ([]target, error) {
+	var dependencies []string
+
+	for _, pd := range bt.selection {
+		if len(bt.dependentOnSelected[pd]) == 0 {
+			dependencies = append(dependencies, pd.PackageName)
+		}
+	}
+
+	globalTarget := target{
+		Target:       bt.targetName,
+		Phony:        true,
+		Dependencies: dependencies}
+
+	buildTargets := []target{globalTarget}
+
+	relBuildDir := bt.ws.buildDirRelativeToWorkspace()
+
+	scriptTemplate := `	@echo '[build] %[1]s'
+	@cd '` + relBuildDir + `/%[1]s' && \
+	echo '--------------------------------' >> make.log && \
+	date >> make.log && \
+	echo '--------------------------------' >> make.log && \
+	$(MAKE) >> make.log
+`
+	for _, pd := range bt.selection {
+		dependencies = []string{
+			path.Join(relBuildDir, pd.PackageName, "Makefile")}
+
+		for _, dep := range bt.selectedDeps[pd] {
+			dependencies = append(dependencies, dep.PackageName)
+		}
+
+		buildTargets = append(buildTargets, target{
+			Target:       pd.PackageName,
+			Phony:        true,
+			Dependencies: dependencies,
+			MakeScript: fmt.Sprintf(scriptTemplate,
+				pd.PackageName)})
+	}
+
+	return buildTargets, nil
 }
 
 type checkTarget struct {

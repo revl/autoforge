@@ -37,13 +37,22 @@ func generateWorkspaceFiles(ws *workspace, pi *packageIndex,
 
 	selectedDeps := establishDependenciesInSelection(selection, pi)
 
+	dependentOnSelected := map[*packageDefinition]packageDefinitionList{}
+	for pd, deps := range selectedDeps {
+		for _, dep := range deps {
+			dependentOnSelected[dep] = append(
+				dependentOnSelected[dep], pd)
+		}
+	}
+
 	targetTypes = []targetType{
 		createHelpTargetType(func() []targetType {
 			return targetTypes
 		}),
 		createBootstrapTargetType(selection, ws),
 		createConfigureTargetType(selection, ws, selectedDeps),
-		createBuildTargetType(),
+		createBuildTargetType(selection, ws, selectedDeps,
+			dependentOnSelected),
 		createCheckTargetType(),
 	}
 
