@@ -193,87 +193,104 @@ func (ct *configureTarget) targets() ([]target, error) {
 	return configureTargets, nil
 }
 
-type buildTarget struct {
-	makeTargetData
-	selectedDeps, dependentOnSelected map[*packageDefinition]packageDefinitionList
+type postConfigureTarget struct {
+	configureTarget
+	helpText         string
+	namePrefix       string
+	globalTargetDeps []string
+	scriptTemplate   string
 }
 
-func createBuildTargetType(selection packageDefinitionList, ws *workspace,
-	selectedDeps,
-	dependentOnSelected map[*packageDefinition]packageDefinitionList) targetType {
-	return &buildTarget{makeTargetData{"build", selection, ws},
-		selectedDeps, dependentOnSelected}
+func (pct *postConfigureTarget) help() string {
+	return pct.helpText
 }
 
-func (*buildTarget) name() string {
-	return "build"
-}
-
-func (*buildTarget) help() string {
-	return "Build (compile and link) the selected packages. " +
-		"For the packages that have not been configured, the " +
-		"configuration step will be performed automatically."
-}
-
-func (bt *buildTarget) targets() ([]target, error) {
+func (pct *postConfigureTarget) targets() ([]target, error) {
 	var dependencies []string
 
-	for _, pd := range bt.selection {
-		if len(bt.dependentOnSelected[pd]) == 0 {
-			dependencies = append(dependencies, pd.PackageName)
+	if pct.namePrefix == "" {
+		dependencies = pct.globalTargetDeps
+	} else {
+		for _, dep := range pct.globalTargetDeps {
+			dependencies = append(dependencies, pct.namePrefix+dep)
 		}
 	}
 
-	globalTarget := target{
-		Target:       bt.targetName,
+	targets := []target{target{
+		Target:       pct.targetName,
 		Phony:        true,
-		Dependencies: dependencies}
+		Dependencies: dependencies}}
 
-	buildTargets := []target{globalTarget}
+	relBuildDir := pct.ws.buildDirRelativeToWorkspace()
 
-	relBuildDir := bt.ws.buildDirRelativeToWorkspace()
+	for _, pd := range pct.selection {
+		dependencies = []string{
+			path.Join(relBuildDir, pd.PackageName, "Makefile")}
 
-	scriptTemplate := `	@echo '[build] %[1]s'
-	@cd '` + relBuildDir + `/%[1]s' && \
+		for _, dep := range pct.selectedDeps[pd] {
+			dependencies = append(dependencies, dep.PackageName)
+		}
+
+		targets = append(targets, target{
+			Target:       pct.namePrefix + pd.PackageName,
+			Phony:        true,
+			Dependencies: dependencies,
+			MakeScript: fmt.Sprintf(pct.scriptTemplate,
+				pd.PackageName)})
+	}
+
+	return targets, nil
+}
+
+func createBuildTargetType(selection packageDefinitionList, ws *workspace,
+	selectedDeps map[*packageDefinition]packageDefinitionList,
+	globalTargetDeps []string) targetType {
+	return &postConfigureTarget{
+		configureTarget{
+			makeTargetData{"build", selection, ws},
+			selectedDeps,
+		},
+		"Build (compile and link) the selected packages. " +
+			"For the packages that have not been " +
+			"configured, the configuration step " +
+			"will be performed automatically.",
+		"",
+		globalTargetDeps,
+		`	@echo '[build] %[1]s'
+	@cd '` + ws.buildDirRelativeToWorkspace() + `/%[1]s' && \
 	echo '--------------------------------' >> make.log && \
 	date >> make.log && \
 	echo '--------------------------------' >> make.log && \
 	$(MAKE) >> make.log
-`
-	for _, pd := range bt.selection {
-		dependencies = []string{
-			path.Join(relBuildDir, pd.PackageName, "Makefile")}
+`,
+	}
+}
 
-		for _, dep := range bt.selectedDeps[pd] {
-			dependencies = append(dependencies, dep.PackageName)
-		}
+func createCheckTargetType(selection packageDefinitionList, ws *workspace,
+	selectedDeps map[*packageDefinition]packageDefinitionList,
+	globalTargetDeps []string) targetType {
 
-		buildTargets = append(buildTargets, target{
-			Target:       pd.PackageName,
-			Phony:        true,
-			Dependencies: dependencies,
-			MakeScript: fmt.Sprintf(scriptTemplate,
-				pd.PackageName)})
+	var selectedPkgNames []string
+
+	for _, pd := range selection {
+		selectedPkgNames = append(selectedPkgNames,
+			pd.PackageName)
 	}
 
-	return buildTargets, nil
-}
-
-type checkTarget struct {
-}
-
-func createCheckTargetType() targetType {
-	return &checkTarget{}
-}
-
-func (*checkTarget) name() string {
-	return "check"
-}
-
-func (*checkTarget) help() string {
-	return "Build and run unit tests for the selected packages."
-}
-
-func (*checkTarget) targets() ([]target, error) {
-	return nil, nil
+	return &postConfigureTarget{
+		configureTarget{
+			makeTargetData{"check", selection, ws},
+			selectedDeps,
+		},
+		"Build and run unit tests for the selected packages.",
+		"check_",
+		selectedPkgNames,
+		`	@echo '[check] %[1]s'
+	@cd '` + ws.buildDirRelativeToWorkspace() + `/%[1]s' && \
+	echo '--------------------------------' >> make_check.log && \
+	date >> make_check.log && \
+	echo '--------------------------------' >> make_check.log && \
+	$(MAKE) check >> make_check.log
+`,
+	}
 }

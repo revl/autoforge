@@ -44,6 +44,13 @@ func generateWorkspaceFiles(ws *workspace, pi *packageIndex,
 				dependentOnSelected[dep], pd)
 		}
 	}
+	var globalTargetDeps []string
+	for _, pd := range selection {
+		if len(dependentOnSelected[pd]) == 0 {
+			globalTargetDeps = append(globalTargetDeps,
+				pd.PackageName)
+		}
+	}
 
 	targetTypes = []targetType{
 		createHelpTargetType(func() []targetType {
@@ -52,8 +59,9 @@ func generateWorkspaceFiles(ws *workspace, pi *packageIndex,
 		createBootstrapTargetType(selection, ws),
 		createConfigureTargetType(selection, ws, selectedDeps),
 		createBuildTargetType(selection, ws, selectedDeps,
-			dependentOnSelected),
-		createCheckTargetType(),
+			globalTargetDeps),
+		createCheckTargetType(selection, ws, selectedDeps,
+			globalTargetDeps),
 	}
 
 	var targets []target
