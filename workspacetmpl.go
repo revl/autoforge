@@ -33,7 +33,6 @@ all: build
 
 func generateWorkspaceFiles(ws *workspace, pi *packageIndex,
 	selection packageDefinitionList, conftab *Conftab) error {
-	var targetTypes []targetType
 
 	selectedDeps := establishDependenciesInSelection(selection, pi)
 
@@ -52,27 +51,15 @@ func generateWorkspaceFiles(ws *workspace, pi *packageIndex,
 		}
 	}
 
-	targetTypes = []targetType{
-		createHelpTargetType(func() []targetType {
-			return targetTypes
-		}),
-		createBootstrapTargetType(selection, ws),
-		createConfigureTargetType(selection, ws, selectedDeps),
-		createBuildTargetType(selection, ws, selectedDeps,
-			globalTargetDeps),
-		createCheckTargetType(selection, ws, selectedDeps,
-			globalTargetDeps),
-	}
+	targets := []target{createHelpTarget()}
 
-	var targets []target
-
-	for _, gt := range targetTypes {
-		moreTargets, err := gt.targets()
-		if err != nil {
-			return err
-		}
-		targets = append(targets, moreTargets...)
-	}
+	targets = append(targets, createBootstrapTargets(selection, ws)...)
+	targets = append(targets, createConfigureTargets(selection, ws,
+		selectedDeps)...)
+	targets = append(targets, createBuildTargets(selection, ws,
+		selectedDeps, globalTargetDeps)...)
+	targets = append(targets, createCheckTargets(selection, ws,
+		selectedDeps, globalTargetDeps)...)
 
 	makefile := ws.wp.Makefile
 	if flags.makefile != "" {
