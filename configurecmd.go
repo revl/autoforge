@@ -137,16 +137,14 @@ func configurePackages(args []string) error {
 
 	buildDir := ws.buildDir()
 
-	configuredPackageDirs, err := ioutil.ReadDir(buildDir)
-	if err != nil {
-		return err
-	}
-
 	cfgEnv := prepareConfigureEnv(buildDir)
 
-	// Register packages that already exist in the build directory.
-	for _, dir := range configuredPackageDirs {
-		cfgEnv.addPackageBuildDir(dir.Name())
+	if configuredPackageDirs, err := ioutil.ReadDir(buildDir); err == nil {
+		// Register packages that already exist
+		// in the build directory.
+		for _, dir := range configuredPackageDirs {
+			cfgEnv.addPackageBuildDir(dir.Name())
+		}
 	}
 
 	var selection packageDefinitionList
@@ -164,7 +162,8 @@ func configurePackages(args []string) error {
 		cfgEnv.addPackageBuildDir(pd.PackageName)
 	}
 
-	conftab, err := readConftab(path.Join(ws.absPrivateDir, conftabFilename))
+	conftab, err := readConftab(
+		path.Join(ws.absPrivateDir, conftabFilename))
 	if err != nil {
 		return err
 	}
