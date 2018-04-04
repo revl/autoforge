@@ -178,3 +178,46 @@ func createCheckTargets(selection packageDefinitionList, ws *workspace,
 
 	return targets
 }
+
+func createInstallTargets(selection packageDefinitionList, ws *workspace,
+	selectedDeps map[*packageDefinition]packageDefinitionList,
+	globalTargetDeps []string) []target {
+
+	var selectedPkgNames []string
+
+	for _, dep := range globalTargetDeps {
+		selectedPkgNames = append(selectedPkgNames,
+			"install_"+dep)
+	}
+
+	targets := []target{target{"install", true, selectedPkgNames, ""}}
+
+	relBuildDir := ws.buildDirRelativeToWorkspace()
+
+	scriptTemplate := `	@echo '[install] %[1]s'
+	@cd '` + relBuildDir + `/%[1]s' && \
+	echo '--------------------------------' >> make_install.log && \
+	date >> make_install.log && \
+	echo '--------------------------------' >> make_install.log && \
+	$(MAKE) install >> make_install.log
+`
+
+	for _, pd := range selection {
+		dependencies := []string{
+			path.Join(relBuildDir, pd.PackageName, "Makefile")}
+
+		for _, dep := range selectedDeps[pd] {
+			dependencies = append(dependencies,
+				"install_"+dep.PackageName)
+		}
+
+		targets = append(targets, target{
+			Target:       "install_" + pd.PackageName,
+			Phony:        true,
+			Dependencies: dependencies,
+			MakeScript: fmt.Sprintf(scriptTemplate,
+				pd.PackageName)})
+	}
+
+	return targets
+}
