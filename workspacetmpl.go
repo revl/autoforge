@@ -59,9 +59,11 @@ func generateWorkspaceFiles(ws *workspace, pi *packageIndex,
 	targets = append(targets, createBuildTargets(selection, ws,
 		selectedDeps, globalTargetDeps)...)
 	targets = append(targets, createCheckTargets(selection, ws,
-		selectedDeps, globalTargetDeps)...)
+		selectedDeps)...)
 	targets = append(targets, createInstallTargets(selection, ws,
 		selectedDeps, globalTargetDeps)...)
+	targets = append(targets, createDistTargets(selection, ws,
+		selectedDeps)...)
 
 	makefile := ws.wp.Makefile
 	if flags.makefile != "" {

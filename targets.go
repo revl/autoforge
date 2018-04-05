@@ -138,8 +138,7 @@ func createBuildTargets(selection packageDefinitionList, ws *workspace,
 }
 
 func createCheckTargets(selection packageDefinitionList, ws *workspace,
-	selectedDeps map[*packageDefinition]packageDefinitionList,
-	globalTargetDeps []string) []target {
+	selectedDeps map[*packageDefinition]packageDefinitionList) []target {
 
 	var selectedPkgNames []string
 
@@ -217,6 +216,50 @@ func createInstallTargets(selection packageDefinitionList, ws *workspace,
 			Dependencies: dependencies,
 			MakeScript: fmt.Sprintf(scriptTemplate,
 				pd.PackageName)})
+	}
+
+	return targets
+}
+
+func createDistTargets(selection packageDefinitionList, ws *workspace,
+	selectedDeps map[*packageDefinition]packageDefinitionList) []target {
+	var selectedPkgNames []string
+
+	for _, pd := range selection {
+		selectedPkgNames = append(selectedPkgNames,
+			"dist_"+pd.PackageName)
+	}
+
+	targets := []target{target{"dist", true, selectedPkgNames, ""}}
+
+	relBuildDir := ws.buildDirRelativeToWorkspace()
+
+	scriptTemplate := `	@echo '[dist] %[1]s'
+	@cd '` + relBuildDir + `/%[1]s' && \
+	echo '--------------------------------' >> make_dist.log && \
+	date >> make_dist.log && \
+	echo '--------------------------------' >> make_dist.log && \
+	$(MAKE) dist >> make_dist.log
+	@mkdir -p dist
+	@mv '` + relBuildDir + `/%[1]s/%[1]s-%[2]s.tar.gz' dist/
+`
+
+	for _, pd := range selection {
+		dependencies := []string{
+			path.Join(relBuildDir, pd.PackageName, "Makefile")}
+
+		for _, dep := range selectedDeps[pd] {
+			dependencies = append(dependencies, path.Join(
+				relBuildDir, dep.PackageName, "Makefile"))
+		}
+
+		targets = append(targets, target{
+			Target:       "dist_" + pd.PackageName,
+			Phony:        true,
+			Dependencies: dependencies,
+			MakeScript: fmt.Sprintf(scriptTemplate,
+				pd.PackageName,
+				pd.params["version"])})
 	}
 
 	return targets
