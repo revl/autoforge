@@ -17,7 +17,40 @@ type target struct {
 	MakeScript   string
 }
 
-func createHelpTarget(ws *workspace) target {
+type makefileTargetCreator struct {
+	ws               *workspace
+	selection        packageDefinitionList
+	selectedDeps     map[*packageDefinition]packageDefinitionList
+	globalTargetDeps []string
+}
+
+func newMakefileTargetCreator(ws *workspace,
+	selection packageDefinitionList,
+	pi *packageIndex) *makefileTargetCreator {
+
+	selectedDeps := establishDependenciesInSelection(selection, pi)
+
+	dependentOnSelected := map[*packageDefinition]packageDefinitionList{}
+	for pd, deps := range selectedDeps {
+		for _, dep := range deps {
+			dependentOnSelected[dep] = append(
+				dependentOnSelected[dep], pd)
+		}
+	}
+
+	var globalTargetDeps []string
+	for _, pd := range selection {
+		if len(dependentOnSelected[pd]) == 0 {
+			globalTargetDeps = append(globalTargetDeps,
+				pd.PackageName)
+		}
+	}
+
+	return &makefileTargetCreator{ws, selection,
+		selectedDeps, globalTargetDeps}
+}
+
+func (mtc *makefileTargetCreator) createHelpTarget() target {
 	return target{
 		Target: "help",
 		Phony:  true,
@@ -51,7 +84,7 @@ func createHelpTarget(ws *workspace) target {
 	@echo
 	@echo "    install"
 	@echo "        Install package binaries and library headers into"
-	@echo "        '` + ws.installDir() + `'."
+	@echo "        '` + mtc.ws.installDir() + `'."
 	@echo
 	@echo "    dist"
 	@echo "        Create distribution tarballs and move them to the"
@@ -69,15 +102,14 @@ func selfPathnameRelativeToWorkspace(ws *workspace) string {
 	return ws.relativeToWorkspace(executable)
 }
 
-func createBootstrapTargets(selection packageDefinitionList,
-	ws *workspace) []target {
+func (mtc *makefileTargetCreator) createBootstrapTargets() []target {
 	var targets []target
 
-	pkgRootDir := ws.pkgRootDirRelativeToWorkspace()
+	pkgRootDir := mtc.ws.pkgRootDirRelativeToWorkspace()
 
-	cmd := "\t@" + selfPathnameRelativeToWorkspace(ws) + " bootstrap "
+	cmd := "\t@" + selfPathnameRelativeToWorkspace(mtc.ws) + " bootstrap "
 
-	for _, pd := range selection {
+	for _, pd := range mtc.selection {
 		configurePathname := path.Join(pkgRootDir,
 			pd.PackageName, "configure")
 		dependencies := []string{configurePathname + ".ac"}
@@ -91,22 +123,21 @@ func createBootstrapTargets(selection packageDefinitionList,
 	return targets
 }
 
-func createConfigureTargets(selection packageDefinitionList, ws *workspace,
-	selectedDeps map[*packageDefinition]packageDefinitionList) []target {
+func (mtc *makefileTargetCreator) createConfigureTargets() []target {
 	var targets []target
 
 	relativeConftabPathname := path.Join(privateDirName, conftabFilename)
 
-	relBuildDir := ws.buildDirRelativeToWorkspace()
-	pkgRootDir := ws.pkgRootDirRelativeToWorkspace()
+	relBuildDir := mtc.ws.buildDirRelativeToWorkspace()
+	pkgRootDir := mtc.ws.pkgRootDirRelativeToWorkspace()
 
-	cmd := "\t@" + selfPathnameRelativeToWorkspace(ws) + " configure "
+	cmd := "\t@" + selfPathnameRelativeToWorkspace(mtc.ws) + " configure "
 
-	for _, pd := range selection {
+	for _, pd := range mtc.selection {
 		dependencies := []string{relativeConftabPathname,
 			path.Join(pkgRootDir, pd.PackageName, "configure")}
 
-		for _, dep := range selectedDeps[pd] {
+		for _, dep := range mtc.selectedDeps[pd] {
 			dependencies = append(dependencies, path.Join(
 				relBuildDir, dep.PackageName, "Makefile"))
 		}
@@ -121,13 +152,11 @@ func createConfigureTargets(selection packageDefinitionList, ws *workspace,
 	return targets
 }
 
-func createBuildTargets(selection packageDefinitionList, ws *workspace,
-	selectedDeps map[*packageDefinition]packageDefinitionList,
-	globalTargetDeps []string) []target {
+func (mtc *makefileTargetCreator) createBuildTargets() []target {
 
-	targets := []target{target{"build", true, globalTargetDeps, ""}}
+	targets := []target{target{"build", true, mtc.globalTargetDeps, ""}}
 
-	relBuildDir := ws.buildDirRelativeToWorkspace()
+	relBuildDir := mtc.ws.buildDirRelativeToWorkspace()
 
 	scriptTemplate := `	@echo '[build] %[1]s'
 	@cd '` + relBuildDir + `/%[1]s' && \
@@ -137,11 +166,11 @@ func createBuildTargets(selection packageDefinitionList, ws *workspace,
 	$(MAKE) >> make.log
 `
 
-	for _, pd := range selection {
+	for _, pd := range mtc.selection {
 		dependencies := []string{
 			path.Join(relBuildDir, pd.PackageName, "Makefile")}
 
-		for _, dep := range selectedDeps[pd] {
+		for _, dep := range mtc.selectedDeps[pd] {
 			dependencies = append(dependencies, dep.PackageName)
 		}
 
@@ -156,19 +185,18 @@ func createBuildTargets(selection packageDefinitionList, ws *workspace,
 	return targets
 }
 
-func createCheckTargets(selection packageDefinitionList, ws *workspace,
-	selectedDeps map[*packageDefinition]packageDefinitionList) []target {
+func (mtc *makefileTargetCreator) createCheckTargets() []target {
 
 	var selectedPkgNames []string
 
-	for _, pd := range selection {
+	for _, pd := range mtc.selection {
 		selectedPkgNames = append(selectedPkgNames,
 			"check_"+pd.PackageName)
 	}
 
 	targets := []target{target{"check", true, selectedPkgNames, ""}}
 
-	relBuildDir := ws.buildDirRelativeToWorkspace()
+	relBuildDir := mtc.ws.buildDirRelativeToWorkspace()
 
 	scriptTemplate := `	@echo '[check] %[1]s'
 	@cd '` + relBuildDir + `/%[1]s' && \
@@ -178,11 +206,11 @@ func createCheckTargets(selection packageDefinitionList, ws *workspace,
 	$(MAKE) check >> make_check.log
 `
 
-	for _, pd := range selection {
+	for _, pd := range mtc.selection {
 		dependencies := []string{
 			path.Join(relBuildDir, pd.PackageName, "Makefile")}
 
-		for _, dep := range selectedDeps[pd] {
+		for _, dep := range mtc.selectedDeps[pd] {
 			dependencies = append(dependencies, dep.PackageName)
 		}
 
@@ -197,20 +225,18 @@ func createCheckTargets(selection packageDefinitionList, ws *workspace,
 	return targets
 }
 
-func createInstallTargets(selection packageDefinitionList, ws *workspace,
-	selectedDeps map[*packageDefinition]packageDefinitionList,
-	globalTargetDeps []string) []target {
+func (mtc *makefileTargetCreator) createInstallTargets() []target {
 
 	var selectedPkgNames []string
 
-	for _, dep := range globalTargetDeps {
+	for _, dep := range mtc.globalTargetDeps {
 		selectedPkgNames = append(selectedPkgNames,
 			"install_"+dep)
 	}
 
 	targets := []target{target{"install", true, selectedPkgNames, ""}}
 
-	relBuildDir := ws.buildDirRelativeToWorkspace()
+	relBuildDir := mtc.ws.buildDirRelativeToWorkspace()
 
 	scriptTemplate := `	@echo '[install] %[1]s'
 	@cd '` + relBuildDir + `/%[1]s' && \
@@ -220,11 +246,11 @@ func createInstallTargets(selection packageDefinitionList, ws *workspace,
 	$(MAKE) install >> make_install.log
 `
 
-	for _, pd := range selection {
+	for _, pd := range mtc.selection {
 		dependencies := []string{
 			path.Join(relBuildDir, pd.PackageName, "Makefile")}
 
-		for _, dep := range selectedDeps[pd] {
+		for _, dep := range mtc.selectedDeps[pd] {
 			dependencies = append(dependencies,
 				"install_"+dep.PackageName)
 		}
@@ -240,18 +266,17 @@ func createInstallTargets(selection packageDefinitionList, ws *workspace,
 	return targets
 }
 
-func createDistTargets(selection packageDefinitionList, ws *workspace,
-	selectedDeps map[*packageDefinition]packageDefinitionList) []target {
+func (mtc *makefileTargetCreator) createDistTargets() []target {
 	var selectedPkgNames []string
 
-	for _, pd := range selection {
+	for _, pd := range mtc.selection {
 		selectedPkgNames = append(selectedPkgNames,
 			"dist_"+pd.PackageName)
 	}
 
 	targets := []target{target{"dist", true, selectedPkgNames, ""}}
 
-	relBuildDir := ws.buildDirRelativeToWorkspace()
+	relBuildDir := mtc.ws.buildDirRelativeToWorkspace()
 
 	scriptTemplate := `	@echo '[dist] %[1]s'
 	@cd '` + relBuildDir + `/%[1]s' && \
@@ -263,11 +288,11 @@ func createDistTargets(selection packageDefinitionList, ws *workspace,
 	@mv '` + relBuildDir + `/%[1]s/%[1]s-%[2]s.tar.gz' dist/
 `
 
-	for _, pd := range selection {
+	for _, pd := range mtc.selection {
 		dependencies := []string{
 			path.Join(relBuildDir, pd.PackageName, "Makefile")}
 
-		for _, dep := range selectedDeps[pd] {
+		for _, dep := range mtc.selectedDeps[pd] {
 			dependencies = append(dependencies, path.Join(
 				relBuildDir, dep.PackageName, "Makefile"))
 		}

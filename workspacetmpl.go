@@ -34,36 +34,15 @@ all: build
 func generateWorkspaceFiles(ws *workspace, pi *packageIndex,
 	selection packageDefinitionList, conftab *Conftab) error {
 
-	selectedDeps := establishDependenciesInSelection(selection, pi)
+	mtc := newMakefileTargetCreator(ws, selection, pi)
 
-	dependentOnSelected := map[*packageDefinition]packageDefinitionList{}
-	for pd, deps := range selectedDeps {
-		for _, dep := range deps {
-			dependentOnSelected[dep] = append(
-				dependentOnSelected[dep], pd)
-		}
-	}
-	var globalTargetDeps []string
-	for _, pd := range selection {
-		if len(dependentOnSelected[pd]) == 0 {
-			globalTargetDeps = append(globalTargetDeps,
-				pd.PackageName)
-		}
-	}
-
-	targets := []target{createHelpTarget(ws)}
-
-	targets = append(targets, createBootstrapTargets(selection, ws)...)
-	targets = append(targets, createConfigureTargets(selection, ws,
-		selectedDeps)...)
-	targets = append(targets, createBuildTargets(selection, ws,
-		selectedDeps, globalTargetDeps)...)
-	targets = append(targets, createCheckTargets(selection, ws,
-		selectedDeps)...)
-	targets = append(targets, createInstallTargets(selection, ws,
-		selectedDeps, globalTargetDeps)...)
-	targets = append(targets, createDistTargets(selection, ws,
-		selectedDeps)...)
+	targets := []target{mtc.createHelpTarget()}
+	targets = append(targets, mtc.createBootstrapTargets()...)
+	targets = append(targets, mtc.createConfigureTargets()...)
+	targets = append(targets, mtc.createBuildTargets()...)
+	targets = append(targets, mtc.createCheckTargets()...)
+	targets = append(targets, mtc.createInstallTargets()...)
+	targets = append(targets, mtc.createDistTargets()...)
 
 	makefile := ws.wp.Makefile
 	if flags.makefile != "" {
