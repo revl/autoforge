@@ -86,7 +86,7 @@ func (ce *configureEnv) makeEnv(pd *packageDefinition) []string {
 		pkgConfigPathVarName+"="+pkgConfigPath)
 }
 
-func configurePackage(workspaceDir, pkgRootDir string, pd *packageDefinition,
+func configurePackage(installDir, pkgRootDir string, pd *packageDefinition,
 	cfgEnv *configureEnv, conftab *Conftab) error {
 	fmt.Println("[configure] " + pd.PackageName)
 
@@ -104,12 +104,6 @@ func configurePackage(workspaceDir, pkgRootDir string, pd *packageDefinition,
 	}
 
 	configureArgs := conftab.getConfigureArgs(pd.PackageName)
-
-	installDir := flags.installDir
-	if installDir == "" {
-		installDir = workspaceDir
-	}
-
 	configureArgs = append(configureArgs, "--quiet", "--prefix="+installDir)
 
 	configureCmd := exec.Command(configurePathname, configureArgs...)
@@ -168,10 +162,11 @@ func configurePackages(args []string) error {
 		return err
 	}
 
+	installDir := ws.installDir()
 	pkgRootDir := ws.generatedPkgRootDir()
 
 	for _, pd := range selection {
-		err := configurePackage(ws.absDir, pkgRootDir, pd,
+		err := configurePackage(installDir, pkgRootDir, pd,
 			cfgEnv, conftab)
 		if err != nil {
 			return err

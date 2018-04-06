@@ -77,6 +77,15 @@ func (ws *workspace) buildDir() string {
 	return path.Join(ws.absPrivateDir, "build")
 }
 
+// installDir returns the absolute pathname of the directory
+// where to install the built binaries and library headers.
+func (ws *workspace) installDir() string {
+	if flags.installDir != "" {
+		return flags.installDir
+	}
+	return ws.absDir
+}
+
 // relativeToWorkspace returns an equivalent of 'absPath'
 // that is relative to the workspace directory.
 func (ws *workspace) relativeToWorkspace(absPath string) string {

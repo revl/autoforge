@@ -51,7 +51,7 @@ func generateWorkspaceFiles(ws *workspace, pi *packageIndex,
 		}
 	}
 
-	targets := []target{createHelpTarget()}
+	targets := []target{createHelpTarget(ws)}
 
 	targets = append(targets, createBootstrapTargets(selection, ws)...)
 	targets = append(targets, createConfigureTargets(selection, ws,

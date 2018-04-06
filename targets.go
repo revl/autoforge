@@ -17,7 +17,7 @@ type target struct {
 	MakeScript   string
 }
 
-func createHelpTarget() target {
+func createHelpTarget(ws *workspace) target {
 	return target{
 		Target: "help",
 		Phony:  true,
@@ -30,6 +30,17 @@ func createHelpTarget() target {
 	@echo "        '--` + maketargetOption +
 			`' option, this is the default target."
 	@echo
+	@echo "    bootstrap"
+	@echo "        Create (or update) the 'configure' scripts for"
+	@echo "        all selected packages."
+	@echo
+	@echo "    configure"
+	@echo "        Configure the selected packages using the current"
+	@echo "        conftab and generate makefiles for building them."
+	@echo "        To change configuration options, run"
+	@echo
+	@echo "            ` + appName + " " + conftabCmdName + `"
+	@echo
 	@echo "    build"
 	@echo "        Build (compile and link) the selected packages. For"
 	@echo "        the packages that have not been configured, the"
@@ -37,6 +48,14 @@ func createHelpTarget() target {
 	@echo
 	@echo "    check"
 	@echo "        Build and run unit tests for the selected packages."
+	@echo
+	@echo "    install"
+	@echo "        Install package binaries and library headers into"
+	@echo "        '` + ws.installDir() + `'."
+	@echo
+	@echo "    dist"
+	@echo "        Create distribution tarballs and move them to the"
+	@echo "        'dist' subdirectory of the workspace."
 	@echo
 `}
 }
