@@ -34,16 +34,6 @@ all: build
 func generateWorkspaceFiles(ws *workspace, pi *packageIndex,
 	selection packageDefinitionList, conftab *Conftab) error {
 
-	mtc := newMakefileTargetCreator(ws, selection, pi)
-
-	targets := []target{mtc.createHelpTarget()}
-	targets = append(targets, mtc.createBootstrapTargets()...)
-	targets = append(targets, mtc.createConfigureTargets()...)
-	targets = append(targets, mtc.createBuildTargets()...)
-	targets = append(targets, mtc.createCheckTargets()...)
-	targets = append(targets, mtc.createInstallTargets()...)
-	targets = append(targets, mtc.createDistTargets()...)
-
 	makefile := ws.wp.Makefile
 	if flags.makefile != "" {
 		makefile = flags.makefile
@@ -63,7 +53,7 @@ func generateWorkspaceFiles(ws *workspace, pi *packageIndex,
 		"default_target": defaultTarget,
 		"selection":      selection,
 		"conftab":        conftab,
-		"targets":        targets,
+		"targets":        createMakefileTargets(ws, selection, pi),
 	}
 
 	for _, templateFile := range workspaceTemplate {
