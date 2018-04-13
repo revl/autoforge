@@ -19,6 +19,8 @@ type target struct {
 
 type makefileTargetCollector struct {
 	ws               *workspace
+	relBuildDir      string
+	pkgRootDir       string
 	selection        packageDefinitionList
 	selectedDeps     map[*packageDefinition]packageDefinitionList
 	globalTargetDeps []string
@@ -46,8 +48,10 @@ func createMakefileTargets(ws *workspace, selection packageDefinitionList,
 		}
 	}
 
-	mtc := &makefileTargetCollector{ws, selection,
-		selectedDeps, globalTargetDeps, []target{}}
+	mtc := &makefileTargetCollector{ws,
+		ws.buildDirRelativeToWorkspace(),
+		ws.pkgRootDirRelativeToWorkspace(),
+		selection, selectedDeps, globalTargetDeps, nil}
 
 	mtc.addHelpTarget()
 	mtc.addBootstrapTargets()
@@ -60,21 +64,29 @@ func createMakefileTargets(ws *workspace, selection packageDefinitionList,
 	return mtc.targets
 }
 
-func (mtc *makefileTargetCollector) addTarget(t target) {
-	mtc.targets = append(mtc.targets, t)
+func (mtc *makefileTargetCollector) makefileFor(pd *packageDefinition) string {
+	return path.Join(mtc.relBuildDir, pd.PackageName, "Makefile")
+}
+
+func (mtc *makefileTargetCollector) configureFor(pd *packageDefinition) string {
+	return path.Join(mtc.pkgRootDir, pd.PackageName, "configure")
+}
+
+func (mtc *makefileTargetCollector) addTarget(name string, phony bool,
+	dependencies []string, makeScript string) {
+	mtc.targets = append(mtc.targets,
+		target{name, phony, dependencies, makeScript})
 }
 
 func (mtc *makefileTargetCollector) addHelpTarget() {
-	mtc.addTarget(target{
-		Target: "help",
-		Phony:  true,
-		MakeScript: `	@echo "Usage:"
+	mtc.addTarget("help", true, nil,
+		`	@echo "Usage:"
 	@echo "    make [target...]"
 	@echo
 	@echo "Global targets:"
 	@echo "    help"
 	@echo "        Display this help message. Unless overridden by the"
-	@echo "        '--` + maketargetOption +
+	@echo "        '--`+maketargetOption+
 			`' option, this is the default target."
 	@echo
 	@echo "    bootstrap"
@@ -86,7 +98,7 @@ func (mtc *makefileTargetCollector) addHelpTarget() {
 	@echo "        conftab and generate makefiles for building them."
 	@echo "        To change configuration options, run"
 	@echo
-	@echo "            ` + appName + " " + conftabCmdName + `"
+	@echo "            `+appName+" "+conftabCmdName+`"
 	@echo
 	@echo "    build"
 	@echo "        Build (compile and link) the selected packages. For"
@@ -98,13 +110,13 @@ func (mtc *makefileTargetCollector) addHelpTarget() {
 	@echo
 	@echo "    install"
 	@echo "        Install package binaries and library headers into"
-	@echo "        '` + mtc.ws.installDir() + `'."
+	@echo "        '`+mtc.ws.installDir()+`'."
 	@echo
 	@echo "    dist"
 	@echo "        Create distribution tarballs and move them to the"
 	@echo "        'dist' subdirectory of the workspace."
 	@echo
-`})
+`)
 }
 
 func selfPathnameRelativeToWorkspace(ws *workspace) string {
@@ -117,79 +129,70 @@ func selfPathnameRelativeToWorkspace(ws *workspace) string {
 }
 
 func (mtc *makefileTargetCollector) addBootstrapTargets() {
-	pkgRootDir := mtc.ws.pkgRootDirRelativeToWorkspace()
-
 	cmd := "\t@" + selfPathnameRelativeToWorkspace(mtc.ws) + " bootstrap "
 
 	for _, pd := range mtc.selection {
-		configurePathname := path.Join(pkgRootDir,
-			pd.PackageName, "configure")
-		dependencies := []string{configurePathname + ".ac"}
+		configurePathname := mtc.configureFor(pd)
 
-		mtc.addTarget(target{
-			Target:       configurePathname,
-			Dependencies: dependencies,
-			MakeScript:   cmd + pd.PackageName + "\n"})
+		mtc.addTarget(configurePathname, false,
+			[]string{configurePathname + ".ac"},
+			cmd+pd.PackageName+"\n")
 	}
 }
 
 func (mtc *makefileTargetCollector) addConfigureTargets() {
 	relativeConftabPathname := path.Join(privateDirName, conftabFilename)
 
-	relBuildDir := mtc.ws.buildDirRelativeToWorkspace()
-	pkgRootDir := mtc.ws.pkgRootDirRelativeToWorkspace()
-
 	cmd := "\t@" + selfPathnameRelativeToWorkspace(mtc.ws) + " configure "
 
 	for _, pd := range mtc.selection {
 		dependencies := []string{relativeConftabPathname,
-			path.Join(pkgRootDir, pd.PackageName, "configure")}
+			mtc.configureFor(pd)}
 
 		for _, dep := range mtc.selectedDeps[pd] {
-			dependencies = append(dependencies, path.Join(
-				relBuildDir, dep.PackageName, "Makefile"))
+			dependencies = append(dependencies,
+				mtc.makefileFor(dep))
 		}
 
-		mtc.addTarget(target{
-			Target: path.Join(relBuildDir,
-				pd.PackageName, "Makefile"),
-			Dependencies: dependencies,
-			MakeScript:   cmd + pd.PackageName + "\n"})
+		mtc.addTarget(mtc.makefileFor(pd), false,
+			dependencies, cmd+pd.PackageName+"\n")
 	}
 }
 
+func (mtc *makefileTargetCollector) scriptTemplate(targetName,
+	projectTarget string) string {
+	var logFileSuffix string
+	if projectTarget != "" {
+		logFileSuffix = "_" + projectTarget
+		projectTarget = " " + projectTarget
+	}
+	return fmt.Sprintf(`	@echo '[%[1]s] %%[1]s'
+	@cd '`+mtc.relBuildDir+`/%%[1]s' && \
+	echo '--------------------------------' >> make%[2]s.log && \
+	date >> make%[2]s.log && \
+	echo '--------------------------------' >> make%[2]s.log && \
+	$(MAKE)%[3]s >> make%[2]s.log
+`, targetName, logFileSuffix, projectTarget)
+}
+
 func (mtc *makefileTargetCollector) addBuildTargets() {
-	mtc.addTarget(target{"build", true, mtc.globalTargetDeps, ""})
+	mtc.addTarget("build", true, mtc.globalTargetDeps, "")
 
-	relBuildDir := mtc.ws.buildDirRelativeToWorkspace()
-
-	scriptTemplate := `	@echo '[build] %[1]s'
-	@cd '` + relBuildDir + `/%[1]s' && \
-	echo '--------------------------------' >> make.log && \
-	date >> make.log && \
-	echo '--------------------------------' >> make.log && \
-	$(MAKE) >> make.log
-`
+	scriptTemplate := mtc.scriptTemplate("build", "")
 
 	for _, pd := range mtc.selection {
-		dependencies := []string{
-			path.Join(relBuildDir, pd.PackageName, "Makefile")}
+		dependencies := []string{mtc.makefileFor(pd)}
 
 		for _, dep := range mtc.selectedDeps[pd] {
 			dependencies = append(dependencies, dep.PackageName)
 		}
 
-		mtc.addTarget(target{
-			Target:       pd.PackageName,
-			Phony:        true,
-			Dependencies: dependencies,
-			MakeScript: fmt.Sprintf(scriptTemplate,
-				pd.PackageName)})
+		mtc.addTarget(pd.PackageName, true, dependencies,
+			fmt.Sprintf(scriptTemplate, pd.PackageName))
 	}
 }
 
 func (mtc *makefileTargetCollector) addCheckTargets() {
-
 	var selectedPkgNames []string
 
 	for _, pd := range mtc.selection {
@@ -197,37 +200,23 @@ func (mtc *makefileTargetCollector) addCheckTargets() {
 			"check_"+pd.PackageName)
 	}
 
-	mtc.addTarget(target{"check", true, selectedPkgNames, ""})
+	mtc.addTarget("check", true, selectedPkgNames, "")
 
-	relBuildDir := mtc.ws.buildDirRelativeToWorkspace()
-
-	scriptTemplate := `	@echo '[check] %[1]s'
-	@cd '` + relBuildDir + `/%[1]s' && \
-	echo '--------------------------------' >> make_check.log && \
-	date >> make_check.log && \
-	echo '--------------------------------' >> make_check.log && \
-	$(MAKE) check >> make_check.log
-`
+	scriptTemplate := mtc.scriptTemplate("check", "check")
 
 	for _, pd := range mtc.selection {
-		dependencies := []string{
-			path.Join(relBuildDir, pd.PackageName, "Makefile")}
+		dependencies := []string{mtc.makefileFor(pd)}
 
 		for _, dep := range mtc.selectedDeps[pd] {
 			dependencies = append(dependencies, dep.PackageName)
 		}
 
-		mtc.addTarget(target{
-			Target:       "check_" + pd.PackageName,
-			Phony:        true,
-			Dependencies: dependencies,
-			MakeScript: fmt.Sprintf(scriptTemplate,
-				pd.PackageName)})
+		mtc.addTarget("check_"+pd.PackageName, true, dependencies,
+			fmt.Sprintf(scriptTemplate, pd.PackageName))
 	}
 }
 
 func (mtc *makefileTargetCollector) addInstallTargets() {
-
 	var selectedPkgNames []string
 
 	for _, dep := range mtc.globalTargetDeps {
@@ -235,33 +224,20 @@ func (mtc *makefileTargetCollector) addInstallTargets() {
 			"install_"+dep)
 	}
 
-	mtc.addTarget(target{"install", true, selectedPkgNames, ""})
+	mtc.addTarget("install", true, selectedPkgNames, "")
 
-	relBuildDir := mtc.ws.buildDirRelativeToWorkspace()
-
-	scriptTemplate := `	@echo '[install] %[1]s'
-	@cd '` + relBuildDir + `/%[1]s' && \
-	echo '--------------------------------' >> make_install.log && \
-	date >> make_install.log && \
-	echo '--------------------------------' >> make_install.log && \
-	$(MAKE) install >> make_install.log
-`
+	scriptTemplate := mtc.scriptTemplate("install", "install")
 
 	for _, pd := range mtc.selection {
-		dependencies := []string{
-			path.Join(relBuildDir, pd.PackageName, "Makefile")}
+		dependencies := []string{mtc.makefileFor(pd)}
 
 		for _, dep := range mtc.selectedDeps[pd] {
 			dependencies = append(dependencies,
 				"install_"+dep.PackageName)
 		}
 
-		mtc.addTarget(target{
-			Target:       "install_" + pd.PackageName,
-			Phony:        true,
-			Dependencies: dependencies,
-			MakeScript: fmt.Sprintf(scriptTemplate,
-				pd.PackageName)})
+		mtc.addTarget("install_"+pd.PackageName, true, dependencies,
+			fmt.Sprintf(scriptTemplate, pd.PackageName))
 	}
 }
 
@@ -273,35 +249,23 @@ func (mtc *makefileTargetCollector) addDistTargets() {
 			"dist_"+pd.PackageName)
 	}
 
-	mtc.addTarget(target{"dist", true, selectedPkgNames, ""})
+	mtc.addTarget("dist", true, selectedPkgNames, "")
 
-	relBuildDir := mtc.ws.buildDirRelativeToWorkspace()
-
-	scriptTemplate := `	@echo '[dist] %[1]s'
-	@cd '` + relBuildDir + `/%[1]s' && \
-	echo '--------------------------------' >> make_dist.log && \
-	date >> make_dist.log && \
-	echo '--------------------------------' >> make_dist.log && \
-	$(MAKE) dist >> make_dist.log
-	@mkdir -p dist
-	@mv '` + relBuildDir + `/%[1]s/%[1]s-%[2]s.tar.gz' dist/
+	scriptTemplate := mtc.scriptTemplate("dist", "dist") +
+		`	@mkdir -p dist
+	@mv '` + mtc.relBuildDir + `/%[1]s/%[1]s-%[2]s.tar.gz' dist/
 `
 
 	for _, pd := range mtc.selection {
-		dependencies := []string{
-			path.Join(relBuildDir, pd.PackageName, "Makefile")}
+		dependencies := []string{mtc.makefileFor(pd)}
 
 		for _, dep := range mtc.selectedDeps[pd] {
-			dependencies = append(dependencies, path.Join(
-				relBuildDir, dep.PackageName, "Makefile"))
+			dependencies = append(dependencies,
+				mtc.makefileFor(dep))
 		}
 
-		mtc.addTarget(target{
-			Target:       "dist_" + pd.PackageName,
-			Phony:        true,
-			Dependencies: dependencies,
-			MakeScript: fmt.Sprintf(scriptTemplate,
-				pd.PackageName,
-				pd.params["version"])})
+		mtc.addTarget("dist_"+pd.PackageName, true, dependencies,
+			fmt.Sprintf(scriptTemplate, pd.PackageName,
+				pd.params["version"]))
 	}
 }
