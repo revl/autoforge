@@ -26,9 +26,16 @@ func initWorkspace() error {
 		return errors.New("workspace already initialized")
 	}
 
-	pkgpath, err := getPackagePathFromEnvironment()
+	pkgpath, err := getPkgPathFlag()
 	if err != nil {
 		return err
+	}
+	if pkgpath == "" {
+		pkgpath = os.Getenv(pkgPathEnvVar)
+		if pkgpath == "" {
+			return errors.New("--pkgpath is not given and $" +
+				pkgPathEnvVar + " is not defined")
+		}
 	}
 
 	buildDir, err := absIfNotEmpty(flags.buildDir)

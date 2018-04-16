@@ -5,6 +5,9 @@
 package main
 
 import (
+	"path/filepath"
+	"strings"
+
 	"github.com/spf13/cobra"
 )
 
@@ -27,6 +30,26 @@ func addQuietFlag(c *cobra.Command) {
 func addPkgPathFlag(c *cobra.Command) {
 	c.Flags().StringVar(&flags.pkgPath, "pkgpath", "",
 		"the list of directories where to search for packages")
+}
+
+func getPkgPathFlag() (string, error) {
+	pkgpath := flags.pkgPath
+	if pkgpath == "" {
+		return "", nil
+	}
+
+	var absPaths []string
+	for _, colonSeparated := range strings.Split(pkgpath, ":") {
+		if colonSeparated != "" {
+			absPath, err := filepath.Abs(colonSeparated)
+			if err != nil {
+				return "", err
+			}
+			absPaths = append(absPaths, absPath)
+		}
+	}
+
+	return strings.Join(absPaths, ":"), nil
 }
 
 func addWorkspaceDirFlag(c *cobra.Command) {

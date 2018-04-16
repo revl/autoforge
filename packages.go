@@ -135,36 +135,19 @@ func (pi *packageIndex) getPackageByName(pkgName string) (
 	return nil, errors.New("no such package: " + pkgName)
 }
 
-func getPackagePathFromEnvironment() (string, error) {
-	if pkgpath := flags.pkgPath; pkgpath != "" {
-		return pkgpath, nil
-	}
-
-	if pkgpath := os.Getenv(pkgPathEnvVar); pkgpath != "" {
-		return pkgpath, nil
-	}
-
-	return "", errors.New("--pkgpath is not given and $" +
-		pkgPathEnvVar + " is not defined")
-}
-
-func getPackagePathFromWorkspaceOrEnvironment(
-	wp *workspaceParams) (string, error) {
-
-	if wp.PkgPath != "" {
-		return wp.PkgPath, nil
-	}
-
-	return getPackagePathFromEnvironment()
-}
-
 func readPackageDefinitions(wp *workspaceParams) (*packageIndex, error) {
 	var packages packageDefinitionList
 	dependencies := [][]string{}
 
-	pkgpath, err := getPackagePathFromWorkspaceOrEnvironment(wp)
-	if err != nil {
-		return nil, err
+	pkgpath := flags.pkgPath
+	if pkgpath == "" {
+		pkgpath = wp.PkgPath
+	} else {
+		var err error
+		pkgpath, err = getPkgPathFlag()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	pkgpathDirs := append(strings.Split(pkgpath, ":"),
