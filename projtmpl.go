@@ -11,6 +11,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"sort"
 	"strings"
 )
 
@@ -24,7 +25,7 @@ func processAllFiles(sourceDir, targetDir string,
 	processFile fileProcessor) error {
 
 	sourceDir = filepath.Clean(sourceDir)
-	sourceDirWithSlash := sourceDir + string(filepath.Separator)
+	sourceDirWithSlash := sourceDir + "/"
 
 	return filepath.Walk(sourceDir, func(sourcePathname string,
 		info os.FileInfo, err error) error {
@@ -63,17 +64,115 @@ func processAllFiles(sourceDir, targetDir string,
 	})
 }
 
-type filesFromSourceDir map[string]struct{}
+type directoryTree struct {
+	entries map[string]*directoryTree
+}
+
+func newDirectoryTree() *directoryTree {
+	return &directoryTree{make(map[string]*directoryTree)}
+}
+
+func (dirTree *directoryTree) addFile(filePath string) {
+	pathComponents := strings.Split(filePath, "/")
+
+	nComp := len(pathComponents)
+	if nComp == 0 {
+		return
+	}
+
+	node := dirTree
+
+	for _, pathComponent := range pathComponents[:nComp-1] {
+		child := node.entries[pathComponent]
+		if child == nil {
+			child = newDirectoryTree()
+			node.entries[pathComponent] = child
+		}
+		node = child
+	}
+
+	node.entries[pathComponents[nComp-1]] = nil
+}
+
+func (dirTree *directoryTree) hasFile(filePath string) bool {
+	pathComponents := strings.Split(filePath, "/")
+
+	nComp := len(pathComponents)
+	if nComp == 0 {
+		return false
+	}
+
+	node := dirTree
+
+	for _, pathComponent := range pathComponents[:nComp-1] {
+		child := node.entries[pathComponent]
+		if child == nil {
+			return false
+		}
+		node = child
+	}
+
+	return node.entries[pathComponents[nComp-1]] == nil
+}
+
+func (dirTree *directoryTree) subtree(filePath string) *directoryTree {
+	node := dirTree
+
+	for _, pathComponent := range strings.Split(filePath, "/") {
+		if pathComponent == "." {
+			continue
+		}
+		child := node.entries[pathComponent]
+		if child == nil {
+			return nil
+		}
+		node = child
+	}
+
+	return node
+}
+
+func listFiles(basePath string, dirTree *directoryTree) []string {
+	var list []string
+
+	basePath += "/"
+
+	for entry, child := range dirTree.entries {
+		if child == nil {
+			list = append(list, basePath+entry)
+		} else {
+			list = append(list, listFiles(basePath+entry, child)...)
+		}
+	}
+
+	return list
+}
+
+func (dirTree *directoryTree) list() []string {
+	var list []string
+
+	for entry, child := range dirTree.entries {
+		if child == nil {
+			list = append(list, entry)
+		} else {
+			list = append(list, listFiles(entry, child)...)
+		}
+	}
+
+	sort.Strings(list)
+
+	return list
+}
 
 func linkFilesFromSourceDir(pd *packageDefinition,
-	projectDir string) (filesFromSourceDir, bool, error) {
-	sourceFiles := make(filesFromSourceDir)
+	projectDir string) (*directoryTree, bool, error) {
+	dirTree := newDirectoryTree()
 	sourceDir := filepath.Dir(pd.pathname)
 	changesMade := false
 
 	linkFile := func(sourcePathname, relativePathname string,
 		sourceFileInfo os.FileInfo) error {
-		sourceFiles[relativePathname] = struct{}{}
+		dirTree.addFile(relativePathname)
 		targetPathname := path.Join(projectDir, relativePathname)
 		targetFileInfo, err := os.Lstat(targetPathname)
 		if err == nil {
@@ -108,7 +207,7 @@ func linkFilesFromSourceDir(pd *packageDefinition,
 
 	err := processAllFiles(sourceDir, projectDir, linkFile)
 
-	return sourceFiles, changesMade, err
+	return dirTree, changesMade, err
 }
 
 // generateBuildFilesFromProjectTemplate generates an output file inside
@@ -117,14 +216,14 @@ func linkFilesFromSourceDir(pd *packageDefinition,
 func generateBuildFilesFromProjectTemplate(templateDir,
 	projectDir string, pd *packageDefinition) (bool, error) {
 
-	sourceFiles, changesMade, err := linkFilesFromSourceDir(pd, projectDir)
+	dirTree, changesMade, err := linkFilesFromSourceDir(pd, projectDir)
 	if err != nil {
 		return false, err
 	}
 
 	generateFile := func(sourcePathname, relativePathname string,
 		sourceFileInfo os.FileInfo) error {
-		if _, sourceFile := sourceFiles[relativePathname]; sourceFile {
+		if dirTree.hasFile(relativePathname) {
 			return nil
 		}
 
@@ -138,7 +237,7 @@ func generateBuildFilesFromProjectTemplate(templateDir,
 
 		filesUpdated, err := generateFilesFromProjectFileTemplate(
 			projectDir, relativePathname, templateContents,
-			sourceFileInfo.Mode(), pd, sourceFiles)
+			sourceFileInfo.Mode(), pd, dirTree)
 		if err != nil {
 			return err
 		}
@@ -166,19 +265,19 @@ type embeddedTemplateFile struct {
 func generateBuildFilesFromEmbeddedTemplate(t []embeddedTemplateFile,
 	projectDir string, pd *packageDefinition) (bool, error) {
 
-	sourceFiles, changesMade, err := linkFilesFromSourceDir(pd, projectDir)
+	dirTree, changesMade, err := linkFilesFromSourceDir(pd, projectDir)
 	if err != nil {
 		return false, err
 	}
 
 	for _, fileInfo := range append(t, commonTemplateFiles...) {
-		if _, exists := sourceFiles[fileInfo.pathname]; exists {
+		if dirTree.hasFile(fileInfo.pathname) {
 			continue
 		}
 
 		filesUpdated, err := generateFilesFromProjectFileTemplate(
 			projectDir, fileInfo.pathname, fileInfo.contents,
-			fileInfo.mode, pd, sourceFiles)
+			fileInfo.mode, pd, dirTree)
 		if err != nil {
 			return false, err
 		}

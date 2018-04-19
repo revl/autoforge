@@ -12,7 +12,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"sort"
 	"strings"
 	"text/template"
 )
@@ -150,7 +149,7 @@ var templateErrorMarker = "AFTMPLERR"
 
 func executePackageFileTemplate(templateName string,
 	templateContents []byte, pd *packageDefinition,
-	sourceFiles filesFromSourceDir) ([]filenameAndContents, error) {
+	dirTree *directoryTree) ([]filenameAndContents, error) {
 
 	funcMap := template.FuncMap{
 		"Error": func(errorMessage string) (string, error) {
@@ -158,20 +157,7 @@ func executePackageFileTemplate(templateName string,
 				pd.PackageName + ": " + errorMessage)
 		},
 		"Dir": func(root string) []string {
-			root += string(filepath.Separator)
-
-			var filtered []string
-
-			for sourceFile := range sourceFiles {
-				if strings.HasPrefix(sourceFile, root) {
-					filtered = append(filtered,
-						sourceFile[len(root):])
-				}
-			}
-
-			sort.Strings(filtered)
-
-			return filtered
+			return dirTree.subtree(root).list()
 		}}
 
 	return parseAndExecuteTemplate(templateName, templateContents,
@@ -232,10 +218,10 @@ func writeGeneratedFiles(targetDir string, outputFiles []filenameAndContents,
 
 func generateFilesFromProjectFileTemplate(projectDir, templateName string,
 	templateContents []byte, templateFileMode os.FileMode,
-	pd *packageDefinition, sourceFiles filesFromSourceDir) (bool, error) {
+	pd *packageDefinition, dirTree *directoryTree) (bool, error) {
 
 	outputFiles, err := executePackageFileTemplate(templateName,
-		templateContents, pd, sourceFiles)
+		templateContents, pd, dirTree)
 
 	if err != nil {
 		if err, ok := err.(template.ExecError); ok {
