@@ -112,7 +112,8 @@ func (dirTree *directoryTree) hasFile(filePath string) bool {
 		node = child
 	}
 
-	return node.entries[pathComponents[nComp-1]] == nil
+	entry, entryExists := node.entries[pathComponents[nComp-1]]
+	return entryExists && entry == nil
 }
 
 func (dirTree *directoryTree) subtree(filePath string) *directoryTree {
