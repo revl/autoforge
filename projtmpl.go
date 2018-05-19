@@ -211,6 +211,17 @@ func linkFilesFromSourceDir(pd *packageDefinition,
 	return dirTree, changesMade, err
 }
 
+func pathnamesNotInDir(pathnameTemplate string, params templateParams,
+	dirTree *directoryTree) []outputFileParams {
+	var fileParams []outputFileParams
+	for _, fp := range expandPathnameTemplate(pathnameTemplate, params) {
+		if !dirTree.hasFile(fp.filename) {
+			fileParams = append(fileParams, fp)
+		}
+	}
+	return fileParams
+}
+
 // generateBuildFilesFromProjectTemplate generates an output file inside
 // 'projectDir' with the same relative pathname as the respective source
 // file in 'templateDir'.
@@ -224,7 +235,10 @@ func generateBuildFilesFromProjectTemplate(templateDir,
 
 	generateFile := func(sourcePathname, relativePathname string,
 		sourceFileInfo os.FileInfo) error {
-		if dirTree.hasFile(relativePathname) {
+		fileParams := pathnamesNotInDir(relativePathname,
+			pd.params, dirTree)
+
+		if len(fileParams) == 0 {
 			return nil
 		}
 
@@ -238,7 +252,7 @@ func generateBuildFilesFromProjectTemplate(templateDir,
 
 		filesUpdated, err := generateFilesFromProjectFileTemplate(
 			projectDir, relativePathname, templateContents,
-			sourceFileInfo.Mode(), pd, dirTree)
+			sourceFileInfo.Mode(), pd, dirTree, fileParams)
 		if err != nil {
 			return err
 		}
@@ -272,13 +286,16 @@ func generateBuildFilesFromEmbeddedTemplate(t []embeddedTemplateFile,
 	}
 
 	for _, fileInfo := range append(t, commonTemplateFiles...) {
-		if dirTree.hasFile(fileInfo.pathname) {
+		fileParams := pathnamesNotInDir(fileInfo.pathname,
+			pd.params, dirTree)
+
+		if len(fileParams) == 0 {
 			continue
 		}
 
 		filesUpdated, err := generateFilesFromProjectFileTemplate(
 			projectDir, fileInfo.pathname, fileInfo.contents,
-			fileInfo.mode, pd, dirTree)
+			fileInfo.mode, pd, dirTree, fileParams)
 		if err != nil {
 			return false, err
 		}

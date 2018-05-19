@@ -111,7 +111,7 @@ type filenameAndContents struct {
 
 func parseAndExecuteTemplate(templateName string, templateContents []byte,
 	funcMap template.FuncMap, associatedTemplates map[string]string,
-	params templateParams) ([]filenameAndContents, error) {
+	fileParams []outputFileParams) ([]filenameAndContents, error) {
 
 	// Parse the template file. The parsed template will be
 	// reused multiple times if expandPathnameTemplate()
@@ -131,7 +131,7 @@ func parseAndExecuteTemplate(templateName string, templateContents []byte,
 
 	var result []filenameAndContents
 
-	for _, fp := range expandPathnameTemplate(templateName, params) {
+	for _, fp := range fileParams {
 		buffer := bytes.NewBufferString("")
 
 		if err := t.Execute(buffer, fp.params); err != nil {
@@ -149,7 +149,8 @@ var templateErrorMarker = "AFTMPLERR"
 
 func executePackageFileTemplate(templateName string,
 	templateContents []byte, pd *packageDefinition,
-	dirTree *directoryTree) ([]filenameAndContents, error) {
+	dirTree *directoryTree,
+	fileParams []outputFileParams) ([]filenameAndContents, error) {
 
 	funcMap := template.FuncMap{
 		"Error": func(errorMessage string) (string, error) {
@@ -161,7 +162,7 @@ func executePackageFileTemplate(templateName string,
 		}}
 
 	return parseAndExecuteTemplate(templateName, templateContents,
-		funcMap, commonDefinitions, pd.params)
+		funcMap, commonDefinitions, fileParams)
 }
 
 func writeGeneratedFiles(targetDir string, outputFiles []filenameAndContents,
@@ -218,10 +219,11 @@ func writeGeneratedFiles(targetDir string, outputFiles []filenameAndContents,
 
 func generateFilesFromProjectFileTemplate(projectDir, templateName string,
 	templateContents []byte, templateFileMode os.FileMode,
-	pd *packageDefinition, dirTree *directoryTree) (bool, error) {
+	pd *packageDefinition, dirTree *directoryTree,
+	fileParams []outputFileParams) (bool, error) {
 
 	outputFiles, err := executePackageFileTemplate(templateName,
-		templateContents, pd, dirTree)
+		templateContents, pd, dirTree, fileParams)
 
 	if err != nil {
 		if err, ok := err.(template.ExecError); ok {

@@ -57,9 +57,12 @@ func generateWorkspaceFiles(ws *workspace, pi *packageIndex,
 	}
 
 	for _, templateFile := range workspaceTemplate {
+		fileParams := expandPathnameTemplate(templateFile.pathname,
+			params)
+
 		outputFiles, err := parseAndExecuteTemplate(
 			templateFile.pathname, templateFile.contents,
-			nil, nil, params)
+			nil, nil, fileParams)
 		if err != nil {
 			return err
 		}
