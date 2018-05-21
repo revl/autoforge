@@ -24,16 +24,16 @@ config.h: $(CONFIG_HEADER)
 		$(CONFIG_HEADER) > $@
 
 install-data-hook: config.h
-	$(INSTALL_DATA) config.h $(DESTDIR)$(pkgincludedir)/config.h
+	$(INSTALL_DATA) config.h "$(DESTDIR)$(pkgincludedir)/config.h"
 
 uninstall-hook:
-	rm -f $(DESTDIR)$(pkgincludedir)/config.h
-	rmdir $(DESTDIR)$(pkgincludedir) || true
+	rm -f "$(DESTDIR)$(pkgincludedir)/config.h"
+	rmdir "$(DESTDIR)$(pkgincludedir)" || true
 
 # For older versions of Automake.
 uninstall-local:
-	rm -f $(DESTDIR)$(pkgincludedir)/config.h
-	rmdir $(DESTDIR)$(pkgincludedir) || true
+	rm -f "$(DESTDIR)$(pkgincludedir)/config.h"
+	rmdir "$(DESTDIR)$(pkgincludedir)" || true
 
 CLEANFILES = config.h
 {{template "Snippet" .}}`)},
