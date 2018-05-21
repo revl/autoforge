@@ -64,14 +64,21 @@ func processAllFiles(sourceDir, targetDir string,
 	})
 }
 
+// directoryTree represents a directory structure.
+// The 'entries' map contains directory entries.
+// If an entry name resolves into nil, it's a file,
+// otherwise, it's a subtree.
 type directoryTree struct {
 	entries map[string]*directoryTree
 }
 
+// newDirectoryTree creates a new directory tree
+// consisting of an empty root directory.
 func newDirectoryTree() *directoryTree {
 	return &directoryTree{make(map[string]*directoryTree)}
 }
 
+// addFile adds the specified pathname to the directory tree.
 func (dirTree *directoryTree) addFile(filePath string) {
 	pathComponents := strings.Split(filePath, "/")
 
@@ -94,6 +101,8 @@ func (dirTree *directoryTree) addFile(filePath string) {
 	node.entries[pathComponents[nComp-1]] = nil
 }
 
+// hasFile() can be used to check for whether the specified
+// file is in the directory tree.
 func (dirTree *directoryTree) hasFile(filePath string) bool {
 	pathComponents := strings.Split(filePath, "/")
 
@@ -116,10 +125,12 @@ func (dirTree *directoryTree) hasFile(filePath string) bool {
 	return entryExists && entry == nil
 }
 
-func (dirTree *directoryTree) subtree(filePath string) *directoryTree {
+// subtree returns a pointer to the branch of the directory tree
+// rooted at the specified pathname.
+func (dirTree *directoryTree) subtree(pathname string) *directoryTree {
 	node := dirTree
 
-	for _, pathComponent := range strings.Split(filePath, "/") {
+	for _, pathComponent := range strings.Split(pathname, "/") {
 		if pathComponent == "." {
 			continue
 		}
