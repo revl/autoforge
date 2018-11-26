@@ -57,7 +57,7 @@ func initWorkspace() error {
 		return err
 	}
 
-	err = os.Mkdir(privateDir, os.FileMode(0775))
+	err = os.MkdirAll(privateDir, os.FileMode(0775))
 	if err != nil {
 		return err
 	}
