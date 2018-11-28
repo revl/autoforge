@@ -166,13 +166,22 @@ func (mtc *makefileTargetCollector) scriptTemplate(targetName,
 		logFileSuffix = "_" + projectTarget
 		projectTarget = " " + projectTarget
 	}
-	return fmt.Sprintf(`	@echo '[%[1]s] %%[1]s'
+
+	header := fmt.Sprintf(`	@echo '[%[1]s] %%[1]s'
 	@cd '`+mtc.relBuildDir+`/%%[1]s' && \
 	echo '--------------------------------' >> make%[2]s.log && \
 	date >> make%[2]s.log && \
 	echo '--------------------------------' >> make%[2]s.log && \
-	$(MAKE)%[3]s >> make%[2]s.log
-`, targetName, logFileSuffix, projectTarget)
+`, targetName, logFileSuffix)
+
+	cmd := "\t$(MAKE)" + projectTarget
+	if targetName == "check" {
+		cmd += " | tee -a make_check.log | grep '^FAIL'\n"
+	} else {
+		cmd += " >> make" + logFileSuffix + ".log\n"
+	}
+
+	return header + cmd
 }
 
 func (mtc *makefileTargetCollector) addBuildTargets() {
