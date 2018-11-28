@@ -176,7 +176,7 @@ func (mtc *makefileTargetCollector) scriptTemplate(targetName,
 
 	cmd := "\t$(MAKE)" + projectTarget
 	if targetName == "check" {
-		cmd += " | tee -a make_check.log | grep '^FAIL'\n"
+		cmd += "\n"
 	} else {
 		cmd += " >> make" + logFileSuffix + ".log\n"
 	}
