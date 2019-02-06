@@ -40,13 +40,6 @@ func main() {
 	// Use application name for the log prefix.
 	log.SetPrefix(appName + ": ")
 
-	// Handle panics by printing the error and exiting with return code 1.
-	defer func() {
-		if r := recover(); r != nil {
-			log.Fatal(r)
-		}
-	}()
-
 	// Parse and process command line arguments.
 	if rootCmd.Execute() != nil {
 		os.Exit(1)
