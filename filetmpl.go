@@ -158,7 +158,10 @@ func executePackageFileTemplate(templateName string,
 				pd.PackageName + ": " + errorMessage)
 		},
 		"Dir": func(root string) []string {
-			return dirTree.subtree(root).list()
+			if st := dirTree.subtree(root); st != nil {
+				return st.list()
+			}
+			return nil
 		}}
 
 	return parseAndExecuteTemplate(templateName, templateContents,
