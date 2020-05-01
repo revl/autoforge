@@ -145,7 +145,7 @@ AM_CONDITIONAL(DEBUG, [test "$enable_debug" = yes])
 
 AS_IF([test "$enable_debug" != yes],
 	[CXXFLAGS="$CXXFLAGS -O3"],
-[AC_DEFINE([DEBUG], 1, [Define to 1 to enable various runtime checks.])
+[CPPFLAGS="$CPPFLAGS -D{{VarNameUC .name}}_DEBUG"
 AS_IF([test "$GXX" = yes],
 	[CXXFLAGS="$CXXFLAGS -ggdb"],
 [test "$DIGITALCXX" = yes],
