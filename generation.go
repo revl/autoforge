@@ -24,17 +24,17 @@ func createConfigureHelpParser() configureHelpParser {
 		regexp.MustCompile(`^--([^\s\[=]+)([^\s]*)\s*(.*)$`),
 		createOptClassifier(),
 		map[string]struct{}{
-			"FEATURE":             struct{}{},
-			"PACKAGE":             struct{}{},
-			"aix-soname":          struct{}{},
-			"dependency-tracking": struct{}{},
-			"fast-install":        struct{}{},
-			"gnu-ld":              struct{}{},
-			"libtool-lock":        struct{}{},
-			"option-checking":     struct{}{},
-			"pkgconfigdir":        struct{}{},
-			"silent-rules":        struct{}{},
-			"sysroot":             struct{}{},
+			"FEATURE":             {},
+			"PACKAGE":             {},
+			"aix-soname":          {},
+			"dependency-tracking": {},
+			"fast-install":        {},
+			"gnu-ld":              {},
+			"libtool-lock":        {},
+			"option-checking":     {},
+			"pkgconfigdir":        {},
+			"silent-rules":        {},
+			"sysroot":             {},
 		}}
 }
 

@@ -14,7 +14,7 @@ var commonDefinitions = map[string]string{
 }
 
 var commonTemplateFiles = []embeddedTemplateFile{
-	embeddedTemplateFile{"autogen.sh", 0755,
+	{"autogen.sh", 0755,
 		[]byte(`#!/bin/sh
 
 {{template "FileHeader" . -}}
@@ -24,7 +24,7 @@ aclocal &&
 	automake --foreign --add-missing --copy && \
 	autoconf
 `)},
-	embeddedTemplateFile{"INSTALL", 0644,
+	{"INSTALL", 0644,
 		[]byte(`Basic Installation
 ==================
 
