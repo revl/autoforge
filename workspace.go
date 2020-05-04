@@ -93,7 +93,7 @@ func (ws *workspace) relativeToWorkspace(absPath string) string {
 }
 
 // pkgRootDirRelativeToWorkspace returns the pathname of the
-// directory with generated pacakge sources relative to the
+// directory with generated package sources relative to the
 // workspace directory.
 func (ws *workspace) pkgRootDirRelativeToWorkspace() string {
 	return ws.relativeToWorkspace(ws.generatedPkgRootDir())
