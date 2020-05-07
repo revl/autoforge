@@ -31,10 +31,6 @@ type packageDefinition struct {
 	params       templateParams
 }
 
-func (pd *packageDefinition) packageDir() string {
-	return filepath.Dir(pd.pathname)
-}
-
 type packageDefinitionList []*packageDefinition
 
 func getRequiredField(pathname string, params templateParams,

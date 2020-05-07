@@ -15,15 +15,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func bootstrapPackage(pd *packageDefinition) error {
+func bootstrapPackage(packageDir string, pd *packageDefinition) error {
 	fmt.Println("[bootstrap] " + pd.PackageName)
 
 	bootstrapCmd := exec.Command("./autogen.sh")
-	bootstrapCmd.Dir = pd.packageDir()
+	bootstrapCmd.Dir = packageDir
 	bootstrapCmd.Stdout = os.Stdout
 	bootstrapCmd.Stderr = os.Stderr
 	if err := bootstrapCmd.Run(); err != nil {
-		return errors.New(path.Join(bootstrapCmd.Dir,
+		return errors.New(path.Join(packageDir,
 			"autogen.sh") + ": " + err.Error())
 	}
 
@@ -52,8 +52,11 @@ func bootstrapPackages(args []string) error {
 		return err
 	}
 
+	pkgRootDir := ws.generatedPkgRootDir()
+
 	for _, pd := range selection {
-		err = bootstrapPackage(pd)
+		err = bootstrapPackage(
+			path.Join(pkgRootDir, pd.PackageName), pd)
 		if err != nil {
 			return err
 		}
