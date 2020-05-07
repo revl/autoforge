@@ -60,14 +60,6 @@ func loadWorkspace() (*workspace, error) {
 	return &workspace{workspaceDir, privateDir, &wp}, err
 }
 
-var pkgDirName = "packages"
-
-// generatedPkgRootDir returns the absolute pathname of the
-// directory where source files for Autotools are generated.
-func (ws *workspace) generatedPkgRootDir() string {
-	return path.Join(ws.absPrivateDir, pkgDirName)
-}
-
 // buildDir returns the absolute pathname of the directory
 // where the packages are configured and built.
 func (ws *workspace) buildDir() string {
@@ -92,11 +84,12 @@ func (ws *workspace) relativeToWorkspace(absPath string) string {
 	return relativeIfShorter(ws.absDir, absPath)
 }
 
-// pkgRootDirRelativeToWorkspace returns the pathname of the
+// packageDirRelativeToWorkspace returns the pathname of the
 // directory with generated package sources relative to the
 // workspace directory.
-func (ws *workspace) pkgRootDirRelativeToWorkspace() string {
-	return ws.relativeToWorkspace(ws.generatedPkgRootDir())
+func (ws *workspace) packageDirRelativeToWorkspace(
+	pd *packageDefinition) string {
+	return ws.relativeToWorkspace(pd.packageDir())
 }
 
 // buildDirRelativeToWorkspace returns the pathname of the

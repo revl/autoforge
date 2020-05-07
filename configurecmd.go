@@ -86,14 +86,14 @@ func (ce *configureEnv) makeEnv(pd *packageDefinition) []string {
 		pkgConfigPathVarName+"="+pkgConfigPath)
 }
 
-func configurePackage(installDir, pkgRootDir string, pd *packageDefinition,
+func configurePackage(installDir string, pd *packageDefinition,
 	cfgEnv *configureEnv, conftab *Conftab) error {
 	fmt.Println("[configure] " + pd.PackageName)
 
 	pkgBuildDir := path.Join(cfgEnv.buildDir, pd.PackageName)
 
 	configurePathname, err := filepath.Rel(pkgBuildDir,
-		path.Join(pkgRootDir, pd.PackageName, "configure"))
+		path.Join(pd.packageDir(), "configure"))
 	if err != nil {
 		return err
 	}
@@ -163,11 +163,9 @@ func configurePackages(args []string) error {
 	}
 
 	installDir := ws.installDir()
-	pkgRootDir := ws.generatedPkgRootDir()
 
 	for _, pd := range selection {
-		err := configurePackage(installDir, pkgRootDir, pd,
-			cfgEnv, conftab)
+		err := configurePackage(installDir, pd, cfgEnv, conftab)
 		if err != nil {
 			return err
 		}

@@ -6,10 +6,7 @@ package main
 
 import (
 	"errors"
-	"fmt"
-	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -21,8 +18,7 @@ type fileProcessor func(sourcePathname, relativePathname string,
 // processAllFiles calls the processFile() function for every file in
 // sourceDir. All hidden files and all files in hidden subdirectories
 // as well as package definition files are skipped.
-func processAllFiles(sourceDir, targetDir string,
-	processFile fileProcessor) error {
+func processAllFiles(sourceDir string, processFile fileProcessor) error {
 
 	sourceDir = filepath.Clean(sourceDir)
 	sourceDirWithSlash := sourceDir + "/"
@@ -176,53 +172,21 @@ func (dirTree *directoryTree) list() []string {
 	return list
 }
 
-func linkFilesFromSourceDir(pd *packageDefinition,
-	projectDir string) (*directoryTree, bool, error) {
+func makePackageDirTree(pd *packageDefinition) (*directoryTree, error) {
 	dirTree := newDirectoryTree()
-	sourceDir := filepath.Dir(pd.pathname)
-	changesMade := false
 
-	linkFile := func(sourcePathname, relativePathname string,
+	addFileToDirTree := func(sourcePathname, relativePathname string,
 		sourceFileInfo os.FileInfo) error {
 		dirTree.addFile(relativePathname)
-		targetPathname := path.Join(projectDir, relativePathname)
-		targetFileInfo, err := os.Lstat(targetPathname)
-		if err == nil {
-			if (targetFileInfo.Mode() & os.ModeSymlink) != 0 {
-				originalLink, err := os.Readlink(targetPathname)
-
-				if err != nil {
-					return err
-				}
-
-				if originalLink == sourcePathname {
-					return nil
-				}
-			}
-
-			if err = os.Remove(targetPathname); err != nil {
-				return err
-			}
-		}
-
-		fmt.Println("L", targetPathname)
-
-		if err = os.MkdirAll(filepath.Dir(targetPathname),
-			os.ModePerm); err != nil {
-			return err
-		}
-
-		changesMade = true
-
-		return os.Symlink(sourcePathname, targetPathname)
+		return nil
 	}
 
-	err := processAllFiles(sourceDir, projectDir, linkFile)
+	err := processAllFiles(pd.packageDir(), addFileToDirTree)
 
-	return dirTree, changesMade, err
+	return dirTree, err
 }
 
-func pathnamesNotInDir(pathnameTemplate string, params templateParams,
+func pathnamesNotInDirTree(pathnameTemplate string, params templateParams,
 	dirTree *directoryTree) []outputFileParams {
 	var fileParams []outputFileParams
 	for _, fp := range expandPathnameTemplate(pathnameTemplate, params) {
@@ -231,51 +195,6 @@ func pathnamesNotInDir(pathnameTemplate string, params templateParams,
 		}
 	}
 	return fileParams
-}
-
-// generateBuildFilesFromProjectTemplate generates an output file inside
-// 'projectDir' with the same relative pathname as the respective source
-// file in 'templateDir'.
-func generateBuildFilesFromProjectTemplate(templateDir,
-	projectDir string, pd *packageDefinition) (bool, error) {
-
-	dirTree, changesMade, err := linkFilesFromSourceDir(pd, projectDir)
-	if err != nil {
-		return false, err
-	}
-
-	generateFile := func(sourcePathname, relativePathname string,
-		sourceFileInfo os.FileInfo) error {
-		fileParams := pathnamesNotInDir(relativePathname,
-			pd.params, dirTree)
-
-		if len(fileParams) == 0 {
-			return nil
-		}
-
-		// Read the contents of the template file. Cannot use
-		// template.ParseFiles() because a Funcs() call must be
-		// made between New() and Parse().
-		templateContents, err := ioutil.ReadFile(sourcePathname)
-		if err != nil {
-			return err
-		}
-
-		filesUpdated, err := generateFilesFromProjectFileTemplate(
-			projectDir, relativePathname, templateContents,
-			sourceFileInfo.Mode(), pd, dirTree, fileParams)
-		if err != nil {
-			return err
-		}
-		if filesUpdated {
-			changesMade = true
-		}
-		return nil
-	}
-
-	err = processAllFiles(templateDir, projectDir, generateFile)
-
-	return changesMade, err
 }
 
 // embeddedTemplateFile defines the file mode and the contents
@@ -289,23 +208,30 @@ type embeddedTemplateFile struct {
 // generateBuildFilesFromEmbeddedTemplate generates project build
 // files from a built-in template pointed to by the 't' parameter.
 func generateBuildFilesFromEmbeddedTemplate(t []embeddedTemplateFile,
-	projectDir string, pd *packageDefinition) (bool, error) {
+	pd *packageDefinition) (bool, error) {
 
-	dirTree, changesMade, err := linkFilesFromSourceDir(pd, projectDir)
+	dirTree, err := makePackageDirTree(pd)
 	if err != nil {
 		return false, err
 	}
 
+	changesMade := false
+
 	for _, fileInfo := range append(t, commonTemplateFiles...) {
-		fileParams := pathnamesNotInDir(fileInfo.pathname,
-			pd.params, dirTree)
+
+		var fileParams []outputFileParams
+
+		for _, fp := range expandPathnameTemplate(fileInfo.pathname,
+			pd.params) {
+			fileParams = append(fileParams, fp)
+		}
 
 		if len(fileParams) == 0 {
 			continue
 		}
 
 		filesUpdated, err := generateFilesFromProjectFileTemplate(
-			projectDir, fileInfo.pathname, fileInfo.contents,
+			fileInfo.pathname, fileInfo.contents,
 			fileInfo.mode, pd, dirTree, fileParams)
 		if err != nil {
 			return false, err
@@ -318,19 +244,20 @@ func generateBuildFilesFromEmbeddedTemplate(t []embeddedTemplateFile,
 	return changesMade, nil
 }
 
-func (pd *packageDefinition) getPackageGeneratorFunc(
-	packageDir string) (func() (bool, error), error) {
+func (pd *packageDefinition) getPackageGeneratorFunc() (
+	func() (bool, error), error) {
+
 	switch pd.packageType {
 	case "app", "application":
 		return func() (bool, error) {
 			return generateBuildFilesFromEmbeddedTemplate(
-				appTemplate, packageDir, pd)
+				appTemplate, pd)
 		}, nil
 
 	case "lib", "library":
 		return func() (bool, error) {
 			return generateBuildFilesFromEmbeddedTemplate(
-				libTemplate, packageDir, pd)
+				libTemplate, pd)
 		}, nil
 
 	default:

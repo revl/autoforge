@@ -112,26 +112,22 @@ func (helpParser *configureHelpParser) parseOptions(packageDir string) (
 
 func generateAndBootstrapPackages(ws *workspace, pi *packageIndex,
 	selection packageDefinitionList, conftab *Conftab) error {
-	pkgRootDir := ws.generatedPkgRootDir()
 
 	type packageAndGenerator struct {
-		pd         *packageDefinition
-		packageDir string
-		generator  func() (bool, error)
+		pd        *packageDefinition
+		generator func() (bool, error)
 	}
 
 	var packagesAndGenerators []packageAndGenerator
 
 	for _, pd := range selection {
-		packageDir := path.Join(pkgRootDir, pd.PackageName)
-
-		generator, err := pd.getPackageGeneratorFunc(packageDir)
+		generator, err := pd.getPackageGeneratorFunc()
 		if err != nil {
 			return err
 		}
 
 		packagesAndGenerators = append(packagesAndGenerators,
-			packageAndGenerator{pd, packageDir, generator})
+			packageAndGenerator{pd, generator})
 	}
 
 	var packagesToBootstrap []packageAndGenerator
@@ -143,7 +139,7 @@ func generateAndBootstrapPackages(ws *workspace, pi *packageIndex,
 			return err
 		}
 
-		_, err = os.Stat(path.Join(pg.packageDir, "configure"))
+		_, err = os.Stat(path.Join(pg.pd.packageDir(), "configure"))
 
 		if changed || os.IsNotExist(err) {
 			packagesToBootstrap = append(packagesToBootstrap, pg)
@@ -153,7 +149,7 @@ func generateAndBootstrapPackages(ws *workspace, pi *packageIndex,
 	if !flags.noBootstrap {
 		// Bootstrap the selected packages.
 		for _, pg := range packagesToBootstrap {
-			err := bootstrapPackage(pg.packageDir, pg.pd)
+			err := bootstrapPackage(pg.pd)
 			if err != nil {
 				return err
 			}
@@ -162,7 +158,8 @@ func generateAndBootstrapPackages(ws *workspace, pi *packageIndex,
 		helpParser := createConfigureHelpParser()
 
 		for _, pg := range packagesAndGenerators {
-			options, err := helpParser.parseOptions(pg.packageDir)
+			options, err := helpParser.parseOptions(
+				pg.pd.packageDir())
 			if err != nil {
 				return err
 			}

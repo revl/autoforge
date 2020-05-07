@@ -220,7 +220,7 @@ func writeGeneratedFiles(targetDir string, outputFiles []filenameAndContents,
 	return changesMade, nil
 }
 
-func generateFilesFromProjectFileTemplate(projectDir, templateName string,
+func generateFilesFromProjectFileTemplate(templateName string,
 	templateContents []byte, templateFileMode os.FileMode,
 	pd *packageDefinition, dirTree *directoryTree,
 	fileParams []outputFileParams) (bool, error) {
@@ -240,5 +240,6 @@ func generateFilesFromProjectFileTemplate(projectDir, templateName string,
 		return false, err
 	}
 
-	return writeGeneratedFiles(projectDir, outputFiles, templateFileMode)
+	return writeGeneratedFiles(pd.packageDir(),
+		outputFiles, templateFileMode)
 }

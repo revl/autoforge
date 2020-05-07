@@ -20,7 +20,6 @@ type target struct {
 type makefileTargetCollector struct {
 	ws               *workspace
 	relBuildDir      string
-	pkgRootDir       string
 	selection        packageDefinitionList
 	selectedDeps     map[*packageDefinition]packageDefinitionList
 	globalTargetDeps []string
@@ -50,7 +49,6 @@ func createMakefileTargets(ws *workspace, selection packageDefinitionList,
 
 	mtc := &makefileTargetCollector{ws,
 		ws.buildDirRelativeToWorkspace(),
-		ws.pkgRootDirRelativeToWorkspace(),
 		selection, selectedDeps, globalTargetDeps, nil}
 
 	mtc.addHelpTarget()
@@ -69,7 +67,8 @@ func (mtc *makefileTargetCollector) makefileFor(pd *packageDefinition) string {
 }
 
 func (mtc *makefileTargetCollector) configureFor(pd *packageDefinition) string {
-	return path.Join(mtc.pkgRootDir, pd.PackageName, "configure")
+	return path.Join(
+		mtc.ws.packageDirRelativeToWorkspace(pd), "configure")
 }
 
 func (mtc *makefileTargetCollector) addTarget(name string, phony bool,
