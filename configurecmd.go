@@ -12,7 +12,6 @@ import (
 	"os"
 	"os/exec"
 	"path"
-	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -90,15 +89,11 @@ func configurePackage(installDir, pkgRootDir string, pd *packageDefinition,
 	cfgEnv *configureEnv, conftab *Conftab) error {
 	fmt.Println("[configure] " + pd.PackageName)
 
+	configurePathname := path.Join(pkgRootDir, pd.PackageName, "configure")
+
 	pkgBuildDir := path.Join(cfgEnv.buildDir, pd.PackageName)
 
-	configurePathname, err := filepath.Rel(pkgBuildDir,
-		path.Join(pkgRootDir, pd.PackageName, "configure"))
-	if err != nil {
-		return err
-	}
-
-	err = os.MkdirAll(pkgBuildDir, os.FileMode(0775))
+	err := os.MkdirAll(pkgBuildDir, os.FileMode(0775))
 	if err != nil {
 		return nil
 	}
