@@ -21,9 +21,7 @@ type fileProcessor func(sourcePathname, relativePathname string,
 // processAllFiles calls the processFile() function for every file in
 // sourceDir. All hidden files and all files in hidden subdirectories
 // as well as package definition files are skipped.
-func processAllFiles(sourceDir, targetDir string,
-	processFile fileProcessor) error {
-
+func processAllFiles(sourceDir string, processFile fileProcessor) error {
 	sourceDir = filepath.Clean(sourceDir)
 	sourceDirWithSlash := sourceDir + "/"
 
@@ -217,7 +215,7 @@ func linkFilesFromSourceDir(pd *packageDefinition,
 		return os.Symlink(sourcePathname, targetPathname)
 	}
 
-	err := processAllFiles(sourceDir, projectDir, linkFile)
+	err := processAllFiles(sourceDir, linkFile)
 
 	return dirTree, changesMade, err
 }
@@ -273,7 +271,7 @@ func generateBuildFilesFromProjectTemplate(templateDir,
 		return nil
 	}
 
-	err = processAllFiles(templateDir, projectDir, generateFile)
+	err = processAllFiles(templateDir, generateFile)
 
 	return changesMade, err
 }
