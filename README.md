@@ -1,7 +1,6 @@
 ----
 
-_This project is under active development, but it's far from being ready.
-Please do not attempt to make use of it until this notice disappears._
+_This project is experimental, unfinished, and all but abandoned._
 
 ----
 
